@@ -130,7 +130,7 @@ def main() -> int:
     for dependency in sorted(dependencies, key=str):
         resolved = dependency.resolve()
         try:
-            relative = resolved.relative_to(root_resolved)
+            relative = dependency.absolute().relative_to(root_resolved)
             guest_path = "/" + relative.as_posix()
             source = resolved
         except ValueError:
