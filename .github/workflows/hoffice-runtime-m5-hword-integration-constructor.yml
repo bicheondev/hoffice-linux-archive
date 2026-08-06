@@ -1,0 +1,31 @@
+name: HOffice runtime M5 HWord offscreen integration constructor
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'proofs/m5-hword-offscreen-integration-create.json'
+      - '.github/workflows/hoffice-runtime-m5-hword-integration-constructor.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m5-integration-constructor-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    uses: ./.github/workflows/hoffice-runtime-guest-symbol-probe.yml
+    with:
+      predecessor_proof: proofs/m5-hword-offscreen-integration-create.json
+      symbol_regex: QOffscreenIntegrationC1E
+      label: Qt offscreen integration constructor
+      milestone: M5-offscreen-integration-constructor
+      diagnostic_path: diagnostics/m5-hword-integration-constructor-latest.json
+      proof_path: proofs/m5-hword-offscreen-integration-constructor.json
+      trace_limit: 56000
+      run_seconds: 30
+      require_pipe2: true
