@@ -131,7 +131,7 @@ jobs:
             build/stderr.txt
           grep -Fx 'HRT M5: guest observed visible AppKit window' \
             build/stdout.txt
-          grep -E 'hrt-m5: AppKit window visible request=[1-9][0-9]* '
+          grep -E 'hrt-m5: AppKit window visible request=[1-9][0-9]* ' \
             build/stderr.txt
           test -s build/m5-window.json
           test -s build/m5-window.png
