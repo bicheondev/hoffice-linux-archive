@@ -1,0 +1,228 @@
+name: HOffice runtime bundled Qt symbol inventory
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m5-qt-symbol-inventory.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-bundled-qt-symbols-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN_ID: '31102898765'
+
+jobs:
+  inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Verify and extract the packaged Qt libraries
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends binutils file
+          mkdir -p build/root build/report diagnostics
+          expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)
+          actual=$(sha256sum build/input/hword-rootfs.tar.gz | awk '{print $1}')
+          test "$actual" = "$expected"
+          tar -tzf build/input/hword-rootfs.tar.gz \
+            | grep -E '/libQt5(Core|Gui|Widgets)\.so(\.|$)' \
+            | tee build/report/qt-library-archive-paths.txt
+          tar -xzf build/input/hword-rootfs.tar.gz -C build/root \
+            --wildcards \
+            './opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so*' \
+            './opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so*' \
+            './opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so*'
+          find build/root -type f -name 'libQt5*.so*' -print \
+            | sort | tee build/report/qt-library-files.txt
+          test "$(wc -l < build/report/qt-library-files.txt)" -ge 3
+
+      - name: Build exact per-library symbol inventories
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import subprocess
+
+          root = pathlib.Path('build/root')
+          candidates = sorted(root.rglob('libQt5*.so*'))
+          selected = {}
+          for component in ('Core', 'Gui', 'Widgets'):
+              regular = [path for path in candidates
+                         if path.is_file() and
+                         path.name.startswith(f'libQt5{component}.so')]
+              if not regular:
+                  raise SystemExit(f'no regular Qt {component} library')
+              regular.sort(key=lambda path: (path.name.count('.'),
+                                             len(path.name)), reverse=True)
+              selected[component] = regular[0]
+
+          patterns = {
+              'Core': (
+                  'QCoreApplication', 'QEventLoop', 'QAbstractEventDispatcher',
+                  'QFactoryLoader', 'QPluginLoader', 'QLibraryPrivate'),
+              'Gui': (
+                  'QGuiApplication', 'QPlatformIntegrationFactory',
+                  'QPlatformIntegration', 'QWindowPrivate', 'QWindow::',
+                  'QBackingStore', 'QPlatformBackingStore'),
+              'Widgets': (
+                  'QApplication', 'QWidgetPrivate', 'QWidget::',
+                  'QMainWindow', 'QDialog'),
+          }
+
+          libraries = {}
+          for component, path in selected.items():
+              relative = '/' + str(path.relative_to(root))
+              raw_path = pathlib.Path(
+                  f'build/report/qt-{component.lower()}-nm-posix.txt')
+              completed = subprocess.run([
+                  'nm', '-a', '--defined-only', '--format=posix', str(path)
+              ], text=True, stdout=subprocess.PIPE,
+                 stderr=subprocess.PIPE, check=True)
+              raw_path.write_text(completed.stdout)
+              records = []
+              for line in completed.stdout.splitlines():
+                  parts = line.rsplit(maxsplit=3)
+                  if len(parts) < 3:
+                      continue
+                  if len(parts) == 3:
+                      name, symbol_type, value = parts
+                      size = None
+                  else:
+                      name, symbol_type, value, size = parts
+                  demangled_result = subprocess.run(
+                      ['c++filt', '-n', name], text=True,
+                      stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                      check=False)
+                  demangled = demangled_result.stdout.rstrip('\n') or name
+                  if not any(token in demangled
+                             for token in patterns[component]):
+                      continue
+                  records.append({
+                      'mangled': name,
+                      'demangled': demangled,
+                      'type': symbol_type,
+                      'value_hex': value,
+                      'size_hex': size,
+                  })
+              records.sort(key=lambda item: (
+                  int(item['value_hex'], 16) if item['value_hex'] else 0,
+                  item['mangled']))
+              libraries[component] = {
+                  'guest_path': relative,
+                  'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+                  'matching_symbol_count': len(records),
+                  'symbols': records,
+              }
+
+          def search(component, *needles):
+              return [record for record in libraries[component]['symbols']
+                      if all(needle in record['demangled']
+                             for needle in needles)]
+
+          groups = {
+              'qcoreapplication_exec': search(
+                  'Core', 'QCoreApplication::exec'),
+              'qeventloop_exec': search('Core', 'QEventLoop::exec'),
+              'qfactoryloader_instances': search(
+                  'Core', 'QFactoryLoader::instance'),
+              'qgui_create_platform_integration': search(
+                  'Gui', 'QGuiApplicationPrivate',
+                  'createPlatformIntegration'),
+              'platform_integration_factory_create': search(
+                  'Gui', 'QPlatformIntegrationFactory::create'),
+              'qwindow_private_create': search(
+                  'Gui', 'QWindowPrivate::create'),
+              'qwindow_set_visible': search(
+                  'Gui', 'QWindow::setVisible'),
+              'qbackingstore_begin_paint': search(
+                  'Gui', 'QBackingStore::beginPaint'),
+              'qbackingstore_end_paint': search(
+                  'Gui', 'QBackingStore::endPaint'),
+              'qbackingstore_flush': search(
+                  'Gui', 'QBackingStore::flush'),
+              'qapplication_exec': search(
+                  'Widgets', 'QApplication::exec'),
+              'qwidget_private_create': search(
+                  'Widgets', 'QWidgetPrivate::create'),
+              'qwidget_show': search('Widgets', 'QWidget::show'),
+              'qmainwindow_constructors': search(
+                  'Widgets', 'QMainWindow::QMainWindow'),
+          }
+          inventory = {
+              'schema': 1,
+              'source_rootfs_run': '${{ env.SOURCE_RUN_ID }}',
+              'libraries': libraries,
+              'method_groups': groups,
+          }
+          pathlib.Path('diagnostics/qt-runtime-symbol-inventory.json').write_text(
+              json.dumps(inventory, indent=2) + '\n')
+          lines = []
+          for component, data in libraries.items():
+              lines.extend([
+                  f'[{component}] {data["guest_path"]}',
+                  f'sha256: {data["sha256"]}',
+                  f'matching symbols: {data["matching_symbol_count"]}',
+                  '',
+              ])
+              for record in data['symbols']:
+                  lines.append(
+                      f"{record['value_hex']} {record['type']} "
+                      f"{record['mangled']}\n    {record['demangled']}")
+              lines.append('')
+          pathlib.Path('diagnostics/qt-runtime-symbol-inventory.txt').write_text(
+              '\n'.join(lines) + '\n')
+          print(json.dumps({key: len(value)
+                            for key, value in groups.items()}, indent=2))
+
+          assert groups['qcoreapplication_exec'] or groups['qeventloop_exec']
+          assert groups['qgui_create_platform_integration']
+          assert groups['platform_integration_factory_create']
+          assert groups['qwindow_private_create']
+          assert groups['qbackingstore_flush']
+          assert groups['qwidget_private_create']
+          PY
+
+      - name: Commit the exact bundled Qt inventory
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/qt-runtime-symbol-inventory.json \
+                  diagnostics/qt-runtime-symbol-inventory.txt
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: lock exact bundled Qt runtime symbols [skip ci]'
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git push origin HEAD:codex/hoffice-runtime-from-scratch
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-bundled-qt-symbol-inventory
+          path: |
+            diagnostics/qt-runtime-symbol-inventory.json
+            diagnostics/qt-runtime-symbol-inventory.txt
+            build/report
+          if-no-files-found: warn
+          retention-days: 30
