@@ -5,6 +5,8 @@ on:
     branches: [codex/hoffice-runtime-from-scratch]
     paths:
       - 'proofs/m2-glibc-bootstrap.json'
+      - 'runtime/m3/**'
+      - '.github/workflows/hoffice-runtime-m3-hword.yml'
   workflow_dispatch:
 
 permissions:
@@ -20,6 +22,8 @@ env:
   RELEASE_TAG: linux-11.20-series
   EXPECTED_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
   HWORD_GUEST: /opt/hnc/hoffice11/Bin/hword
+  LEGACY_SSL_VERSION: 1.1.1f-1ubuntu2.24
+  LEGACY_SSL_SHA256: 7cf39d70a639017d1dd7c8d36daa2258063608688e449fddf40ffdd46f992a78
 
 jobs:
   build-hword-sysroot:
@@ -33,19 +37,21 @@ jobs:
           test -f proofs/m2-glibc-bootstrap.json
           grep -F '"status": "PASS"' proofs/m2-glibc-bootstrap.json
 
-      - name: Install ELF collection tools
+      - name: Install ELF collection and HWord compatibility libraries
         run: |
           set -euxo pipefail
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            binutils file zstd python3
+            binutils file zstd python3 ca-certificates \
+            libglu1-mesa libharfbuzz-icu0
 
       - name: Download and verify the exact HOffice package
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euxo pipefail
-          mkdir -p work/deb work/full-root build/hword-rootfs build/report
+          mkdir -p work/deb work/full-root work/compat \
+                   build/hword-rootfs build/report
           gh release download "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --pattern "$ASSET_NAME" \
@@ -61,6 +67,35 @@ jobs:
             | tee build/report/hword-program-headers.txt
           readelf -dW "work/full-root$HWORD_GUEST" \
             | tee build/report/hword-dynamic.txt
+
+      - name: Add pinned OpenSSL 1.1 ABI libraries
+        run: |
+          set -euxo pipefail
+          cat <<'EOF' | sudo tee /etc/apt/sources.list.d/hrt-focal-compat.list
+          deb [arch=amd64 trusted=yes] http://archive.ubuntu.com/ubuntu focal main
+          deb [arch=amd64 trusted=yes] http://archive.ubuntu.com/ubuntu focal-updates main
+          deb [arch=amd64 trusted=yes] http://security.ubuntu.com/ubuntu focal-security main
+          EOF
+          sudo apt-get update
+          (
+            cd work/compat
+            apt-get download "libssl1.1=$LEGACY_SSL_VERSION"
+          )
+          ssl_deb=$(find work/compat -maxdepth 1 \
+            -name 'libssl1.1_*_amd64.deb' -print -quit)
+          test -n "$ssl_deb"
+          printf '%s  %s\n' "$LEGACY_SSL_SHA256" "$ssl_deb" \
+            | sha256sum --check -
+          test "$(dpkg-deb --field "$ssl_deb" Package)" = libssl1.1
+          test "$(dpkg-deb --field "$ssl_deb" Version)" = "$LEGACY_SSL_VERSION"
+          test "$(dpkg-deb --field "$ssl_deb" Architecture)" = amd64
+          dpkg-deb --extract "$ssl_deb" work/full-root
+          {
+            dpkg-deb --field "$ssl_deb" Package Version Architecture
+            sha256sum "$ssl_deb"
+          } | tee build/report/legacy-openssl-lock.txt
+          test -f work/full-root/usr/lib/x86_64-linux-gnu/libssl.so.1.1
+          test -f work/full-root/usr/lib/x86_64-linux-gnu/libcrypto.so.1.1
 
       - name: Collect recursive HWord ELF dependency sysroot
         run: |
