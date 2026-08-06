@@ -12,6 +12,7 @@
 #define SELFMAG 4
 
 #define ET_EXEC 2
+#define ET_DYN 3
 #define EM_X86_64 62
 #define PT_LOAD 1
 #define PF_X 1
