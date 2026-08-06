@@ -207,6 +207,97 @@ static int64_t host_vector_io_bridge(int fd, const LinuxIovec *vectors,
         "async-signal-safe getrandom bridge",
     )
 
+    translated_clock = r'''static int translate_linux_clock_id(int linux_clock,
+                                    clockid_t *host_clock) {
+    switch (linux_clock) {
+        case 0: /* Linux CLOCK_REALTIME */
+            *host_clock = CLOCK_REALTIME;
+            return 0;
+        case 1: /* Linux CLOCK_MONOTONIC */
+            *host_clock = CLOCK_MONOTONIC;
+            return 0;
+        case 2: /* Linux CLOCK_PROCESS_CPUTIME_ID */
+#ifdef CLOCK_PROCESS_CPUTIME_ID
+            *host_clock = CLOCK_PROCESS_CPUTIME_ID;
+            return 0;
+#else
+            return -LINUX_EINVAL;
+#endif
+        case 3: /* Linux CLOCK_THREAD_CPUTIME_ID */
+#ifdef CLOCK_THREAD_CPUTIME_ID
+            *host_clock = CLOCK_THREAD_CPUTIME_ID;
+            return 0;
+#else
+            return -LINUX_EINVAL;
+#endif
+        case 4: /* Linux CLOCK_MONOTONIC_RAW */
+#ifdef CLOCK_MONOTONIC_RAW
+            *host_clock = CLOCK_MONOTONIC_RAW;
+#else
+            *host_clock = CLOCK_MONOTONIC;
+#endif
+            return 0;
+        case 5: /* Linux CLOCK_REALTIME_COARSE */
+            *host_clock = CLOCK_REALTIME;
+            return 0;
+        case 6: /* Linux CLOCK_MONOTONIC_COARSE */
+            *host_clock = CLOCK_MONOTONIC;
+            return 0;
+        case 7: /* Linux CLOCK_BOOTTIME */
+#ifdef CLOCK_UPTIME_RAW
+            *host_clock = CLOCK_UPTIME_RAW;
+#else
+            *host_clock = CLOCK_MONOTONIC;
+#endif
+            return 0;
+        default:
+            return -LINUX_EINVAL;
+    }
+}
+
+static int64_t bridge_clock_gettime(int clock_id,
+                                    LinuxTimespec *guest_time) {
+    if (guest_time == NULL) return -LINUX_EFAULT;
+    clockid_t host_clock;
+    int translation = translate_linux_clock_id(clock_id, &host_clock);
+    if (translation != 0) return translation;
+
+    uintptr_t guest = switch_to_host_context();
+    struct timespec host_time;
+    errno = 0;
+    int result = clock_gettime(host_clock, &host_time);
+    int saved_errno = errno;
+    if (result == 0) {
+        guest_time->tv_sec = (int64_t)host_time.tv_sec;
+        guest_time->tv_nsec = (int64_t)host_time.tv_nsec;
+    }
+    restore_guest_context(guest);
+    return linux_host_result((int64_t)result, saved_errno);
+}
+'''
+    old_clock = '''static int64_t bridge_clock_gettime(int clock_id,
+                                    LinuxTimespec *guest_time) {
+    if (guest_time == NULL) return -LINUX_EFAULT;
+    uintptr_t guest = switch_to_host_context();
+    struct timespec host_time;
+    errno = 0;
+    int result = clock_gettime((clockid_t)clock_id, &host_time);
+    int saved_errno = errno;
+    if (result == 0) {
+        guest_time->tv_sec = (int64_t)host_time.tv_sec;
+        guest_time->tv_nsec = (int64_t)host_time.tv_nsec;
+    }
+    restore_guest_context(guest);
+    return linux_host_result((int64_t)result, saved_errno);
+}
+'''
+    text = replace_once(
+        text,
+        old_clock,
+        translated_clock,
+        "Linux-to-Darwin clock translation",
+    )
+
     vector_cases = r'''        case LINUX_SYS_READV:
             result = host_vector_io_bridge(
                 (int)state->__rdi,
