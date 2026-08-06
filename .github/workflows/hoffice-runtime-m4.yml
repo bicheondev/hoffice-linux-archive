@@ -31,7 +31,7 @@ jobs:
           set -euxo pipefail
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            binutils file jq libglu1-mesa
+            binutils file jq libglu1-mesa libharfbuzz-icu0
       - name: Download and verify the exact HOffice package
         env:
           GH_TOKEN: ${{ github.token }}
