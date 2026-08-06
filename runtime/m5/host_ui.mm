@@ -274,7 +274,8 @@ void hrt_host_ui_run(void *stack_pointer, void *entry_point) {
         dispatch_resume(g_request_source);
         [application finishLaunching];
 
-        HrtGuestLaunch *launch = malloc(sizeof(*launch));
+        HrtGuestLaunch *launch =
+            static_cast<HrtGuestLaunch *>(malloc(sizeof(*launch)));
         if (launch == NULL) fatal("allocate guest launch context");
         launch->stack_pointer = stack_pointer;
         launch->entry_point = entry_point;
