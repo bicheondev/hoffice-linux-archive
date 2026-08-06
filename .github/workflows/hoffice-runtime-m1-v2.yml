@@ -1,0 +1,122 @@
+name: HOffice runtime M1 PT_INTERP v2
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m1/**'
+      - '.github/workflows/hoffice-runtime-m1-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  build-linux-rootfs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build synthetic Linux main and interpreter
+        run: |
+          set -euxo pipefail
+          mkdir -p build/guest build/rootfs/lib64 build/rootfs/opt/hrt
+          clang -c -nostdlib -fPIC runtime/m1/test_interp.S \
+            -o build/guest/test_interp.o
+          ld -shared -nostdlib --build-id=none -z max-page-size=4096 \
+            -e _start build/guest/test_interp.o \
+            -o build/rootfs/lib64/ld-hrt-m1.so
+          clang -c -nostdlib -fPIE runtime/m1/test_main.S \
+            -o build/guest/test_main.o
+          ld -pie -nostdlib --build-id=none -z max-page-size=4096 \
+            -e _start --dynamic-linker /lib64/ld-hrt-m1.so \
+            build/guest/test_main.o -o build/rootfs/opt/hrt/main
+          readelf -lW build/rootfs/opt/hrt/main \
+            | grep -F 'Requesting program interpreter: /lib64/ld-hrt-m1.so'
+          test "$(readelf -rW build/rootfs/lib64/ld-hrt-m1.so | grep -c R_X86_64 || true)" -eq 0
+          test "$(readelf -rW build/rootfs/opt/hrt/main | grep -c R_X86_64 || true)" -eq 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m1-v2-linux-rootfs
+          path: build/rootfs
+          if-no-files-found: error
+          retention-days: 7
+
+  execute-on-apple-silicon:
+    needs: build-linux-rootfs
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m1-v2-linux-rootfs
+          path: build/rootfs
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+      - name: Compile M1 host
+        run: |
+          set -euxo pipefail
+          mkdir -p build/host build/proof
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -Wall -Wextra -Werror -Wpedantic \
+            runtime/m1/main.c runtime/m1/common.c runtime/m1/elf_map.c \
+            runtime/m1/stack.c runtime/m1/syscall_bridge.c \
+            runtime/m1/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/host/hrt-m1
+          codesign --force --sign - --timestamp=none build/host/hrt-m1
+          codesign --verify --strict build/host/hrt-m1
+      - name: Verify PT_INTERP and auxv handoff
+        run: |
+          set -euxo pipefail
+          /usr/bin/arch -x86_64 build/host/hrt-m1 \
+            --rootfs "$PWD/build/rootfs" --program /opt/hrt/main \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt
+          cat build/proof/stderr.txt
+          cat build/proof/stdout.txt
+          grep -Fx 'HRT M1: PT_INTERP received AT_BASE and transferred control' \
+            build/proof/stdout.txt
+          grep -Fx 'HRT M1: main program reached through synthetic Linux interpreter' \
+            build/proof/stdout.txt
+          grep -E 'hrt-m1: interp=/lib64/ld-hrt-m1.so .*AT_BASE=0x[1-9a-f][0-9a-f]* .*patched=[1-9][0-9]*' \
+            build/proof/stderr.txt
+      - name: Commit durable M1 proof
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p proofs
+          cat > proofs/m1-pt-interp.json <<JSON
+          {
+            "schema": 1,
+            "milestone": "M1",
+            "status": "PASS",
+            "commit": "$GITHUB_SHA",
+            "workflow_run": "$GITHUB_RUN_ID",
+            "proof": [
+              "HRT M1: PT_INTERP received AT_BASE and transferred control",
+              "HRT M1: main program reached through synthetic Linux interpreter"
+            ]
+          }
+          JSON
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add proofs/m1-pt-interp.json
+          git commit -m 'proof: verify M1 PT_INTERP handoff [skip ci]'
+          git push origin HEAD:codex/hoffice-runtime-from-scratch
+          gh issue comment 1 --repo "$GITHUB_REPOSITORY" \
+            --body "M1 PASS: PT_INTERP, AT_BASE, AT_ENTRY, and interpreter-to-main handoff verified on Apple Silicon macOS. Run: $GITHUB_RUN_ID."
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m1-v2-macos-proof
+          path: |
+            build/host/hrt-m1
+            build/rootfs
+            build/proof
+          if-no-files-found: warn
+          retention-days: 7
