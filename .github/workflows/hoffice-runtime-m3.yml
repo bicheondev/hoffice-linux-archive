@@ -46,12 +46,43 @@ jobs:
           readelf -lW build/m3/rootfs/bin/hrt-m3-glibc | \
             grep -q 'Requesting program interpreter: /lib64/ld-linux-x86-64.so.2'
           ldd build/m3/rootfs/bin/hrt-m3-glibc | tee build/m3/ldd.txt
+
+      - name: Build an instruction-boundary-patched shadow root
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/prepatch_elf.py build/m3/rootfs | \
+            tee build/m3/prepatch.txt
+          test -s build/m3/rootfs/.hrt-prepatched-v1
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('build/m3/rootfs/.hrt-prepatched-v1').read_text())
+          assert report['object_count'] == 3, report
+          assert report['syscall_count'] > 50, report
+          assert report['fs_to_gs_count'] > 60, report
+          loader = next(o for o in report['objects']
+                        if o['path'] == '/lib64/ld-linux-x86-64.so.2')
+          assert loader['syscalls'] == 55, loader
+          assert loader['fs_to_gs'] == 67, loader
+          print(json.dumps({
+              'object_count': report['object_count'],
+              'syscall_count': report['syscall_count'],
+              'fs_to_gs_count': report['fs_to_gs_count'],
+              'loader': {
+                  'syscalls': loader['syscalls'],
+                  'fs_to_gs': loader['fs_to_gs'],
+              },
+          }, sort_keys=True))
+          PY
+
       - uses: actions/upload-artifact@v4
         with:
           name: hrt-m3-glibc-rootfs
           path: |
             build/m3/rootfs
             build/m3/ldd.txt
+            build/m3/prepatch.txt
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 2
 
@@ -95,6 +126,7 @@ jobs:
       - name: Enter the real glibc dynamic loader
         run: |
           set -uxo pipefail
+          test -s build/m3/rootfs/.hrt-prepatched-v1
           set +e
           /usr/bin/arch -x86_64 build/m3/host/hrt-m3 \
             --root "$PWD/build/m3/rootfs" \
@@ -108,6 +140,9 @@ jobs:
           echo '--- stdout ---'
           cat build/m3/stdout.txt
           echo "--- exit status: $status ---"
+          grep -Fx \
+            'hrt-m3: verified instruction-boundary shadow root enabled' \
+            build/m3/stderr.txt
           test "$status" -eq 0
           grep -Fx \
             'HRT M3: real glibc loader, malloc, TLS, time and random passed' \
@@ -122,8 +157,10 @@ jobs:
             build/m3/generated/syscall_bridge.c
             build/m3/rootfs
             build/m3/ldd.txt
+            build/m3/prepatch.txt
             build/m3/stdout.txt
             build/m3/stderr.txt
             build/m3/exit-status.txt
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 2
