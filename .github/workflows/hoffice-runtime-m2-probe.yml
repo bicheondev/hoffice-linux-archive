@@ -52,10 +52,13 @@ jobs:
           echo "--- exit status: $status ---"
           test "$status" -eq 0
           grep -Fx \
-            'HRT M2 probe: host and guest GS context switching works under Rosetta' \
+            'HRT M2 probe: guest GS updates persist through SIGILL under Rosetta' \
             build/m2-probe/stdout.txt
           grep -E 'direct-fs=no trapped=yes' build/m2-probe/stdout.txt
-          grep -E 'host-gs-base=0x[1-9a-f][0-9a-f]*' build/m2-probe/stdout.txt
+          grep -E 'initial-set-return=0x[1-9a-f][0-9a-f]*' \
+            build/m2-probe/stdout.txt
+          grep -E 'guest-gs-after=0x4852544d32544c42' \
+            build/m2-probe/stdout.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
