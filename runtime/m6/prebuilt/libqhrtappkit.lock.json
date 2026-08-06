@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "artifact": {
+    "id": "8974057689",
+    "name": "hrt-m6-qt5113-hrtappkit-qpa",
+    "workflow_run": "31117936555",
+    "source_commit": "ee71f36471b685392d70b0ca474331518a0f1a1e",
+    "zip_sha256": "f97648ef6fe59e1b74d3155f2ad286d3dd5c6afa7c59d66314e57014281c7cd7"
+  },
+  "toolchain": {
+    "distribution": "Debian Buster",
+    "compiler": "g++ (Debian 8.3.0-6) 8.3.0",
+    "qt_version": "5.11.3",
+    "qtbase_archive_sha256": "c6bf887732b83ce072eb72eddb7497bedcdf9ca794e7ed91261a93f063623e1c"
+  },
+  "plugin": {
+    "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so",
+    "qpa_key": "hrtappkit",
+    "sha256_before_prepatch": "87d793180b18d7bc1fa3cfc1bb10774fe6ee08ff931844d2b011000f83d3e4ff",
+    "sha256_after_prepatch": "dafdd4fd8af86afe44ca2a6e2f845b0529ce08ff9e79581fc8df837574176ea9",
+    "xz_sha256": "8bf51803d3df6364d1030db12bdc5f546a324657d7382d326fd7f050e83b3eeb",
+    "patched_syscalls": 5,
+    "rewritten_fs_prefixes": 102,
+    "vulkan_private_abi_locally_defined": true,
+    "dependencies": [
+      "libQt5Gui.so.5",
+      "libQt5Core.so.5",
+      "libglib-2.0.so.0",
+      "libfontconfig.so.1",
+      "libfreetype.so.6",
+      "libGL.so.1",
+      "libpthread.so.0",
+      "libstdc++.so.6",
+      "libc.so.6"
+    ]
+  }
+}
