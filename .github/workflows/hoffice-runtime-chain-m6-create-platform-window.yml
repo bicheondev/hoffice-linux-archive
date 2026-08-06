@@ -1,0 +1,26 @@
+name: HOffice chain M6 offscreen create platform window
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'proofs/chain/m5-integration-constructor.json'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/hoffice-runtime-guest-symbol-probe-chain.yml
+    with:
+      predecessor_proof: proofs/chain/m5-integration-constructor.json
+      symbol_regex: 'QOffscreenIntegration.*createPlatformWindow'
+      label: Qt offscreen createPlatformWindow
+      milestone: M6-chain-offscreen-create-platform-window
+      diagnostic_path: diagnostics/chain/m6-create-platform-window.json
+      proof_path: proofs/chain/m6-create-platform-window.json
+      trace_limit: 72000
+      run_seconds: 40
+      require_pipe2: true
