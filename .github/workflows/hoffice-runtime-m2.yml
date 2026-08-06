@@ -1,0 +1,118 @@
+name: HOffice runtime M2 glibc bootstrap
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-m2-core]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux-rootfs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ordinary glibc PIE and collect its exact loader
+        run: |
+          set -euxo pipefail
+          root="$PWD/build/m2-rootfs"
+          mkdir -p "$root/bin" "$root/lib64" \
+                   "$root/lib/x86_64-linux-gnu" "$root/etc"
+          cc -O2 -fPIE -pie -Wl,--build-id=none \
+            runtime/m2/test_glibc.c -o "$root/bin/hrt-m2-glibc"
+          loader=$(readlink -f /lib64/ld-linux-x86-64.so.2)
+          libc=$(ldd "$root/bin/hrt-m2-glibc" | \
+            awk '/libc\.so\.6/{print $3; exit}')
+          test -f "$loader"
+          test -f "$libc"
+          cp -L "$loader" "$root/lib64/ld-linux-x86-64.so.2"
+          cp -L "$libc" "$root/lib/x86_64-linux-gnu/libc.so.6"
+          test ! -f /etc/ld.so.cache || cp /etc/ld.so.cache "$root/etc/ld.so.cache"
+
+          python3 runtime/m2/generate_fs_patch_map.py \
+            "$root/bin/hrt-m2-glibc"
+          python3 runtime/m2/generate_fs_patch_map.py \
+            "$root/lib64/ld-linux-x86-64.so.2"
+          python3 runtime/m2/generate_fs_patch_map.py \
+            "$root/lib/x86_64-linux-gnu/libc.so.6"
+
+          file "$root/bin/hrt-m2-glibc" \
+               "$root/lib64/ld-linux-x86-64.so.2" \
+               "$root/lib/x86_64-linux-gnu/libc.so.6"
+          readelf -lW "$root/bin/hrt-m2-glibc" | \
+            grep -q 'Requesting program interpreter: /lib64/ld-linux-x86-64.so.2'
+          find "$root" -name '*.fspatch' -print -exec wc -l {} \;
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m2-glibc-rootfs
+          path: build/m2-rootfs
+          if-no-files-found: error
+          retention-days: 2
+
+  execute-on-apple-silicon:
+    needs: build-linux-rootfs
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m2-glibc-rootfs
+          path: build/m2-rootfs
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+      - name: Compile the clean-room M2 Mach-O host
+        run: |
+          set -euxo pipefail
+          mkdir -p build/host
+          clang -arch x86_64 -std=c17 -O1 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra \
+            runtime/m2/main.c runtime/m2/common.c \
+            runtime/m2/patch.c runtime/m2/elf_map.c \
+            runtime/m2/stack.c runtime/m2/syscall_common.c \
+            runtime/m2/syscall_memory.c runtime/m2/syscall_misc.c \
+            runtime/m2/syscall_dispatch.c runtime/m2/syscall_bridge.c \
+            runtime/m2/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/host/hrt-m2
+          file build/host/hrt-m2
+          lipo -info build/host/hrt-m2
+          codesign --force --sign - --timestamp=none build/host/hrt-m2
+          codesign --verify --strict build/host/hrt-m2
+      - name: Bootstrap the real glibc dynamic loader
+        run: |
+          set -uxo pipefail
+          set +e
+          /usr/bin/arch -x86_64 build/host/hrt-m2 \
+            --root "$PWD/build/m2-rootfs" \
+            --program /bin/hrt-m2-glibc \
+            >build/stdout.txt 2>build/stderr.txt
+          status=$?
+          set -e
+          printf '%s\n' "$status" > build/exit-status.txt
+          echo '--- stderr ---'
+          cat build/stderr.txt
+          echo '--- stdout ---'
+          cat build/stdout.txt
+          echo "--- exit status: $status ---"
+          test "$status" -eq 0
+          grep -Fx 'HRT M2: glibc reached main' build/stdout.txt
+          grep -E 'loader=.*syscalls=[1-9][0-9]* fs=[1-9][0-9]*' \
+            build/stderr.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m2-glibc-proof
+          path: |
+            build/host/hrt-m2
+            build/m2-rootfs
+            build/stdout.txt
+            build/stderr.txt
+            build/exit-status.txt
+          if-no-files-found: error
+          retention-days: 2
