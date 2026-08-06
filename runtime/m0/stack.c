@@ -28,7 +28,9 @@ void *build_initial_stack(const char *guest_path, const LoadedElf *loaded) {
 
     cursor = align_down(cursor - 16u, 16u);
     unsigned char *random_bytes = (unsigned char *)cursor;
-    for (size_t index = 0; index < 16u; ++index) random_bytes[index] = (unsigned char)(0x41u + index);
+    for (size_t index = 0; index < 16u; ++index) {
+        random_bytes[index] = (unsigned char)(0x41u + index);
+    }
 
     uint64_t words[HRT_MAX_STACK_WORDS];
     size_t count = 0;
@@ -39,10 +41,11 @@ void *build_initial_stack(const char *guest_path, const LoadedElf *loaded) {
     AUX(AT_PHENT, sizeof(Elf64_Phdr));
     AUX(AT_PHNUM, loaded->header.e_phnum);
     AUX(AT_PAGESZ, g_page_size);
-    AUX(AT_ENTRY, loaded->header.e_entry);
+    AUX(AT_ENTRY, loaded->entry_address);
     AUX(AT_UID, getuid()); AUX(AT_EUID, geteuid());
     AUX(AT_GID, getgid()); AUX(AT_EGID, getegid());
-    AUX(AT_SECURE, 0); AUX(AT_RANDOM, cursor); AUX(AT_EXECFN, argv0); AUX(AT_NULL, 0);
+    AUX(AT_SECURE, 0); AUX(AT_RANDOM, cursor);
+    AUX(AT_EXECFN, argv0); AUX(AT_NULL, 0);
 #undef AUX
 #undef WORD
 
