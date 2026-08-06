@@ -26,11 +26,12 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - name: Install closure tools
+      - name: Install closure tools and declared HOffice runtime
         run: |
           set -euxo pipefail
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends binutils file jq
+          sudo apt-get install -y --no-install-recommends \
+            binutils file jq libglu1-mesa
       - name: Download and verify the exact HOffice package
         env:
           GH_TOKEN: ${{ github.token }}
