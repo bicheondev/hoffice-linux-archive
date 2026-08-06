@@ -3,11 +3,57 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/uio.h>
 #include <time.h>
 #include <unistd.h>
+
+#define HRT_LINUX_O_NONBLOCK 0x800u
+#define HRT_LINUX_O_CLOEXEC 0x80000u
+#define HRT_LINUX_ENOTSOCK 88
+
+static int set_pipe_flags(int fd, uint64_t flags) {
+    if ((flags & HRT_LINUX_O_NONBLOCK) != 0u) {
+        int status = fcntl(fd, F_GETFL);
+        if (status < 0 || fcntl(fd, F_SETFL, status | O_NONBLOCK) < 0) {
+            return -1;
+        }
+    }
+    if ((flags & HRT_LINUX_O_CLOEXEC) != 0u) {
+        int descriptor = fcntl(fd, F_GETFD);
+        if (descriptor < 0 ||
+            fcntl(fd, F_SETFD, descriptor | FD_CLOEXEC) < 0) {
+            return -1;
+        }
+    }
+    return 0;
+}
+
+static int64_t linux_pipe2(int *guest_pipe, uint64_t flags) {
+    if (guest_pipe == NULL) return hrt_linux_failure(HRT_LINUX_EFAULT);
+    if ((flags & ~(HRT_LINUX_O_NONBLOCK | HRT_LINUX_O_CLOEXEC)) != 0u) {
+        return hrt_linux_failure(HRT_LINUX_EINVAL);
+    }
+
+    int descriptors[2];
+    if (pipe(descriptors) != 0) {
+        return hrt_linux_failure(hrt_linux_errno(errno));
+    }
+    if (set_pipe_flags(descriptors[0], flags) != 0 ||
+        set_pipe_flags(descriptors[1], flags) != 0) {
+        int saved = errno;
+        (void)close(descriptors[0]);
+        (void)close(descriptors[1]);
+        errno = saved;
+        return hrt_linux_failure(hrt_linux_errno(errno));
+    }
+
+    guest_pipe[0] = descriptors[0];
+    guest_pipe[1] = descriptors[1];
+    return 0;
+}
 
 int64_t hrt_dispatch_linux_syscall(x86_thread_state64_t *state,
                                    HrtSyscallControl *control) {
@@ -44,6 +90,11 @@ int64_t hrt_dispatch_linux_syscall(x86_thread_state64_t *state,
         case 6:
             return hrt_linux_stat_path((const char *)(uintptr_t)a1,
                                        (HrtLinuxStat *)(uintptr_t)a2, 1);
+        case 7:
+            return hrt_host_result(poll(
+                (struct pollfd *)(uintptr_t)a1,
+                (nfds_t)a2,
+                (int)a3));
         case 8:
             return hrt_host_result(lseek((int)a1, (off_t)a2, (int)a3));
         case 9:
@@ -113,6 +164,8 @@ int64_t hrt_dispatch_linux_syscall(x86_thread_state64_t *state,
         }
         case 39:
             return getpid();
+        case 52:
+            return hrt_linux_failure(HRT_LINUX_ENOTSOCK);
         case 60:
         case 231:
             _exit((int)(a1 & 0xffu));
@@ -241,6 +294,10 @@ int64_t hrt_dispatch_linux_syscall(x86_thread_state64_t *state,
         }
         case 273:
             return 0;
+        case 290:
+            return hrt_linux_failure(HRT_LINUX_ENOSYS);
+        case 293:
+            return linux_pipe2((int *)(uintptr_t)a1, a2);
         case 302:
             return hrt_linux_prlimit(
                 (int)a1, (int)a2,
