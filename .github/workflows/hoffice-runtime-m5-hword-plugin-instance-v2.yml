@@ -1,0 +1,245 @@
+name: HOffice runtime M5 HWord plugin instance v2
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m3/patch_elf_int3_probe.py'
+      - 'runtime/m3/augment_int3_probe.py'
+      - 'runtime/m3/augment_directory_stream.py'
+      - 'runtime/m3/augment_directory_stream_hosttrace.py'
+      - 'runtime/m3/augment_directory_syscalls.py'
+      - 'runtime/m3/augment_pipe2.py'
+      - 'runtime/m3/augment_polling.py'
+      - 'runtime/m3/augment_crash_signals.py'
+      - '.github/workflows/hoffice-runtime-m5-hword-plugin-instance-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m5-plugin-instance-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN_ID: '31102898765'
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  PLUGIN: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so
+
+jobs:
+  isolated-plugin-instance-gate:
+    runs-on: macos-14
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Verify and mount the exact root
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated build/host build/proof diagnostics proofs
+          expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)
+          actual=$(shasum -a 256 build/input/hword-rootfs.tar.gz | awk '{print $1}')
+          test "$actual" = "$expected"
+          image="$RUNNER_TEMP/hrt-m5-piv2.sparsebundle"
+          root="$RUNNER_TEMP/hrt-m5-piv2-root"
+          rm -rf "$image" "$root"; mkdir -p "$root"
+          if ! hdiutil create -quiet -size 8g -fs APFSX \
+               -volname HRTM5PI2 -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 8g -fs HFSX \
+              -volname HRTM5PI2 -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >> "$GITHUB_ENV"
+          tar -xzf build/input/hword-rootfs.tar.gz -C "$root"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"; test -f "$root$PLUGIN"
+          test -d "$root/opt/hnc/hoffice11/Bin/Hword"
+          python3 - "$root" "$PROGRAM" "$PROGRAM_SHA256" "$PLUGIN" <<'PY'
+          import hashlib,json,pathlib,sys
+          root=pathlib.Path(sys.argv[1]); program=sys.argv[2]; plugin=sys.argv[4]
+          marker=json.loads((root/'.hrt-prepatched-v1').read_text())
+          records={item['path']:item for item in marker['objects']}
+          assert records[program]['sha256_before']==sys.argv[3]
+          assert hashlib.sha256((root/program.lstrip('/')).read_bytes()).hexdigest()==records[program]['sha256_after']
+          assert hashlib.sha256((root/plugin.lstrip('/')).read_bytes()).hexdigest()==records[plugin]['sha256_after']
+          pathlib.Path('build/proof/prepatch-lock.json').write_text(
+              json.dumps({'program':records[program],'plugin':records[plugin]},indent=2)+'\n')
+          PY
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+          grep -F 'Case-sensitive' build/proof/guest-volume.txt
+
+      - name: Install the exact guest INT3 probe
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/patch_elf_int3_probe.py "$HRT_ROOT$PLUGIN" \
+            --symbol qt_plugin_instance --label 'Qt offscreen plugin instance' \
+            --manifest build/proof/plugin-probe.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          lock=json.loads(Path('build/proof/prepatch-lock.json').read_text())
+          probe=json.loads(Path('build/proof/plugin-probe.json').read_text())
+          assert probe['sha256_before']==lock['plugin']['sha256_after']
+          assert probe['symbol']['name']=='qt_plugin_instance'
+          assert probe['patched_bytes_hex'].startswith('cc')
+          PY
+
+      - name: Generate the isolated runtime bridge
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE > build/proof/x86-page-size.txt
+          python3 runtime/m3/augment_syscalls.py runtime/m3/syscall_bridge.c build/generated/1.c
+          python3 runtime/m3/augment_directory_syscalls.py build/generated/1.c build/generated/2.c
+          python3 runtime/m3/augment_directory_stream.py build/generated/2.c build/generated/3.c
+          python3 runtime/m3/augment_directory_stream_hosttrace.py build/generated/3.c build/generated/4.c
+          python3 runtime/m3/augment_pipe2.py build/generated/4.c build/generated/5.c
+          python3 runtime/m3/augment_polling.py build/generated/5.c build/generated/6.c
+          python3 runtime/m3/augment_crash_signals.py build/generated/6.c build/generated/7.c
+          python3 runtime/m3/augment_int3_probe.py \
+            build/generated/7.c build/proof/plugin-probe.json \
+            build/generated/syscall_bridge.c
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('build/generated/syscall_bridge.c'); text=p.read_text()
+          assert text.count('#define M3_TRACE_LIMIT 256u')==1
+          p.write_text(text.replace('#define M3_TRACE_LIMIT 256u',
+                                    '#define M3_TRACE_LIMIT 24000u'))
+          PY
+          grep -Fq 'int3_probe_signal_handler' build/generated/syscall_bridge.c
+          grep -Fq 'host_getdents64_stream_bridge' build/generated/syscall_bridge.c
+          grep -Fq 'host_pipe2_bridge' build/generated/syscall_bridge.c
+          grep -Fq 'host_poll_bridge' build/generated/syscall_bridge.c
+
+      - name: Compile and sign
+        run: |
+          set -euxo pipefail
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m3 -Iruntime/m1 \
+            runtime/m3/main.c runtime/m1/common.c runtime/m3/elf_map.c \
+            runtime/m3/stack.c runtime/m3/patch.c \
+            build/generated/syscall_bridge.c runtime/m1/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/host/hrt-m5-piv2
+          file build/host/hrt-m5-piv2 | tee build/proof/host-file.txt
+          codesign --force --sign - --timestamp=none build/host/hrt-m5-piv2
+          codesign --verify --strict build/host/hrt-m5-piv2
+
+      - name: Run exact HWord
+        run: |
+          set -uxo pipefail
+          /usr/bin/arch -x86_64 build/host/hrt-m5-piv2 \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!; deadline=1
+          for _ in $(jot 300); do
+            if ! kill -0 "$pid" 2>/dev/null; then deadline=0; break; fi
+            sleep 0.05
+          done
+          if [ "$deadline" -ne 0 ]; then
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" >build/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$pid" 1 1 -file build/proof/sample.txt >/dev/null 2>&1 || true
+            kill -TERM "$pid" 2>/dev/null || true; sleep 0.2
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e; wait "$pid"; status=$?; set -e
+          if [ "$deadline" -ne 0 ]; then status=124; fi
+          printf '%s\n' "$status" >build/proof/exit-status.txt
+          printf '%s\n' "$deadline" >build/proof/reached-deadline.txt
+          grep -E 'HRT M5: directory stream|HRT M5 INT3|Found metadata|Got keys|loaded library|GWakeup|Linux syscall ENOSYS|fatal signal|Qt platform plugin|QFactoryLoader' \
+            build/proof/stderr.txt | tail -n 4000 | tee build/proof/key-lines.txt || true
+          cat build/proof/key-lines.txt
+          tail -n 1800 build/proof/stderr.txt || true
+
+      - name: Persist diagnosis
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          unsupported=sorted({int(m.group(1)) for line in stderr.splitlines()
+              if (m:=re.search(r'Linux syscall ENOSYS ([0-9]+)',line))})
+          summary={
+              'schema':1,'milestone':'M5-plugin-instance-v2',
+              'commit':'${{ github.sha }}','workflow_run':'${{ github.run_id }}',
+              'program':'${{ env.PROGRAM }}','plugin':'${{ env.PLUGIN }}',
+              'status':int(Path('build/proof/exit-status.txt').read_text()),
+              'reached_deadline':bool(int(Path('build/proof/reached-deadline.txt').read_text())),
+              'directory_stream_yielded_offscreen':'HRT M5: directory stream yielded libqoffscreen.so' in stderr,
+              'offscreen_metadata_observed':('Got keys from plugin meta data ("offscreen")' in stderr or ('Found metadata in lib' in stderr and 'libqoffscreen.so' in stderr)),
+              'offscreen_library_loaded':'loaded library "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so"' in stderr,
+              'qt_plugin_instance_entered':'HRT M5 INT3: guest Qt offscreen plugin instance entered (qt_plugin_instance)' in stderr,
+              'pipe2_called':'hrt-m3: syscall 293 ' in stderr,
+              'glib_gwakeup_pipe_failure':'Creating pipes for GWakeup' in stderr,
+              'fatal_signals':[line for line in stderr.splitlines() if 'hrt-m3: fatal signal ' in line],
+              'unsupported_syscalls':unsupported,
+              'plugin_probe':json.loads(Path('build/proof/plugin-probe.json').read_text()),
+          }
+          encoded=json.dumps(summary,indent=2)+'\n'
+          Path('build/proof/summary.json').write_text(encoded)
+          Path('diagnostics/m5-hword-plugin-instance-v2-latest.json').write_text(encoded)
+          print(encoded)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m5-hword-plugin-instance-v2-latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'diagnostic: record isolated HWord plugin-instance gate [skip ci]'
+            git pull --rebase origin codex/hoffice-runtime-from-scratch
+            git push origin HEAD:codex/hoffice-runtime-from-scratch
+          fi
+
+      - name: Gate and commit proof
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          s=json.loads(Path('build/proof/summary.json').read_text())
+          assert s['directory_stream_yielded_offscreen']
+          assert s['offscreen_metadata_observed']
+          assert s['offscreen_library_loaded']
+          assert s['qt_plugin_instance_entered']
+          assert s['pipe2_called']
+          assert 293 not in s['unsupported_syscalls']
+          assert not s['glib_gwakeup_pipe_failure']
+          PY
+          git fetch origin codex/hoffice-runtime-from-scratch
+          git reset --hard origin/codex/hoffice-runtime-from-scratch
+          cp build/proof/summary.json proofs/m5-hword-offscreen-plugin-instance-v2.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add proofs/m5-hword-offscreen-plugin-instance-v2.json
+          git commit -m 'proof: verify resumable HWord offscreen plugin instance [skip ci]' || exit 0
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git push origin HEAD:codex/hoffice-runtime-from-scratch
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m5-hword-plugin-instance-v2-proof
+          path: |
+            build/generated/syscall_bridge.c
+            build/host/hrt-m5-piv2
+            build/proof
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Detach guest root
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true
