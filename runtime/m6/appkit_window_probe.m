@@ -79,7 +79,7 @@ int main(int argc, const char *argv[]) {
 
     @autoreleasepool {
         const pid_t pid = getpid();
-        const NSString *title = @"HRT M6 AppKit Host Probe";
+        NSString *title = @"HRT M6 AppKit Host Probe";
 
         NSApplication *application = [NSApplication sharedApplication];
         if (application == nil) {
