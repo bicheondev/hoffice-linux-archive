@@ -2,9 +2,16 @@
 #include "hrt_m3.h"
 
 #include <errno.h>
+#include <pthread.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+
+typedef struct {
+    const char *root;
+    const char *guest_program;
+} GuestThreadContext;
 
 static void usage(const char *program) {
     fprintf(stderr,
@@ -12,15 +19,12 @@ static void usage(const char *program) {
             program);
 }
 
-int main(int argc, char **argv) {
-    if (argc != 5 || strcmp(argv[1], "--root") != 0 ||
-        strcmp(argv[3], "--program") != 0) {
-        usage(argv[0]);
-        return 64;
-    }
+static void *guest_thread_main(void *opaque) {
+    const GuestThreadContext *context =
+        (const GuestThreadContext *)opaque;
+    const char *root = context->root;
+    const char *guest_program = context->guest_program;
 
-    const char *root = argv[2];
-    const char *guest_program = argv[4];
     char program_path[HRT_MAX_PATH];
     resolve_guest_path(root, guest_program,
                        program_path, sizeof(program_path));
@@ -32,15 +36,6 @@ int main(int argc, char **argv) {
         set_prepatched_code_mode(1);
         fprintf(stderr,
                 "hrt-m6: verified instruction-boundary guest root enabled\n");
-    }
-
-    int appkit_result = hrt_m6_appkit_initialize();
-    if (appkit_result != 0) {
-        errno = 0;
-        fprintf(stderr,
-                "hrt-m6: AppKit initialization failed with result %d\n",
-                appkit_result);
-        return 70;
     }
 
     g_page_size = (size_t)getpagesize();
@@ -67,8 +62,9 @@ int main(int argc, char **argv) {
     (void)patch_loaded_elf(&interpreter, &interpreter_fs);
 
     fprintf(stderr,
-            "hrt-m6: program image=[%p,%p) bias=%p entry=%p "
-            "syscalls=%zu fs-prefixes=%zu interp=%s\n",
+            "hrt-m6: guest-thread=%llu program image=[%p,%p) "
+            "bias=%p entry=%p syscalls=%zu fs-prefixes=%zu interp=%s\n",
+            (unsigned long long)(uintptr_t)pthread_self(),
             (void *)program.image_start, (void *)program.image_end,
             (void *)program.load_bias, (void *)program.entry_address,
             program.patched_syscalls, program_fs, program.interp_path);
@@ -89,4 +85,45 @@ int main(int argc, char **argv) {
     void *stack_pointer = build_m3_initial_stack(
         guest_program, &program, &interpreter);
     enter_guest(stack_pointer, (void *)interpreter.entry_address);
+}
+
+int main(int argc, char **argv) {
+    if (argc != 5 || strcmp(argv[1], "--root") != 0 ||
+        strcmp(argv[3], "--program") != 0) {
+        usage(argv[0]);
+        return 64;
+    }
+
+    int appkit_result = hrt_m6_appkit_initialize();
+    if (appkit_result != 0) {
+        fprintf(stderr,
+                "hrt-m6: AppKit initialization failed with result %d\n",
+                appkit_result);
+        return 70;
+    }
+
+    GuestThreadContext context = {
+        .root = argv[2],
+        .guest_program = argv[4],
+    };
+    pthread_t guest_thread;
+    int thread_result = pthread_create(
+        &guest_thread, NULL, guest_thread_main, &context);
+    if (thread_result != 0) {
+        fprintf(stderr,
+                "hrt-m6: pthread_create failed with result %d\n",
+                thread_result);
+        return 71;
+    }
+    (void)pthread_detach(guest_thread);
+
+    fprintf(stderr,
+            "hrt-m6: AppKit main run loop entered; guest-thread=%llu\n",
+            (unsigned long long)(uintptr_t)guest_thread);
+    fflush(stderr);
+    hrt_m6_appkit_run();
+
+    fprintf(stderr,
+            "hrt-m6: AppKit main run loop returned before guest exit\n");
+    return 72;
 }
