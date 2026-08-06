@@ -1,24 +1,43 @@
 #define _DARWIN_C_SOURCE 1
 #include <inttypes.h>
 #include <mach/i386/thread_status.h>
-#include <mach/mach.h>
-#include <pthread.h>
 #include <setjmp.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <sys/ucontext.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#ifndef MAP_ANONYMOUS
+#define MAP_ANONYMOUS MAP_ANON
+#endif
 
 #define DARWIN_THREAD_FAST_SET_CTHREAD_SELF UINT64_C(0x03000003)
+#define DARWIN_EXIT UINT64_C(0x02000001)
 #define TLS_MARKER UINT64_C(0x4852544d32544c53) /* HRTM2TLS */
 
-static sigjmp_buf g_recovery;
-static volatile sig_atomic_t g_trapped;
+typedef struct {
+    _Alignas(64) uint64_t guest_tls[8];
+    volatile uint64_t set_result;
+    volatile uint64_t before_signal_gs0;
+    volatile uint64_t handler_gs0;
+    volatile uint64_t after_signal_gs0;
+    volatile uint64_t handler_rip;
+    volatile uint32_t handler_entered;
+    volatile uint32_t handler_instruction_ok;
+} ProbeShared;
 
-static void illegal_instruction(int signo) {
+static sigjmp_buf g_recovery;
+static volatile sig_atomic_t g_direct_fs_trapped;
+static ProbeShared *g_shared;
+
+static void direct_fs_sigill(int signo) {
     (void)signo;
-    g_trapped = 1;
+    g_direct_fs_trapped = 1;
     siglongjmp(g_recovery, 1);
 }
 
@@ -44,45 +63,75 @@ static inline uint64_t read_gs_zero(void) {
     return value;
 }
 
-static uint64_t switch_gs_read_and_restore(uintptr_t guest_base,
-                                           uintptr_t host_base) {
-    uint64_t observed;
+static void guest_sigill(int signo, siginfo_t *info, void *context_pointer) {
+    (void)signo;
+    (void)info;
+#if defined(__x86_64__)
+    ucontext_t *context = (ucontext_t *)context_pointer;
+    x86_thread_state64_t *state = &context->uc_mcontext->__ss;
+    uint64_t rip = state->__rip;
+    const unsigned char *instruction =
+        (const unsigned char *)(uintptr_t)rip;
+
+    g_shared->handler_gs0 = read_gs_zero();
+    g_shared->handler_rip = rip;
+    g_shared->handler_instruction_ok =
+        instruction[0] == 0x0f && instruction[1] == 0x0b;
+    g_shared->handler_entered = 1u;
+    state->__rip = rip + 2u;
+#else
+#error "M2 TLS probe must be compiled as x86_64"
+#endif
+}
+
+__attribute__((noreturn, noinline))
+static void child_switch_signal_and_exit(ProbeShared *shared) {
+    uintptr_t guest_base = (uintptr_t)&shared->guest_tls[0];
+    volatile uint64_t *set_result = &shared->set_result;
+    volatile uint64_t *before = &shared->before_signal_gs0;
+    volatile uint64_t *after = &shared->after_signal_gs0;
+
     __asm__ volatile(
         "movq %[guest], %%rdi\n\t"
-        "movq %[trap], %%rax\n\t"
+        "movq %[set_number], %%rax\n\t"
         "syscall\n\t"
+        "movq %%rax, (%[set_result])\n\t"
         "movq %%gs:0, %%r8\n\t"
-        "movq %[host], %%rdi\n\t"
-        "movq %[trap], %%rax\n\t"
+        "movq %%r8, (%[before])\n\t"
+        "ud2\n\t"
+        "movq %%gs:0, %%r8\n\t"
+        "movq %%r8, (%[after])\n\t"
+        "xorl %%edi, %%edi\n\t"
+        "movq %[exit_number], %%rax\n\t"
         "syscall\n\t"
-        "movq %%r8, %[observed]\n\t"
-        : [observed] "=r"(observed)
-        : [guest] "r"(guest_base), [host] "r"(host_base),
-          [trap] "i"(DARWIN_THREAD_FAST_SET_CTHREAD_SELF)
+        "ud2\n\t"
+        :
+        : [guest] "r"(guest_base),
+          [set_result] "r"(set_result),
+          [before] "r"(before),
+          [after] "r"(after),
+          [set_number] "i"(DARWIN_THREAD_FAST_SET_CTHREAD_SELF),
+          [exit_number] "i"(DARWIN_EXIT)
         : "rax", "rdi", "rcx", "r8", "r11", "cc", "memory");
-    return observed;
+    __builtin_unreachable();
 }
 
-static uintptr_t query_gs_base(void) {
-#if defined(x86_THREAD_FULL_STATE64) && defined(x86_THREAD_FULL_STATE64_COUNT)
-    x86_thread_full_state64_t state;
-    mach_msg_type_number_t count = x86_THREAD_FULL_STATE64_COUNT;
-    memset(&state, 0, sizeof(state));
-    kern_return_t result = thread_get_state(
-        mach_thread_self(), x86_THREAD_FULL_STATE64,
-        (thread_state_t)&state, &count);
-    if (result == KERN_SUCCESS) return (uintptr_t)state.__gsbase;
-#endif
-    return (uintptr_t)pthread_self();
-}
-
-int main(void) {
+static int install_handler(void (*handler)(int, siginfo_t *, void *)) {
     struct sigaction action;
     memset(&action, 0, sizeof(action));
     sigemptyset(&action.sa_mask);
-    action.sa_handler = illegal_instruction;
-    if (sigaction(SIGILL, &action, NULL) != 0) {
-        perror("sigaction");
+    action.sa_sigaction = handler;
+    action.sa_flags = SA_SIGINFO;
+    return sigaction(SIGILL, &action, NULL);
+}
+
+int main(void) {
+    struct sigaction direct_action;
+    memset(&direct_action, 0, sizeof(direct_action));
+    sigemptyset(&direct_action.sa_mask);
+    direct_action.sa_handler = direct_fs_sigill;
+    if (sigaction(SIGILL, &direct_action, NULL) != 0) {
+        perror("sigaction direct FS");
         return 1;
     }
 
@@ -96,34 +145,64 @@ int main(void) {
         write_fs_base(original_fs);
     }
 
-    uint64_t original_gs_zero = read_gs_zero();
-    uintptr_t host_gs_base = query_gs_base();
-    uint64_t *guest_tls = aligned_alloc(64u, 64u);
-    if (guest_tls == NULL) {
-        perror("aligned_alloc");
+    ProbeShared *shared = mmap(NULL, sizeof(*shared),
+                               PROT_READ | PROT_WRITE,
+                               MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (shared == MAP_FAILED) {
+        perror("mmap shared probe state");
         return 1;
     }
-    memset(guest_tls, 0, 64u);
-    guest_tls[0] = TLS_MARKER;
+    memset(shared, 0, sizeof(*shared));
+    shared->guest_tls[0] = TLS_MARKER;
+    g_shared = shared;
 
-    uint64_t observed = switch_gs_read_and_restore(
-        (uintptr_t)guest_tls, host_gs_base);
-    uint64_t restored_gs_zero = read_gs_zero();
+    if (install_handler(guest_sigill) != 0) {
+        perror("sigaction guest SIGILL");
+        return 1;
+    }
 
-    printf("HRT M2 probe: direct-fs=%s original-fs=0x%" PRIxPTR "\n",
-           direct_fs_supported ? "yes" : "no", original_fs);
-    printf("HRT M2 probe: host-gs-base=0x%" PRIxPTR
-           " original-gs0=0x%016" PRIx64
-           " restored-gs0=0x%016" PRIx64 "\n",
-           host_gs_base, original_gs_zero, restored_gs_zero);
-    printf("HRT M2 probe: guest-gs=%p observed=0x%016" PRIx64 "\n",
-           (void *)guest_tls, observed);
-    free(guest_tls);
+    pid_t child = fork();
+    if (child < 0) {
+        perror("fork");
+        return 1;
+    }
+    if (child == 0) child_switch_signal_and_exit(shared);
 
-    if (observed != TLS_MARKER || restored_gs_zero != original_gs_zero) {
-        fprintf(stderr, "HRT M2 probe: GS TLS fallback failed\n");
+    int child_status = 0;
+    if (waitpid(child, &child_status, 0) != child) {
+        perror("waitpid");
+        return 1;
+    }
+
+    printf("HRT M2 probe: direct-fs=%s trapped=%s original-fs=0x%" PRIxPTR "\n",
+           direct_fs_supported ? "yes" : "no",
+           g_direct_fs_trapped ? "yes" : "no", original_fs);
+    printf("HRT M2 probe: machdep-result=0x%016" PRIx64
+           " guest-gs-before=0x%016" PRIx64 "\n",
+           shared->set_result, shared->before_signal_gs0);
+    printf("HRT M2 probe: handler-entered=%u instruction-ok=%u"
+           " handler-gs0=0x%016" PRIx64 " rip=0x%016" PRIx64 "\n",
+           shared->handler_entered, shared->handler_instruction_ok,
+           shared->handler_gs0, shared->handler_rip);
+    printf("HRT M2 probe: guest-gs-after=0x%016" PRIx64 "\n",
+           shared->after_signal_gs0);
+
+    int child_ok = WIFEXITED(child_status) && WEXITSTATUS(child_status) == 0;
+    if (!child_ok || shared->before_signal_gs0 != TLS_MARKER ||
+        shared->handler_entered != 1u ||
+        shared->handler_instruction_ok != 1u ||
+        shared->after_signal_gs0 != TLS_MARKER) {
+        if (WIFSIGNALED(child_status)) {
+            fprintf(stderr, "HRT M2 probe: child terminated by signal %d\n",
+                    WTERMSIG(child_status));
+        } else if (WIFEXITED(child_status)) {
+            fprintf(stderr, "HRT M2 probe: child exited with status %d\n",
+                    WEXITSTATUS(child_status));
+        }
+        fprintf(stderr, "HRT M2 probe: GS TLS signal round-trip failed\n");
         return 2;
     }
-    puts("HRT M2 probe: GS TLS fallback works under Rosetta");
+
+    puts("HRT M2 probe: GS TLS switch and signal round-trip works under Rosetta");
     return 0;
 }
