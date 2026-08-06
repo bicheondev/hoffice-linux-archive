@@ -66,7 +66,35 @@ static size_t patch_syscalls(unsigned char *start, size_t length) {
     return patched;
 }
 
-LoadedElf load_static_elf(const char *path) {
+static void *allocate_image(uint16_t elf_type, uintptr_t minimum,
+                            uintptr_t maximum, uintptr_t *load_bias) {
+    size_t span = (size_t)(maximum - minimum);
+    int flags = MAP_PRIVATE | MAP_ANONYMOUS;
+    void *requested = NULL;
+
+    if (elf_type == ET_EXEC) {
+        if (!range_is_free(minimum, maximum)) {
+            errno = 0;
+            fatal("guest PT_LOAD range collides with Mach-O host");
+        }
+        requested = (void *)minimum;
+        flags |= MAP_FIXED;
+    }
+
+    void *mapping = mmap(requested, span, PROT_READ | PROT_WRITE,
+                         flags, -1, 0);
+    if (mapping == MAP_FAILED) fatal("mmap guest image");
+    if (elf_type == ET_EXEC && (uintptr_t)mapping != minimum) {
+        errno = 0;
+        fatal("fixed ET_EXEC mapping returned the wrong address");
+    }
+
+    *load_bias = (uintptr_t)mapping - minimum;
+    memset(mapping, 0, span);
+    return mapping;
+}
+
+LoadedElf load_elf(const char *path) {
     LoadedElf loaded;
     memset(&loaded, 0, sizeof(loaded));
     int fd = open(path, O_RDONLY);
@@ -77,11 +105,11 @@ LoadedElf load_static_elf(const char *path) {
         loaded.header.e_ident[EI_CLASS] != ELFCLASS64 ||
         loaded.header.e_ident[EI_DATA] != ELFDATA2LSB ||
         loaded.header.e_machine != EM_X86_64 ||
-        loaded.header.e_type != ET_EXEC ||
+        (loaded.header.e_type != ET_EXEC && loaded.header.e_type != ET_DYN) ||
         loaded.header.e_phentsize != sizeof(Elf64_Phdr) ||
         loaded.header.e_phnum == 0 || loaded.header.e_phnum > HRT_MAX_PHDRS) {
         errno = 0;
-        fatal("guest must be a static x86-64 ET_EXEC ELF");
+        fatal("guest must be an x86-64 ET_EXEC or ET_DYN ELF");
     }
     read_exact(fd, loaded.phdrs,
                (size_t)loaded.header.e_phnum * sizeof(Elf64_Phdr),
@@ -92,25 +120,24 @@ LoadedElf load_static_elf(const char *path) {
     for (uint16_t index = 0; index < loaded.header.e_phnum; ++index) {
         const Elf64_Phdr *phdr = &loaded.phdrs[index];
         if (phdr->p_type != PT_LOAD || phdr->p_memsz == 0) continue;
+        if (phdr->p_vaddr > UINTPTR_MAX - phdr->p_memsz) {
+            errno = 0;
+            fatal("PT_LOAD address overflow");
+        }
         uintptr_t start = align_down((uintptr_t)phdr->p_vaddr, g_page_size);
         uintptr_t end = align_up((uintptr_t)(phdr->p_vaddr + phdr->p_memsz), g_page_size);
         if (start < minimum) minimum = start;
         if (end > maximum) maximum = end;
     }
-    if (minimum == UINTPTR_MAX || maximum <= minimum || minimum < g_page_size) {
+    if (minimum == UINTPTR_MAX || maximum <= minimum ||
+        (loaded.header.e_type == ET_EXEC && minimum < g_page_size)) {
         errno = 0;
         fatal("invalid PT_LOAD range");
     }
-    if (!range_is_free(minimum, maximum)) {
-        errno = 0;
-        fatal("guest PT_LOAD range collides with Mach-O host");
-    }
 
-    void *mapping = mmap((void *)minimum, maximum - minimum,
-                         PROT_READ | PROT_WRITE | PROT_EXEC,
-                         MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
-    if (mapping == MAP_FAILED || (uintptr_t)mapping != minimum) fatal("mmap guest image");
-    memset(mapping, 0, maximum - minimum);
+    void *mapping = allocate_image(loaded.header.e_type, minimum, maximum,
+                                   &loaded.load_bias);
+    size_t span = (size_t)(maximum - minimum);
 
     for (uint16_t index = 0; index < loaded.header.e_phnum; ++index) {
         const Elf64_Phdr *phdr = &loaded.phdrs[index];
@@ -119,36 +146,46 @@ LoadedElf load_static_elf(const char *path) {
             errno = 0;
             fatal("PT_LOAD filesz exceeds memsz");
         }
+        uintptr_t destination = loaded.load_bias + (uintptr_t)phdr->p_vaddr;
         if (phdr->p_filesz != 0) {
-            read_exact(fd, (void *)(uintptr_t)phdr->p_vaddr,
+            read_exact(fd, (void *)destination,
                        (size_t)phdr->p_filesz, (off_t)phdr->p_offset);
         }
         if ((phdr->p_flags & PF_X) != 0u) {
             loaded.patched_syscalls += patch_syscalls(
-                (unsigned char *)(uintptr_t)phdr->p_vaddr,
-                (size_t)phdr->p_filesz);
+                (unsigned char *)destination, (size_t)phdr->p_filesz);
         }
         if (loaded.header.e_phoff >= phdr->p_offset &&
             loaded.header.e_phoff +
                 (uint64_t)loaded.header.e_phnum * sizeof(Elf64_Phdr) <=
                 phdr->p_offset + phdr->p_filesz) {
-            loaded.phdr_address = (uintptr_t)phdr->p_vaddr +
+            loaded.phdr_address = destination +
                 (uintptr_t)(loaded.header.e_phoff - phdr->p_offset);
         }
     }
 
+    if (mprotect(mapping, span, PROT_NONE) != 0) fatal("mprotect guest image guard");
     for (uint16_t index = 0; index < loaded.header.e_phnum; ++index) {
         const Elf64_Phdr *phdr = &loaded.phdrs[index];
         if (phdr->p_type != PT_LOAD || phdr->p_memsz == 0) continue;
-        uintptr_t start = align_down((uintptr_t)phdr->p_vaddr, g_page_size);
-        uintptr_t end = align_up((uintptr_t)(phdr->p_vaddr + phdr->p_memsz), g_page_size);
-        if (mprotect((void *)start, end - start, host_protection(phdr->p_flags)) != 0) {
+        uintptr_t start = loaded.load_bias +
+            align_down((uintptr_t)phdr->p_vaddr, g_page_size);
+        uintptr_t end = loaded.load_bias +
+            align_up((uintptr_t)(phdr->p_vaddr + phdr->p_memsz), g_page_size);
+        if (mprotect((void *)start, end - start,
+                     host_protection(phdr->p_flags)) != 0) {
             fatal("mprotect guest segment");
         }
     }
 
     close(fd);
-    loaded.image_start = minimum;
-    loaded.image_end = maximum;
+    loaded.image_start = (uintptr_t)mapping;
+    loaded.image_end = loaded.image_start + span;
+    loaded.entry_address = loaded.load_bias + (uintptr_t)loaded.header.e_entry;
+    if (loaded.entry_address < loaded.image_start ||
+        loaded.entry_address >= loaded.image_end) {
+        errno = 0;
+        fatal("ELF entry point lies outside the mapped image");
+    }
     return loaded;
 }
