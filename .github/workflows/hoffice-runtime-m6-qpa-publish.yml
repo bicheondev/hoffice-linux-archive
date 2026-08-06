@@ -1,0 +1,203 @@
+name: HOffice runtime M6 QPA publish
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m6/qpa/**'
+      - 'runtime/m3/prepatch_elf.py'
+      - '.github/workflows/hoffice-runtime-m6-qpa-publish.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hrt-m6-qpa-publish-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+  QTBASE_ARCHIVE_SHA256: c6bf887732b83ce072eb72eddb7497bedcdf9ca794e7ed91261a93f063623e1c
+
+jobs:
+  build-lock-and-publish:
+    runs-on: ubuntu-24.04
+    container: debian:buster-slim
+    timeout-minutes: 40
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Install the exact Qt 5.11.3 build environment
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat >/etc/apt/sources.list <<'EOF'
+          deb [trusted=yes] http://archive.debian.org/debian buster main
+          deb [trusted=yes] http://archive.debian.org/debian-security buster/updates main
+          EOF
+          printf 'Acquire::Check-Valid-Until "false";\n' \
+            >/etc/apt/apt.conf.d/99archive
+          apt-get -o Acquire::AllowInsecureRepositories=true update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential binutils ca-certificates curl file git jq python3 \
+            tar xz-utils qt5-qmake qtbase5-dev qtbase5-dev-tools \
+            qtbase5-private-dev
+          export QT_SELECT=qt5
+          test "$(qmake -qt=5 -query QT_VERSION)" = 5.11.3
+          qmake -qt=5 -query QT_VERSION
+          g++ --version | head -n 1
+
+      - name: Clone the exact branch without Marketplace actions
+        shell: bash
+        run: |
+          set -euxo pipefail
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+          rm -rf /work/repository /work/build /work/plugin-root /work/report
+          mkdir -p /work
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            clone --depth=1 --branch "$GITHUB_REF_NAME" \
+            "https://github.com/$GITHUB_REPOSITORY.git" /work/repository
+          cd /work/repository
+          git config "http.https://github.com/.extraheader" \
+            "AUTHORIZATION: basic $auth"
+          git rev-parse HEAD | tee /work/source-commit.txt
+          git rev-parse HEAD:runtime/m6/qpa | tee /work/qpa-tree.txt
+          test -f runtime/m6/qpa/hrtappkit.pro
+          test -f runtime/m6/qpa/qplatform_vulkan_compat.cpp
+
+      - name: Fetch and verify the official Qt 5.11.3 source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p /work/build/source /work/build/qpa \
+            "/work/plugin-root$(dirname "$PLUGIN_GUEST")" /work/report
+          curl --fail --location --retry 5 --retry-delay 3 \
+            https://download.qt.io/archive/qt/5.11/5.11.3/submodules/qtbase-everywhere-src-5.11.3.tar.xz \
+            -o /work/build/source/qtbase.tar.xz
+          printf '%s  %s\n' "$QTBASE_ARCHIVE_SHA256" \
+            /work/build/source/qtbase.tar.xz | sha256sum --check -
+          tar -xJf /work/build/source/qtbase.tar.xz \
+            -C /work/build/source
+          qtbase=$(find /work/build/source -mindepth 1 -maxdepth 1 \
+            -type d -name 'qtbase-*5.11.3*' -print -quit)
+          test -n "$qtbase"
+          test -f "$qtbase/src/plugins/platforms/offscreen/qoffscreenintegration.cpp"
+          printf '%s\n' "$qtbase" >/work/qtbase-path.txt
+
+      - name: Build and audit the HOffice-compatible QPA
+        shell: bash
+        run: |
+          set -euxo pipefail
+          export QT_SELECT=qt5
+          qtbase=$(cat /work/qtbase-path.txt)
+          cd /work/build/qpa
+          qmake -qt=5 /work/repository/runtime/m6/qpa/hrtappkit.pro \
+            "QTOFFSCREEN_DIR=$qtbase/src/plugins/platforms/offscreen"
+          make -j2 V=1
+          plugin=$(find out . -type f -name libqhrtappkit.so -print -quit)
+          test -n "$plugin"
+          cp "$plugin" "/work/plugin-root$PLUGIN_GUEST"
+          chmod 0755 "/work/plugin-root$PLUGIN_GUEST"
+
+          file "/work/plugin-root$PLUGIN_GUEST" | tee /work/report/file.txt
+          readelf -hW "/work/plugin-root$PLUGIN_GUEST" \
+            | tee /work/report/elf-header.txt
+          readelf -dW "/work/plugin-root$PLUGIN_GUEST" \
+            | tee /work/report/dynamic.txt
+          readelf -Ws "/work/plugin-root$PLUGIN_GUEST" \
+            | tee /work/report/symbols.txt
+          readelf -p .qtmetadata "/work/plugin-root$PLUGIN_GUEST" \
+            | tee /work/report/qtmetadata.txt || true
+          strings -a "/work/plugin-root$PLUGIN_GUEST" \
+            | grep -E 'hrtappkit|HRT M6 QPA' \
+            | tee /work/report/markers.txt
+
+          grep -F 'Shared library: [libQt5Gui.so.5]' /work/report/dynamic.txt
+          grep -F 'Shared library: [libQt5Core.so.5]' /work/report/dynamic.txt
+          if awk '$7 == "UND" && /createPlatformVulkanInstance/' \
+               /work/report/symbols.txt | grep .; then
+            echo 'Unresolved Qt Vulkan private-ABI relocation remains.' >&2
+            exit 1
+          fi
+          grep -F 'createPlatformVulkanInstance' /work/report/symbols.txt \
+            | grep -v ' UND '
+          grep -aF 'hrtappkit' "/work/plugin-root$PLUGIN_GUEST"
+          sha256sum "/work/plugin-root$PLUGIN_GUEST" \
+            | tee /work/report/sha256-before-prepatch.txt
+
+      - name: Prepatch verified x86-64 instruction boundaries
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 /work/repository/runtime/m3/prepatch_elf.py \
+            /work/plugin-root | tee /work/report/prepatch.txt
+          test -s /work/plugin-root/.hrt-prepatched-v1
+          sha256sum "/work/plugin-root$PLUGIN_GUEST" \
+            | tee /work/report/sha256-after-prepatch.txt
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          guest = os.environ['PLUGIN_GUEST']
+          root = Path('/work/plugin-root')
+          marker = json.loads((root / '.hrt-prepatched-v1').read_text())
+          record, = [item for item in marker['objects'] if item['path'] == guest]
+          assert record['syscalls'] >= 1, record
+          actual = hashlib.sha256((root / guest.lstrip('/')).read_bytes()).hexdigest()
+          assert actual == record['sha256_after'], (actual, record)
+          source_commit = Path('/work/source-commit.txt').read_text().strip()
+          qpa_tree = Path('/work/qpa-tree.txt').read_text().strip()
+          lock = {
+              'schema': 1,
+              'source_commit': source_commit,
+              'qpa_source_tree': qpa_tree,
+              'qt_version': '5.11.3',
+              'qtbase_archive_sha256': os.environ['QTBASE_ARCHIVE_SHA256'],
+              'guest_path': guest,
+              'sha256_before_prepatch': record['sha256_before'],
+              'sha256_after_prepatch': record['sha256_after'],
+              'patched_syscalls': record['syscalls'],
+              'rewritten_fs_prefixes': record['fs_to_gs'],
+              'vulkan_private_abi_locally_defined': True,
+              'qpa_key': 'hrtappkit',
+          }
+          Path('/work/report/libqhrtappkit.lock.json').write_text(
+              json.dumps(lock, indent=2) + '\n')
+          print(json.dumps(lock, indent=2))
+          print('HRT M6 QPA PUBLISH: exact Qt 5.11.3 plugin passed ABI and prepatch gates')
+          PY
+
+      - name: Publish only if the QPA source tree is still current
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd /work/repository
+          git fetch origin "$GITHUB_REF_NAME"
+          built_tree=$(cat /work/qpa-tree.txt)
+          remote_tree=$(git rev-parse FETCH_HEAD:runtime/m6/qpa)
+          test "$remote_tree" = "$built_tree"
+          git reset --hard FETCH_HEAD
+
+          mkdir -p runtime/m6/prebuilt
+          cp "/work/plugin-root$PLUGIN_GUEST" \
+            runtime/m6/prebuilt/libqhrtappkit.so
+          cp /work/report/libqhrtappkit.lock.json \
+            runtime/m6/prebuilt/libqhrtappkit.lock.json
+          cp /work/report/dynamic.txt \
+            runtime/m6/prebuilt/libqhrtappkit.dynamic.txt
+          cp /work/report/qtmetadata.txt \
+            runtime/m6/prebuilt/libqhrtappkit.qtmetadata.txt
+          chmod 0755 runtime/m6/prebuilt/libqhrtappkit.so
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add runtime/m6/prebuilt
+          if git diff --cached --quiet; then
+            echo 'Published QPA is already current.'
+            exit 0
+          fi
+          git commit -m 'runtime: publish verified Qt 5.11.3 hrtappkit QPA [skip ci]'
+          git push origin HEAD:"$GITHUB_REF_NAME"
