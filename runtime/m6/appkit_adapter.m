@@ -14,8 +14,16 @@
 #include <string.h>
 #include <unistd.h>
 
+#define DARWIN_BSD_SYSCALL(number) (UINT64_C(0x02000000) + (number))
+#define DARWIN_SYS_READ UINT64_C(3)
+#define DARWIN_SYS_WRITE UINT64_C(4)
+#define DARWIN_EINTR INT64_C(4)
+
+_Static_assert(ATOMIC_INT_LOCK_FREE == 2,
+               "M6 mailbox state must be lock-free");
+
 static NSWindow *g_window;
-static BOOL g_initialized;
+static _Atomic unsigned int g_initialized;
 static pthread_t g_appkit_thread;
 static dispatch_source_t g_request_source;
 static int g_request_pipe[2] = {-1, -1};
@@ -32,33 +40,61 @@ typedef struct {
 static HrtM6Mailbox g_mailbox;
 
 static BOOL on_appkit_thread(void) {
-    return g_initialized && pthread_equal(pthread_self(), g_appkit_thread) != 0;
+    return atomic_load_explicit(&g_initialized, memory_order_acquire) != 0u &&
+           pthread_equal(pthread_self(), g_appkit_thread) != 0;
+}
+
+static int64_t raw_bsd_syscall3(uint64_t number,
+                                uint64_t argument1,
+                                uint64_t argument2,
+                                uint64_t argument3) {
+    uint64_t result;
+    unsigned char failed;
+    uint64_t argument3_register = argument3;
+    __asm__ volatile(
+        "syscall\n\t"
+        "setc %1"
+        : "=a"(result), "=qm"(failed), "+d"(argument3_register)
+        : "0"(DARWIN_BSD_SYSCALL(number)),
+          "D"(argument1), "S"(argument2)
+        : "rcx", "r11", "cc", "memory");
+    return failed ? -(int64_t)result : (int64_t)result;
+}
+
+static int raw_write_token(int fd) {
+    static const unsigned char token = 0xa5u;
+    for (;;) {
+        int64_t result = raw_bsd_syscall3(
+            DARWIN_SYS_WRITE, (uint64_t)(unsigned int)fd,
+            (uint64_t)(uintptr_t)&token, sizeof(token));
+        if (result == (int64_t)sizeof(token)) return 0;
+        if (result == -DARWIN_EINTR) continue;
+        return -1;
+    }
+}
+
+static int raw_read_token(int fd) {
+    unsigned char token = 0u;
+    for (;;) {
+        int64_t result = raw_bsd_syscall3(
+            DARWIN_SYS_READ, (uint64_t)(unsigned int)fd,
+            (uint64_t)(uintptr_t)&token, sizeof(token));
+        if (result == (int64_t)sizeof(token)) return 0;
+        if (result == -DARWIN_EINTR) continue;
+        return -1;
+    }
+}
+
+static void raw_signal_literal(const char *message, size_t length) {
+    (void)raw_bsd_syscall3(
+        DARWIN_SYS_WRITE, STDERR_FILENO,
+        (uint64_t)(uintptr_t)message, (uint64_t)length);
 }
 
 static int set_close_on_exec(int fd) {
     int flags = fcntl(fd, F_GETFD);
     if (flags < 0) return -1;
     return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
-}
-
-static int write_token(int fd) {
-    static const unsigned char token = 0xa5u;
-    for (;;) {
-        ssize_t written = write(fd, &token, sizeof(token));
-        if (written == (ssize_t)sizeof(token)) return 0;
-        if (written < 0 && errno == EINTR) continue;
-        return -1;
-    }
-}
-
-static int read_token(int fd) {
-    unsigned char token = 0u;
-    for (;;) {
-        ssize_t count = read(fd, &token, sizeof(token));
-        if (count == (ssize_t)sizeof(token)) return 0;
-        if (count < 0 && errno == EINTR) continue;
-        return -1;
-    }
 }
 
 static void pump_events(NSTimeInterval seconds) {
@@ -264,16 +300,15 @@ static int64_t perform_hostcall(uint64_t opcode,
 }
 
 static void service_mailbox(void) {
-    if (read_token(g_request_pipe[0]) != 0) {
-        fprintf(stderr, "hrt-m6-hostcall: request pipe read failed: %s\n",
-                strerror(errno));
+    if (raw_read_token(g_request_pipe[0]) != 0) {
+        fputs("hrt-m6-hostcall: request pipe read failed\n", stderr);
         fflush(stderr);
         return;
     }
     if (atomic_load_explicit(&g_mailbox.state,
                              memory_order_acquire) != 1u) {
-        fprintf(stderr,
-                "hrt-m6-hostcall: request arrived in invalid mailbox state\n");
+        fputs("hrt-m6-hostcall: request arrived in invalid mailbox state\n",
+              stderr);
         fflush(stderr);
         return;
     }
@@ -287,10 +322,8 @@ static void service_mailbox(void) {
         g_mailbox.arguments[4]);
     g_mailbox.result = result;
     atomic_store_explicit(&g_mailbox.state, 2u, memory_order_release);
-    if (write_token(g_completion_pipe[1]) != 0) {
-        fprintf(stderr,
-                "hrt-m6-hostcall: completion pipe write failed: %s\n",
-                strerror(errno));
+    if (raw_write_token(g_completion_pipe[1]) != 0) {
+        fputs("hrt-m6-hostcall: completion pipe write failed\n", stderr);
         fflush(stderr);
     }
 }
@@ -332,7 +365,7 @@ int hrt_m6_appkit_initialize(void) {
         });
         dispatch_activate(g_request_source);
 
-        g_initialized = YES;
+        atomic_store_explicit(&g_initialized, 1u, memory_order_release);
         fprintf(stderr,
                 "hrt-m6-hostcall: AppKit initialized on pid=%d main-thread=1 "
                 "request-fd=%d completion-fd=%d\n",
@@ -345,13 +378,13 @@ int hrt_m6_appkit_initialize(void) {
 void hrt_m6_appkit_run(void) {
     @autoreleasepool {
         if (!on_appkit_thread()) {
-            fprintf(stderr,
-                    "hrt-m6-hostcall: AppKit run loop requested off thread\n");
+            fputs("hrt-m6-hostcall: AppKit run loop requested off thread\n",
+                  stderr);
             fflush(stderr);
             return;
         }
         [NSApp run];
-        fprintf(stderr, "hrt-m6-hostcall: AppKit run loop returned\n");
+        fputs("hrt-m6-hostcall: AppKit run loop returned\n", stderr);
         fflush(stderr);
     }
 }
@@ -362,10 +395,13 @@ int64_t hrt_m6_appkit_hostcall(uint64_t opcode,
                                uint64_t argument3,
                                uint64_t argument4,
                                uint64_t argument5) {
-    if (!g_initialized) return -1110;
-    if (on_appkit_thread()) {
-        return perform_hostcall(opcode, argument1, argument2, argument3,
-                                argument4, argument5);
+    static const char queued[] =
+        "hrt-m6-hostcall: guest request queued through signal-safe mailbox\n";
+    static _Atomic unsigned int queued_logged;
+
+    if (atomic_load_explicit(&g_initialized,
+                             memory_order_acquire) == 0u) {
+        return -1110;
     }
 
     while (atomic_flag_test_and_set_explicit(
@@ -382,12 +418,16 @@ int64_t hrt_m6_appkit_hostcall(uint64_t opcode,
     g_mailbox.result = -1111;
     atomic_store_explicit(&g_mailbox.state, 1u, memory_order_release);
 
-    if (write_token(g_request_pipe[1]) != 0) {
+    if (atomic_exchange_explicit(&queued_logged, 1u,
+                                 memory_order_relaxed) == 0u) {
+        raw_signal_literal(queued, sizeof(queued) - 1u);
+    }
+    if (raw_write_token(g_request_pipe[1]) != 0) {
         atomic_store_explicit(&g_mailbox.state, 0u, memory_order_release);
         atomic_flag_clear_explicit(&g_mailbox_lock, memory_order_release);
         return -1112;
     }
-    if (read_token(g_completion_pipe[0]) != 0) {
+    if (raw_read_token(g_completion_pipe[0]) != 0) {
         atomic_store_explicit(&g_mailbox.state, 0u, memory_order_release);
         atomic_flag_clear_explicit(&g_mailbox_lock, memory_order_release);
         return -1113;
