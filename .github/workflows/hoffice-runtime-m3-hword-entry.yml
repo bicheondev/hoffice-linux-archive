@@ -24,7 +24,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euxo pipefail
-          mkdir -p build/deb build/extracted build/m3-rootfs
+          mkdir -p build/deb build/extracted build/m3-rootfs build/compat
           gh release download "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --pattern "$ASSET_NAME" \
@@ -32,6 +32,30 @@ jobs:
           printf '%s  %s\n' "$EXPECTED_SHA256" "build/deb/$ASSET_NAME" | \
             sha256sum --check -
           dpkg-deb --extract "build/deb/$ASSET_NAME" build/extracted
+      - name: Add ABI-compatible startup libraries absent from Ubuntu 24.04
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libglu1-mesa libharfbuzz-icu0 ca-certificates
+
+          cat <<'EOF' | sudo tee /etc/apt/sources.list.d/hrt-focal-compat.list
+          deb [arch=amd64 trusted=yes] http://archive.ubuntu.com/ubuntu focal main
+          deb [arch=amd64 trusted=yes] http://archive.ubuntu.com/ubuntu focal-updates main
+          deb [arch=amd64 trusted=yes] http://security.ubuntu.com/ubuntu focal-security main
+          EOF
+          sudo apt-get update
+          (
+            cd build/compat
+            apt-get download libssl1.1
+          )
+          ssl_deb=$(find build/compat -maxdepth 1 -name 'libssl1.1_*_amd64.deb' -print -quit)
+          test -n "$ssl_deb"
+          dpkg-deb --extract "$ssl_deb" build/extracted
+          {
+            dpkg-deb --field "$ssl_deb" Package Version Architecture
+            sha256sum "$ssl_deb"
+          } | tee build/compat/COMPAT.lock
       - name: Resolve HWord startup closure and generate exact FS patch maps
         run: |
           set -euxo pipefail
@@ -42,6 +66,7 @@ jobs:
           test -f build/m3-rootfs/opt/hnc/hoffice11/Bin/hword
           test -f build/m3-rootfs/opt/hnc/hoffice11/Bin/hword.fspatch
           test -f build/m3-rootfs/.hrt-m3/manifest.json
+          cp build/compat/COMPAT.lock build/m3-rootfs/.hrt-m3/compat-lock.txt
           find build/m3-rootfs -type f | sort > build/m3-rootfs/.hrt-m3/files.txt
           du -sh build/m3-rootfs
           cat build/m3-rootfs/.hrt-m3/manifest.json

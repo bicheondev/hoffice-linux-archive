@@ -15,6 +15,10 @@ DEFAULT_LIBRARY_DIRS = (
     "/opt/hnc/hoffice11/Bin/qt/lib",
     "/opt/hnc/hoffice11/Bin/Hword",
     "/opt/hnc/hoffice11/Bin/Hwp",
+    "/lib/x86_64-linux-gnu",
+    "/usr/lib/x86_64-linux-gnu",
+    "/lib64",
+    "/usr/lib64",
 )
 
 
@@ -32,17 +36,10 @@ def run(command: list[str], *, env: dict[str, str] | None = None) -> str:
 
 def is_elf(path: Path) -> bool:
     try:
-        return path.is_file() and path.read_bytes()[:4] == b"\x7fELF"
+        with path.open("rb") as stream:
+            return stream.read(4) == b"\x7fELF"
     except OSError:
         return False
-
-
-def relative_to_root(path: Path, root: Path) -> Path:
-    resolved = path.resolve()
-    try:
-        return resolved.relative_to(root.resolve())
-    except ValueError:
-        return Path(str(path).lstrip("/"))
 
 
 def package_library_dirs(root: Path) -> list[Path]:
@@ -129,10 +126,11 @@ def main() -> int:
 
     objects: dict[str, Path] = {HWORD_GUEST.as_posix(): hword}
     system_sources: dict[str, str] = {}
+    root_resolved = root.resolve()
     for dependency in sorted(dependencies, key=str):
         resolved = dependency.resolve()
         try:
-            relative = resolved.relative_to(root)
+            relative = resolved.relative_to(root_resolved)
             guest_path = "/" + relative.as_posix()
             source = resolved
         except ValueError:
@@ -143,8 +141,6 @@ def main() -> int:
             system_sources[guest_path] = str(resolved)
         objects[guest_path] = source
 
-    # The interpreter must exist at the exact PT_INTERP pathname, even when the
-    # host resolves it through a symlink elsewhere.
     objects[interpreter_guest] = interpreter_source.resolve()
     system_sources[interpreter_guest] = str(interpreter_source.resolve())
 
