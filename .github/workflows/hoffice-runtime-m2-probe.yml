@@ -1,4 +1,4 @@
-name: HOffice runtime M2 FS probe
+name: HOffice runtime M2 TLS probe
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  probe-fs-base:
+  probe-tls:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -28,31 +28,36 @@ jobs:
           set -euxo pipefail
           mkdir -p build/m2-probe
           clang -arch x86_64 -std=c17 -O2 -g -mfsgsbase \
+            -fno-stack-protector -fno-omit-frame-pointer \
             -Wall -Wextra -Werror -Wpedantic \
             runtime/m2/fsgsbase_probe.c \
-            -o build/m2-probe/fsgsbase-probe
-          file build/m2-probe/fsgsbase-probe
+            -o build/m2-probe/tls-probe
+          file build/m2-probe/tls-probe
           codesign --force --sign - --timestamp=none \
-            build/m2-probe/fsgsbase-probe
-          codesign --verify --strict build/m2-probe/fsgsbase-probe
+            build/m2-probe/tls-probe
+          codesign --verify --strict build/m2-probe/tls-probe
       - name: Execute probe under Rosetta
         run: |
           set -uxo pipefail
           set +e
-          /usr/bin/arch -x86_64 build/m2-probe/fsgsbase-probe \
+          /usr/bin/arch -x86_64 build/m2-probe/tls-probe \
             >build/m2-probe/stdout.txt 2>build/m2-probe/stderr.txt
           status=$?
           set -e
           printf '%s\n' "$status" > build/m2-probe/exit-status.txt
+          echo '--- stderr ---'
           cat build/m2-probe/stderr.txt
+          echo '--- stdout ---'
           cat build/m2-probe/stdout.txt
+          echo "--- exit status: $status ---"
           test "$status" -eq 0
-          grep -Fx 'HRT M2 probe: GS TLS fallback works under Rosetta' \
+          grep -Fx \
+            'HRT M2 probe: GS TLS switch and signal round-trip works under Rosetta' \
             build/m2-probe/stdout.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: hrt-m2-fs-probe
+          name: hrt-m2-tls-probe
           path: build/m2-probe
           if-no-files-found: error
           retention-days: 2
