@@ -5,11 +5,12 @@ CONFIG -= app_bundle
 
 QT += core-private gui-private eventdispatcher_support-private fontdatabase_support-private
 # The bundled HOffice QtGui omits QPlatformIntegration's Vulkan virtual slot.
-# Building against Debian's Vulkan-enabled 5.11.3 headers otherwise leaves an
-# undefined Qt_5_PRIVATE_API createPlatformVulkanInstance symbol and changes
-# the private QPlatformIntegration vtable shape.  Compile this plugin with the
-# same feature disabled so its private ABI matches the packaged Qt libraries.
-DEFINES += QT_NO_FOREACH QT_NO_VULKAN
+# A command-line QT_NO_VULKAN alone is insufficient because Debian's generated
+# qconfig.h still reports QT_FEATURE_vulkan=1.  Preinclude the compatibility
+# header so qconfig is guarded and the private QPA headers see the HOffice
+# feature layout from their first parse.
+DEFINES += QT_NO_FOREACH
+QMAKE_CXXFLAGS += -include $$PWD/hrt_qt_feature_compat.h
 INCLUDEPATH += $$QTOFFSCREEN_DIR
 
 # The archived Debian Buster runtime packages expose the versioned libraries
@@ -30,6 +31,7 @@ SOURCES += $$QTOFFSCREEN_DIR/qoffscreenintegration_dummy.cpp
 SOURCES += $$QTOFFSCREEN_DIR/qoffscreenwindow.cpp
 SOURCES += $$QTOFFSCREEN_DIR/qoffscreencommon.cpp
 
+HEADERS += $$PWD/hrt_qt_feature_compat.h
 HEADERS += $$PWD/hrt_hostcall.h
 HEADERS += $$PWD/qhrtappkitintegration.h
 HEADERS += $$PWD/qhrtappkitwindow.h
