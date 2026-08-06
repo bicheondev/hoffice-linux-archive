@@ -143,11 +143,25 @@ jobs:
             build/m5/rootfs/.hrt-prepatched-v1 | tee build/m5/prepatch-summary.json
           jq -e '.syscall_count > 50 and .fs_to_gs_count > 60' \
             build/m5/rootfs/.hrt-prepatched-v1 >/dev/null
+      - name: Pack the shadow root into one verified transfer object
+        run: |
+          set -euxo pipefail
+          tar -C build/m5/rootfs -czf build/m5/hword-rootfs.tar.gz .
+          sha256sum build/m5/hword-rootfs.tar.gz | \
+            tee build/m5/hword-rootfs.tar.gz.sha256
+          stat -c '%n %s bytes' build/m5/hword-rootfs.tar.gz | \
+            tee build/m5/hword-rootfs-archive-size.txt
+          tar -tzf build/m5/hword-rootfs.tar.gz | \
+            grep -Fx './.hrt-prepatched-v1'
+          tar -tzf build/m5/hword-rootfs.tar.gz | \
+            grep -Fx './opt/hnc/hoffice11/Bin/hword'
       - uses: actions/upload-artifact@v4
         with:
           name: hrt-m5-hword-offscreen-rootfs
           path: |
-            build/m5/rootfs
+            build/m5/hword-rootfs.tar.gz
+            build/m5/hword-rootfs.tar.gz.sha256
+            build/m5/hword-rootfs-archive-size.txt
             build/m5/closure.txt
             build/m5/closure-summary.json
             build/m5/prepatch.txt
@@ -156,10 +170,9 @@ jobs:
             build/m5/platform-plugins.txt
             build/m5/legacy-openssl-sha256.txt
             build/m5/legacy-openssl-file.txt
-          include-hidden-files: true
           if-no-files-found: error
           retention-days: 2
-          compression-level: 6
+          compression-level: 0
 
   execute-on-apple-silicon:
     needs: build-hword-rootfs
@@ -171,6 +184,17 @@ jobs:
         with:
           name: hrt-m5-hword-offscreen-rootfs
           path: build/m5
+      - name: Verify and expand the single HWord transfer object
+        run: |
+          set -euxo pipefail
+          cd build/m5
+          shasum -a 256 -c hword-rootfs.tar.gz.sha256
+          mkdir -p rootfs
+          tar -xzf hword-rootfs.tar.gz -C rootfs
+          test -s rootfs/.hrt-closure-v1.json
+          test -s rootfs/.hrt-prepatched-v1
+          printf '%s  %s\n' "$PROGRAM_SHA256" "rootfs${PROGRAM}" | \
+            shasum -a 256 -c -
       - name: Ensure Rosetta is available
         run: |
           set -euxo pipefail
@@ -265,13 +289,12 @@ jobs:
           path: |
             build/m5/host/hrt-m5
             build/m5/generated/syscall_bridge.c
-            build/m5/rootfs/.hrt-closure-v1.json
-            build/m5/rootfs/.hrt-prepatched-v1
             build/m5/closure.txt
             build/m5/closure-summary.json
             build/m5/prepatch.txt
             build/m5/prepatch-summary.json
             build/m5/rootfs-size.txt
+            build/m5/hword-rootfs-archive-size.txt
             build/m5/platform-plugins.txt
             build/m5/legacy-openssl-sha256.txt
             build/m5/legacy-openssl-file.txt
@@ -281,6 +304,5 @@ jobs:
             build/m5/sample.txt
             build/m5/exit-status.txt
             build/m5/reached-deadline.txt
-          include-hidden-files: true
           if-no-files-found: error
           retention-days: 2
