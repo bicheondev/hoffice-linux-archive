@@ -24,7 +24,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euxo pipefail
-          mkdir -p work/root work/icons
+          mkdir -p work/root work/icons/desktop work/icons/resource
           gh release download "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --pattern "$ASSET_NAME" \
@@ -35,13 +35,20 @@ jobs:
         run: |
           set -euxo pipefail
           dpkg-deb --extract "work/$ASSET_NAME" work/root
-          base=work/root/usr/share/icons/hicolor/scalable/apps
-          cp "$base/hoffice11-hcl.svg" work/icons/
-          cp "$base/hoffice11-hsl.svg" work/icons/
-          cp "$base/hoffice11-hword.svg" work/icons/
-          cp "$base/hoffice11-hwp.svg" work/icons/
-          file work/icons/*
-          sha256sum work/icons/* > work/icons/SHA256SUMS
+          desktop=work/root/usr/share/icons/hicolor/scalable/apps
+          cp "$desktop/hoffice11-hcl.svg" work/icons/desktop/
+          cp "$desktop/hoffice11-hsl.svg" work/icons/desktop/
+          cp "$desktop/hoffice11-hword.svg" work/icons/desktop/
+          cp "$desktop/hoffice11-hwp.svg" work/icons/desktop/
+
+          resource=work/root/opt/hnc/hoffice11/Bin/Resource
+          cp "$resource/HCell/hoffice11-hcell.svg" work/icons/resource/
+          cp "$resource/HShow/hoffice11-hshow.svg" work/icons/resource/
+          cp "$resource/Hword/hoffice11-hword.svg" work/icons/resource/hoffice11-hword-resource.svg
+          cp "$resource/Hwp/hoffice11-hwp.svg" work/icons/resource/hoffice11-hwp-resource.svg
+
+          file work/icons/desktop/* work/icons/resource/*
+          find work/icons -type f -name '*.svg' -print0 | sort -z | xargs -0 sha256sum > work/icons/SHA256SUMS
 
       - name: Upload exact icon sources
         uses: actions/upload-artifact@v4
