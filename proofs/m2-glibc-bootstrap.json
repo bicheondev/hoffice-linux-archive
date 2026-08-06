@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "milestone": "M2",
+  "status": "PASS",
+  "commit": "3e729e53d3c0fdbf1fc258f9eb71795a418dbc07",
+  "workflow_run": "31099169512",
+  "workflow": "HOffice runtime M3 glibc",
+  "runner": "macos-14-arm64",
+  "guest": "Ubuntu glibc dynamic PIE",
+  "proof": "HRT M3: real glibc loader, malloc, TLS, time and random passed",
+  "artifact_id": "8966719066",
+  "artifact_sha256": "1fb5a84210c0c69be1bcb18b480e24f3f9627ed7bb9e25f8ece60dd4093181f9",
+  "derived_boundary": "M2 real ld-linux and glibc bootstrap"
+}
