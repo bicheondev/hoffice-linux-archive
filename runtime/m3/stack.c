@@ -39,25 +39,49 @@ void *build_m3_initial_stack(const char *guest_path,
     uintptr_t argv0 = push_bytes(&cursor, floor, guest_path,
                                  strlen(guest_path) + 1u);
 
-    static const char milestone[] = "HRT_MILESTONE=M3";
-    static const char language[] = "LANG=C";
+    static const char milestone[] = "HRT_MILESTONE=M5_OFFSCREEN";
+    static const char language[] = "LANG=C.UTF-8";
     static const char home[] = "HOME=/tmp/hrt-home";
     static const char tmpdir[] = "TMPDIR=/tmp";
+    static const char xdg_runtime[] = "XDG_RUNTIME_DIR=/tmp/hrt-runtime";
+    static const char xdg_config[] = "XDG_CONFIG_HOME=/tmp/hrt-home/.config";
+    static const char xdg_cache[] = "XDG_CACHE_HOME=/tmp/hrt-home/.cache";
     static const char library_path[] =
         "LD_LIBRARY_PATH=/opt/hnc/hoffice11/Bin:"
         "/opt/hnc/hoffice11/Bin/qt/lib:"
         "/lib/x86_64-linux-gnu:"
         "/usr/lib/x86_64-linux-gnu:/lib64";
-    uintptr_t env0 = push_bytes(&cursor, floor, milestone,
-                                sizeof(milestone));
-    uintptr_t env1 = push_bytes(&cursor, floor, language,
-                                sizeof(language));
-    uintptr_t env2 = push_bytes(&cursor, floor, home,
-                                sizeof(home));
-    uintptr_t env3 = push_bytes(&cursor, floor, tmpdir,
-                                sizeof(tmpdir));
-    uintptr_t env4 = push_bytes(&cursor, floor, library_path,
-                                sizeof(library_path));
+    static const char qt_platform[] = "QT_QPA_PLATFORM=offscreen";
+    static const char qt_plugin_path[] =
+        "QT_PLUGIN_PATH=/opt/hnc/hoffice11/Bin/qt/plugins";
+    static const char qt_platform_plugin_path[] =
+        "QT_QPA_PLATFORM_PLUGIN_PATH="
+        "/opt/hnc/hoffice11/Bin/qt/plugins/platforms";
+    static const char qt_accessibility[] = "QT_ACCESSIBILITY=0";
+    static const char qt_debug_plugins[] = "QT_DEBUG_PLUGINS=1";
+    static const char qt_logging_rules[] =
+        "QT_LOGGING_RULES=qt.qpa.*=true;qt.plugin.*=true";
+
+    uintptr_t environment[] = {
+        push_bytes(&cursor, floor, milestone, sizeof(milestone)),
+        push_bytes(&cursor, floor, language, sizeof(language)),
+        push_bytes(&cursor, floor, home, sizeof(home)),
+        push_bytes(&cursor, floor, tmpdir, sizeof(tmpdir)),
+        push_bytes(&cursor, floor, xdg_runtime, sizeof(xdg_runtime)),
+        push_bytes(&cursor, floor, xdg_config, sizeof(xdg_config)),
+        push_bytes(&cursor, floor, xdg_cache, sizeof(xdg_cache)),
+        push_bytes(&cursor, floor, library_path, sizeof(library_path)),
+        push_bytes(&cursor, floor, qt_platform, sizeof(qt_platform)),
+        push_bytes(&cursor, floor, qt_plugin_path, sizeof(qt_plugin_path)),
+        push_bytes(&cursor, floor, qt_platform_plugin_path,
+                   sizeof(qt_platform_plugin_path)),
+        push_bytes(&cursor, floor, qt_accessibility,
+                   sizeof(qt_accessibility)),
+        push_bytes(&cursor, floor, qt_debug_plugins,
+                   sizeof(qt_debug_plugins)),
+        push_bytes(&cursor, floor, qt_logging_rules,
+                   sizeof(qt_logging_rules)),
+    };
 
     static const char platform[] = "x86_64";
     uintptr_t platform_pointer = push_bytes(
@@ -84,11 +108,10 @@ void *build_m3_initial_stack(const char *guest_path,
     WORD(1);
     WORD(argv0);
     WORD(0);
-    WORD(env0);
-    WORD(env1);
-    WORD(env2);
-    WORD(env3);
-    WORD(env4);
+    for (size_t index = 0u;
+         index < sizeof(environment) / sizeof(environment[0]); ++index) {
+        WORD(environment[index]);
+    }
     WORD(0);
     AUX(AT_PHDR, program->phdr_address);
     AUX(AT_PHENT, sizeof(Elf64_Phdr));
