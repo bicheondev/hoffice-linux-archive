@@ -154,9 +154,12 @@ def main() -> int:
             check=True,
             text=True,
         )
-        sidecar = Path(str(destination) + ".fspatch")
-        if not sidecar.is_file():
-            raise RuntimeError(f"FS patch map missing: {sidecar}")
+        fs_sidecar = Path(str(destination) + ".fspatch")
+        syscall_sidecar = Path(str(destination) + ".syscallpatch")
+        if not fs_sidecar.is_file():
+            raise RuntimeError(f"FS patch map missing: {fs_sidecar}")
+        if not syscall_sidecar.is_file():
+            raise RuntimeError(f"syscall patch map missing: {syscall_sidecar}")
 
     cache = Path("/etc/ld.so.cache")
     if cache.is_file():

@@ -10,17 +10,10 @@
 
 #define HRT_MAX_PATCH_MAP_SIZE (1024u * 1024u)
 
-static size_t patch_syscalls(unsigned char *start, size_t length) {
-    size_t patched = 0;
-    for (size_t index = 0; index + 1u < length; ++index) {
-        if (start[index] == 0x0f && start[index + 1u] == 0x05) {
-            start[index + 1u] = 0x0b;
-            ++patched;
-            ++index;
-        }
-    }
-    return patched;
-}
+typedef enum {
+    HRT_PATCH_FS_PREFIX,
+    HRT_PATCH_SYSCALL,
+} HrtPatchKind;
 
 static int hex_value(unsigned char value) {
     if (value >= '0' && value <= '9') return (int)(value - '0');
@@ -29,31 +22,35 @@ static int hex_value(unsigned char value) {
     return -1;
 }
 
-static size_t patch_fs_prefixes(unsigned char *start, size_t length,
-                                const char *host_path,
-                                uint64_t file_offset) {
-    if (host_path == NULL || host_path[0] == '\0') return 0;
+static unsigned char *read_sidecar(const char *host_path,
+                                   const char *suffix,
+                                   size_t *size_out) {
+    if (host_path == NULL || host_path[0] == '\0') return NULL;
 
     char sidecar[HRT_MAX_PATH];
     size_t path_length = strlen(host_path);
-    static const char suffix[] = ".fspatch";
-    if (path_length + sizeof(suffix) > sizeof(sidecar)) return 0;
+    size_t suffix_length = strlen(suffix);
+    if (path_length > SIZE_MAX - suffix_length - 1u ||
+        path_length + suffix_length + 1u > sizeof(sidecar)) {
+        return NULL;
+    }
     memcpy(sidecar, host_path, path_length);
-    memcpy(sidecar + path_length, suffix, sizeof(suffix));
+    memcpy(sidecar + path_length, suffix, suffix_length + 1u);
 
     int fd = open(sidecar, O_RDONLY);
-    if (fd < 0) return 0;
+    if (fd < 0) return NULL;
     struct stat metadata;
     if (fstat(fd, &metadata) != 0 || metadata.st_size < 0 ||
         (uint64_t)metadata.st_size > HRT_MAX_PATCH_MAP_SIZE) {
         close(fd);
-        return 0;
+        return NULL;
     }
+
     size_t map_size = (size_t)metadata.st_size;
     unsigned char *map = malloc(map_size + 1u);
     if (map == NULL) {
         close(fd);
-        return 0;
+        return NULL;
     }
     size_t used = 0;
     while (used < map_size) {
@@ -62,13 +59,23 @@ static size_t patch_fs_prefixes(unsigned char *start, size_t length,
             if (errno == EINTR) continue;
             free(map);
             close(fd);
-            return 0;
+            return NULL;
         }
         if (count == 0) break;
         used += (size_t)count;
     }
     close(fd);
     map[used] = '\0';
+    *size_out = used;
+    return map;
+}
+
+static size_t apply_patch_map(unsigned char *start, size_t length,
+                              const char *host_path, uint64_t file_offset,
+                              const char *suffix, HrtPatchKind kind) {
+    size_t used = 0;
+    unsigned char *map = read_sidecar(host_path, suffix, &used);
+    if (map == NULL) return 0;
 
     size_t patched = 0;
     size_t cursor = 0;
@@ -83,6 +90,7 @@ static size_t patch_fs_prefixes(unsigned char *start, size_t length,
             while (cursor < used && map[cursor] != '\n') ++cursor;
             continue;
         }
+
         uint64_t value = 0;
         int digits = 0;
         if (cursor + 2u <= used && map[cursor] == '0' &&
@@ -102,10 +110,18 @@ static size_t patch_fs_prefixes(unsigned char *start, size_t length,
         }
         while (cursor < used && map[cursor] != '\n') ++cursor;
         if (digits == 0 || value < file_offset) continue;
-        uint64_t delta = value - file_offset;
-        if (delta >= length) continue;
-        if (start[delta] == 0x64) {
-            start[delta] = 0x65;
+
+        uint64_t delta64 = value - file_offset;
+        if (delta64 >= length) continue;
+        size_t delta = (size_t)delta64;
+        if (kind == HRT_PATCH_FS_PREFIX) {
+            if (start[delta] == 0x64) {
+                start[delta] = 0x65;
+                ++patched;
+            }
+        } else if (delta + 1u < length &&
+                   start[delta] == 0x0f && start[delta + 1u] == 0x05) {
+            start[delta + 1u] = 0x0b;
             ++patched;
         }
     }
@@ -117,9 +133,12 @@ size_t patch_guest_code(void *start_pointer, size_t length,
                         const char *host_path, uint64_t file_offset,
                         size_t *fs_prefix_count) {
     unsigned char *start = start_pointer;
-    size_t fs_count = patch_fs_prefixes(start, length,
-                                        host_path, file_offset);
-    size_t syscall_count = patch_syscalls(start, length);
+    size_t fs_count = apply_patch_map(
+        start, length, host_path, file_offset,
+        ".fspatch", HRT_PATCH_FS_PREFIX);
+    size_t syscall_count = apply_patch_map(
+        start, length, host_path, file_offset,
+        ".syscallpatch", HRT_PATCH_SYSCALL);
     if (fs_prefix_count != NULL) *fs_prefix_count = fs_count;
     g_runtime.code_fs_patches += fs_count;
     g_runtime.code_syscall_patches += syscall_count;

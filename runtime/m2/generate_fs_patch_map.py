@@ -44,14 +44,24 @@ def virtual_to_file(segments: list[tuple[int, int, int]], address: int) -> int:
     raise ValueError(f"instruction address 0x{address:x} is not file-backed")
 
 
+def write_map(path: Path, header: str, offsets: set[int]) -> None:
+    path.write_text(
+        f"# {header}\n" + "".join(f"{offset:x}\n" for offset in sorted(offsets)),
+        encoding="ascii",
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("binary", type=Path)
-    parser.add_argument("--output", type=Path)
+    parser.add_argument("--output", type=Path,
+                        help="legacy alias for the FS-prefix map output")
+    parser.add_argument("--syscall-output", type=Path)
     args = parser.parse_args()
 
     binary = args.binary
-    output = args.output or Path(str(binary) + ".fspatch")
+    fs_output = args.output or Path(str(binary) + ".fspatch")
+    syscall_output = args.syscall_output or Path(str(binary) + ".syscallpatch")
     data = binary.read_bytes()
     segments = load_segments(data)
     disassembly = subprocess.run(
@@ -65,28 +75,52 @@ def main() -> int:
     line_pattern = re.compile(
         r"^\s*([0-9a-fA-F]+):\s+((?:[0-9a-fA-F]{2}(?:\s+|$))+)(.*)$"
     )
-    offsets: set[int] = set()
+    fs_offsets: set[int] = set()
+    syscall_offsets: set[int] = set()
     for line in disassembly.splitlines():
-        lowered = line.lower()
-        if "fs:" not in lowered and "%fs:" not in lowered:
-            continue
         match = line_pattern.match(line)
         if not match:
             continue
         address = int(match.group(1), 16)
         encoded = bytes(int(value, 16) for value in match.group(2).split())
-        try:
-            prefix_index = encoded.index(0x64)
-        except ValueError:
-            continue
-        offsets.add(virtual_to_file(segments, address + prefix_index))
+        instruction = match.group(3).strip()
+        lowered = instruction.lower()
 
-    output.write_text(
-        "# file offsets of x86 FS segment-prefix bytes; M2 rewrites 64 -> 65\n"
-        + "".join(f"{offset:x}\n" for offset in sorted(offsets)),
-        encoding="ascii",
+        if "fs:" in lowered or "%fs:" in lowered:
+            try:
+                prefix_index = encoded.index(0x64)
+            except ValueError:
+                pass
+            else:
+                fs_offsets.add(
+                    virtual_to_file(segments, address + prefix_index)
+                )
+
+        if re.match(r"^syscall(?:\s|$)", lowered):
+            syscall_index = encoded.find(b"\x0f\x05")
+            if syscall_index < 0:
+                raise ValueError(
+                    f"objdump identified syscall without 0f 05 bytes: {line}"
+                )
+            syscall_offsets.add(
+                virtual_to_file(segments, address + syscall_index)
+            )
+
+    write_map(
+        fs_output,
+        "file offsets of x86 FS segment-prefix bytes; M2 rewrites 64 -> 65",
+        fs_offsets,
     )
-    print(f"{binary}: {len(offsets)} FS-prefix patches -> {output}")
+    write_map(
+        syscall_output,
+        "file offsets of decoded x86 syscall instructions; M2 rewrites 0f05 -> 0f0b",
+        syscall_offsets,
+    )
+    print(
+        f"{binary}: {len(fs_offsets)} FS-prefix patches, "
+        f"{len(syscall_offsets)} syscall patches -> "
+        f"{fs_output}, {syscall_output}"
+    )
     return 0
 
 
