@@ -1,0 +1,1199 @@
+{
+  "applications": {
+    "hcell": {
+      "dynamic": {
+        "bind_now": false,
+        "flags": [],
+        "needed": [
+          "libhclunix-qt.so",
+          "HCellABase.so",
+          "libHCellCoreEngine.so",
+          "libHncOfficeEngine.so",
+          "libHncXml.so",
+          "libQt5PrintSupport.so.5",
+          "libpthread.so.0",
+          "libdl.so.2",
+          "libcairo.so.2",
+          "libfontconfig.so.1",
+          "libfreetype.so.6",
+          "libcurl-gnutls.so.4",
+          "libQt5Xml.so.5",
+          "libharfbuzz-icu.so.0",
+          "libharfbuzz.so.0",
+          "libz.so.1",
+          "libxcb.so.1",
+          "libHCellBook.so",
+          "libHCellBase.so",
+          "libHncOfficeFramework.so",
+          "libHncOfficeFoundation.so",
+          "libHncDrawingEngine.so",
+          "libHncOOXML.so",
+          "libHncVfs.so",
+          "libValueFormat.so",
+          "libHncBidiEngine.so",
+          "libHncImm.so",
+          "libHncBaseDraw.so",
+          "libcups.so.2",
+          "libHncFoundation.so",
+          "libhsp.so",
+          "libQt5Widgets.so.5",
+          "libQt5Gui.so.5",
+          "libQt5Network.so.5",
+          "libQt5Core.so.5",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [
+          "$ORIGIN:$ORIGIN/qt/lib"
+        ],
+        "soname": ""
+      },
+      "gnu_property_x86_isa_1": [],
+      "header": {
+        "entry": "0x225f20",
+        "machine": "Advanced Micro Devices X86-64",
+        "type": "DYN (Shared object file)"
+      },
+      "needed_resolution": {
+        "HCellABase.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/HCellABase.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHCellBase.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHCellBase.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHCellBook.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHCellBook.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHCellCoreEngine.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHCellCoreEngine.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncBaseDraw.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncBaseDraw.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncBidiEngine.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncBidiEngine.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncDrawingEngine.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncDrawingEngine.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncFoundation.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncFoundation.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncImm.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncImm.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOOXML.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOOXML.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOfficeEngine.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOfficeEngine.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOfficeFoundation.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOfficeFoundation.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOfficeFramework.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOfficeFramework.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncVfs.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncVfs.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncXml.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncXml.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Core.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Gui.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Network.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Network.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Network.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Network.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5PrintSupport.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5PrintSupport.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5PrintSupport.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5PrintSupport.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Widgets.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Xml.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Xml.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Xml.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Xml.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libValueFormat.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libValueFormat.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libc.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libcairo.so.2": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libcups.so.2": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libcurl-gnutls.so.4": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libdl.so.2": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libfontconfig.so.1": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libfreetype.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libgcc_s.so.1": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libharfbuzz-icu.so.0": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libharfbuzz.so.0": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libhclunix-qt.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libhclunix-qt.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libhsp.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libhsp.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libm.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libpthread.so.0": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libstdc++.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libxcb.so.1": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libz.so.1": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        }
+      },
+      "path": "/opt/hnc/hoffice11/Bin/hcl",
+      "program_headers": {
+        "executable_stack": false,
+        "gnu_stack_flags": "RW",
+        "has_gnu_relro": true,
+        "has_pt_dynamic": true,
+        "has_pt_tls": false,
+        "interpreter": "/lib64/ld-linux-x86-64.so.2"
+      },
+      "relocation_entries": 57631,
+      "relocation_sections": 2,
+      "sha256": "529bec94d33cd6d2c4d09fc130bddd66cdb5a5fff8dbb0337a5d1dd41b4a99dd",
+      "size": 9846408,
+      "versions": {
+        "all": {
+          "cxxabi": [
+            "CXXABI_1.3"
+          ],
+          "gcc": [
+            "GCC_3.0"
+          ],
+          "glibc": [
+            "GLIBC_2.2.5",
+            "GLIBC_2.14",
+            "GLIBC_2.27"
+          ],
+          "glibcxx": [
+            "GLIBCXX_3.4",
+            "GLIBCXX_3.4.11",
+            "GLIBCXX_3.4.14",
+            "GLIBCXX_3.4.15",
+            "GLIBCXX_3.4.18",
+            "GLIBCXX_3.4.20",
+            "GLIBCXX_3.4.21"
+          ]
+        },
+        "max": {
+          "cxxabi": "CXXABI_1.3",
+          "gcc": "GCC_3.0",
+          "glibc": "GLIBC_2.27",
+          "glibcxx": "GLIBCXX_3.4.21"
+        }
+      }
+    },
+    "hshow": {
+      "dynamic": {
+        "bind_now": false,
+        "flags": [],
+        "needed": [
+          "libShowAnimationRes.so",
+          "HncChartBase.so",
+          "libHncOfficeEngine.so",
+          "libHncOfficeFramework.so",
+          "libHncOfficeFoundation.so",
+          "libHncImm.so",
+          "libHncDrawingEngine.so",
+          "libHncBaseDraw.so",
+          "libHncODF.so",
+          "libHncOOXML.so",
+          "libHncFilterFoundation.so",
+          "libHncXml.so",
+          "libHncBidiEngine.so",
+          "libQt5PrintSupport.so.5",
+          "libpthread.so.0",
+          "libdl.so.2",
+          "libcairo.so.2",
+          "libfontconfig.so.1",
+          "libfreetype.so.6",
+          "libcurl-gnutls.so.4",
+          "libQt5X11Extras.so.5",
+          "libQt5Xml.so.5",
+          "libharfbuzz-icu.so.0",
+          "libharfbuzz.so.0",
+          "libz.so.1",
+          "libcups.so.2",
+          "libxcb.so.1",
+          "libHncTranslator.so",
+          "libMsOD3D.so",
+          "libValueFormat.so",
+          "libHncVfs.so",
+          "libHncFoundation.so",
+          "libhsp.so",
+          "libQt5Widgets.so.5",
+          "libQt5Network.so.5",
+          "libQt5Gui.so.5",
+          "libQt5Core.so.5",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [
+          "$ORIGIN:$ORIGIN/qt/lib"
+        ],
+        "soname": ""
+      },
+      "gnu_property_x86_isa_1": [],
+      "header": {
+        "entry": "0x5a4610",
+        "machine": "Advanced Micro Devices X86-64",
+        "type": "DYN (Shared object file)"
+      },
+      "needed_resolution": {
+        "HncChartBase.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/HncChartBase.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncBaseDraw.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncBaseDraw.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncBidiEngine.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncBidiEngine.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncDrawingEngine.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncDrawingEngine.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncFilterFoundation.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncFilterFoundation.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncFoundation.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncFoundation.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncImm.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncImm.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncODF.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncODF.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOOXML.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOOXML.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOfficeEngine.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOfficeEngine.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOfficeFoundation.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOfficeFoundation.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOfficeFramework.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOfficeFramework.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncTranslator.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncTranslator.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncVfs.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncVfs.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncXml.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncXml.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libMsOD3D.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libMsOD3D.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Core.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Gui.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Network.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Network.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Network.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Network.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5PrintSupport.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5PrintSupport.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5PrintSupport.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5PrintSupport.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Widgets.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5X11Extras.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5X11Extras.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5X11Extras.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5X11Extras.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Xml.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Xml.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Xml.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Xml.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libShowAnimationRes.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libShowAnimationRes.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libValueFormat.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libValueFormat.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libc.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libcairo.so.2": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libcups.so.2": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libcurl-gnutls.so.4": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libdl.so.2": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libfontconfig.so.1": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libfreetype.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libgcc_s.so.1": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libharfbuzz-icu.so.0": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libharfbuzz.so.0": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libhsp.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libhsp.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libm.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libpthread.so.0": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libstdc++.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libxcb.so.1": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libz.so.1": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        }
+      },
+      "path": "/opt/hnc/hoffice11/Bin/hsl",
+      "program_headers": {
+        "executable_stack": false,
+        "gnu_stack_flags": "RW",
+        "has_gnu_relro": true,
+        "has_pt_dynamic": true,
+        "has_pt_tls": false,
+        "interpreter": "/lib64/ld-linux-x86-64.so.2"
+      },
+      "relocation_entries": 162271,
+      "relocation_sections": 2,
+      "sha256": "73bd46dc7e8b7621eb34acdfc2672f2803683ec11a9d5cca39bb26e69328f721",
+      "size": 29611576,
+      "versions": {
+        "all": {
+          "cxxabi": [
+            "CXXABI_1.3",
+            "CXXABI_1.3.2"
+          ],
+          "gcc": [
+            "GCC_3.0"
+          ],
+          "glibc": [
+            "GLIBC_2.2.5",
+            "GLIBC_2.14",
+            "GLIBC_2.27"
+          ],
+          "glibcxx": [
+            "GLIBCXX_3.4",
+            "GLIBCXX_3.4.11",
+            "GLIBCXX_3.4.14",
+            "GLIBCXX_3.4.15",
+            "GLIBCXX_3.4.18",
+            "GLIBCXX_3.4.20",
+            "GLIBCXX_3.4.21"
+          ]
+        },
+        "max": {
+          "cxxabi": "CXXABI_1.3.2",
+          "gcc": "GCC_3.0",
+          "glibc": "GLIBC_2.27",
+          "glibcxx": "GLIBCXX_3.4.21"
+        }
+      }
+    },
+    "hword": {
+      "dynamic": {
+        "bind_now": false,
+        "flags": [],
+        "needed": [
+          "libHwordApp.so",
+          "libHncOfficeEngine.so",
+          "libHncOfficeFramework.so",
+          "libHncOfficeFoundation.so",
+          "libQt5PrintSupport.so.5",
+          "libpthread.so.0",
+          "libdl.so.2",
+          "libcairo.so.2",
+          "libfontconfig.so.1",
+          "libfreetype.so.6",
+          "libcurl-gnutls.so.4",
+          "libQt5Xml.so.5",
+          "libHncDrawingEngine.so",
+          "libHncOOXML.so",
+          "libHncTranslator.so",
+          "libHncVfs.so",
+          "libxcb.so.1",
+          "libHncBidiEngine.so",
+          "libHncImm.so",
+          "libHncBaseDraw.so",
+          "libHncFoundation.so",
+          "libhsp.so",
+          "libQt5Widgets.so.5",
+          "libQt5Gui.so.5",
+          "libQt5Network.so.5",
+          "libQt5Core.so.5",
+          "libcups.so.2",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [
+          "$ORIGIN:$ORIGIN/qt/lib"
+        ],
+        "soname": ""
+      },
+      "gnu_property_x86_isa_1": [],
+      "header": {
+        "entry": "0x1c5460",
+        "machine": "Advanced Micro Devices X86-64",
+        "type": "DYN (Shared object file)"
+      },
+      "needed_resolution": {
+        "libHncBaseDraw.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncBaseDraw.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncBidiEngine.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncBidiEngine.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncDrawingEngine.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncDrawingEngine.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncFoundation.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncFoundation.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncImm.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncImm.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOOXML.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOOXML.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOfficeEngine.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOfficeEngine.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOfficeFoundation.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOfficeFoundation.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOfficeFramework.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOfficeFramework.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncTranslator.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncTranslator.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncVfs.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncVfs.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHwordApp.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHwordApp.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Core.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Gui.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Network.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Network.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Network.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Network.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5PrintSupport.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5PrintSupport.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5PrintSupport.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5PrintSupport.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Widgets.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Xml.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Xml.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Xml.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Xml.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libc.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libcairo.so.2": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libcups.so.2": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libcurl-gnutls.so.4": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libdl.so.2": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libfontconfig.so.1": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libfreetype.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libgcc_s.so.1": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libhsp.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libhsp.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libm.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libpthread.so.0": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libstdc++.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libxcb.so.1": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        }
+      },
+      "path": "/opt/hnc/hoffice11/Bin/hword",
+      "program_headers": {
+        "executable_stack": false,
+        "gnu_stack_flags": "RW",
+        "has_gnu_relro": true,
+        "has_pt_dynamic": true,
+        "has_pt_tls": false,
+        "interpreter": "/lib64/ld-linux-x86-64.so.2"
+      },
+      "relocation_entries": 50697,
+      "relocation_sections": 2,
+      "sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+      "size": 8301264,
+      "versions": {
+        "all": {
+          "cxxabi": [
+            "CXXABI_1.3"
+          ],
+          "gcc": [
+            "GCC_3.0"
+          ],
+          "glibc": [
+            "GLIBC_2.2.5",
+            "GLIBC_2.14",
+            "GLIBC_2.27"
+          ],
+          "glibcxx": [
+            "GLIBCXX_3.4",
+            "GLIBCXX_3.4.11",
+            "GLIBCXX_3.4.14",
+            "GLIBCXX_3.4.15",
+            "GLIBCXX_3.4.18",
+            "GLIBCXX_3.4.20",
+            "GLIBCXX_3.4.21"
+          ]
+        },
+        "max": {
+          "cxxabi": "CXXABI_1.3",
+          "gcc": "GCC_3.0",
+          "glibc": "GLIBC_2.27",
+          "glibcxx": "GLIBCXX_3.4.21"
+        }
+      }
+    },
+    "hwp": {
+      "dynamic": {
+        "bind_now": false,
+        "flags": [],
+        "needed": [
+          "libHwpCtrl.so",
+          "libCoreEngine.so",
+          "libHncXml.so",
+          "libQt5DBus.so.5",
+          "libHncOfficeEngine.so",
+          "libHncOfficeFramework.so",
+          "libHncOfficeFoundation.so",
+          "libHncImm.so",
+          "libHncDrawingEngine.so",
+          "libValueFormat.so",
+          "libHncOOXML.so",
+          "libHncFilterFoundation.so",
+          "libHncVfs.so",
+          "libHncBidiEngine.so",
+          "libHncBaseDraw.so",
+          "libHncFoundation.so",
+          "libhsp.so",
+          "libQt5PrintSupport.so.5",
+          "libQt5Widgets.so.5",
+          "libQt5Gui.so.5",
+          "libQt5Xml.so.5",
+          "libxcb.so.1",
+          "libcups.so.2",
+          "libQt5Core.so.5",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ],
+        "rpath": [],
+        "runpath": [
+          "$ORIGIN:$ORIGIN/qt/lib"
+        ],
+        "soname": ""
+      },
+      "gnu_property_x86_isa_1": [],
+      "header": {
+        "entry": "0x1f2a00",
+        "machine": "Advanced Micro Devices X86-64",
+        "type": "DYN (Shared object file)"
+      },
+      "needed_resolution": {
+        "libCoreEngine.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libCoreEngine.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncBaseDraw.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncBaseDraw.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncBidiEngine.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncBidiEngine.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncDrawingEngine.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncDrawingEngine.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncFilterFoundation.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncFilterFoundation.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncFoundation.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncFoundation.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncImm.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncImm.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOOXML.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOOXML.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOfficeEngine.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOfficeEngine.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOfficeFoundation.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOfficeFoundation.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncOfficeFramework.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncOfficeFramework.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncVfs.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncVfs.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHncXml.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHncXml.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libHwpCtrl.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libHwpCtrl.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Core.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5DBus.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5DBus.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5DBus.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5DBus.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Gui.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5PrintSupport.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5PrintSupport.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5PrintSupport.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5PrintSupport.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Widgets.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libQt5Xml.so.5": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Xml.so.5",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Xml.so.5.11",
+            "/opt/hnc/hoffice11/Bin/qt/lib/libQt5Xml.so.5.11.3"
+          ],
+          "resolved_in_package": true
+        },
+        "libValueFormat.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libValueFormat.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libc.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libcups.so.2": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libgcc_s.so.1": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libhsp.so": {
+          "packaged_candidates": [
+            "/opt/hnc/hoffice11/Bin/libhsp.so"
+          ],
+          "resolved_in_package": true
+        },
+        "libm.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libstdc++.so.6": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        },
+        "libxcb.so.1": {
+          "packaged_candidates": [],
+          "resolved_in_package": false
+        }
+      },
+      "path": "/opt/hnc/hoffice11/Bin/hwp",
+      "program_headers": {
+        "executable_stack": false,
+        "gnu_stack_flags": "RW",
+        "has_gnu_relro": true,
+        "has_pt_dynamic": true,
+        "has_pt_tls": false,
+        "interpreter": "/lib64/ld-linux-x86-64.so.2"
+      },
+      "relocation_entries": 49174,
+      "relocation_sections": 2,
+      "sha256": "88e82922c27c734ca05380ef618a2e61622d291d3deac72fca61dedaba36bc89",
+      "size": 8769472,
+      "versions": {
+        "all": {
+          "cxxabi": [
+            "CXXABI_1.3",
+            "CXXABI_1.3.2"
+          ],
+          "gcc": [
+            "GCC_3.0"
+          ],
+          "glibc": [
+            "GLIBC_2.2.5",
+            "GLIBC_2.14",
+            "GLIBC_2.27"
+          ],
+          "glibcxx": [
+            "GLIBCXX_3.4",
+            "GLIBCXX_3.4.9",
+            "GLIBCXX_3.4.11",
+            "GLIBCXX_3.4.14",
+            "GLIBCXX_3.4.15",
+            "GLIBCXX_3.4.18",
+            "GLIBCXX_3.4.20",
+            "GLIBCXX_3.4.21"
+          ]
+        },
+        "max": {
+          "cxxabi": "CXXABI_1.3.2",
+          "gcc": "GCC_3.0",
+          "glibc": "GLIBC_2.27",
+          "glibcxx": "GLIBCXX_3.4.21"
+        }
+      }
+    }
+  },
+  "elf_object_count": 195,
+  "schema": 1,
+  "source_package": {
+    "architecture": "amd64",
+    "depends": "libglu1",
+    "package": "hoffice",
+    "pre_depends": "",
+    "version": "11.20.0.1520+h1"
+  }
+}
