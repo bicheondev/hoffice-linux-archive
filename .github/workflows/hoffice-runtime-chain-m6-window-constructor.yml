@@ -1,0 +1,26 @@
+name: HOffice chain M6 offscreen window constructor
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'proofs/chain/m6-create-platform-window.json'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/hoffice-runtime-guest-symbol-probe-chain.yml
+    with:
+      predecessor_proof: proofs/chain/m6-create-platform-window.json
+      symbol_regex: 'QOffscreenWindowC1E'
+      label: Qt offscreen window constructor
+      milestone: M6-chain-offscreen-window-constructor
+      diagnostic_path: diagnostics/chain/m6-window-constructor.json
+      proof_path: proofs/chain/m6-window-constructor.json
+      trace_limit: 80000
+      run_seconds: 45
+      require_pipe2: true
