@@ -182,12 +182,13 @@ static int64_t host_vector_io_bridge(int fd, const LinuxIovec *vectors,
             (uint64_t)(size - completed));
         if (amount == -(int64_t)EINTR) continue;
         if (amount <= 0) {
-            (void)raw_bsd_syscall0(DARWIN_SYS_CLOSE);
-            return amount == 0 ? -LINUX_EIO : -LINUX_EIO;
+            (void)raw_bsd_syscall3(DARWIN_SYS_CLOSE,
+                                   (uint64_t)fd, 0u, 0u);
+            return -LINUX_EIO;
         }
         completed += (size_t)amount;
     }
-    (void)raw_bsd_syscall0(DARWIN_SYS_CLOSE);
+    (void)raw_bsd_syscall3(DARWIN_SYS_CLOSE, (uint64_t)fd, 0u, 0u);
     return (int64_t)completed;
 }
 '''
