@@ -1,0 +1,368 @@
+name: HOffice runtime M6 exact HWord AppKit coexistence
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m6/appkit_adapter.h'
+      - 'runtime/m6/appkit_adapter.m'
+      - 'runtime/m6/main.c'
+      - 'runtime/m6/augment_appkit_hostcall.py'
+      - 'runtime/m3/augment_*.py'
+      - '.github/workflows/hoffice-runtime-m6-hword-appkit-coexist.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: hrt-m6-hword-appkit-coexist-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN_ID: '31102898765'
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+
+jobs:
+  run-exact-hword-with-appkit-main-thread:
+    runs-on: macos-14
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the verified exact-HWord shadow root
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Reconstruct the locked root on a short case-sensitive volume
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated build/objects build/host build/proof
+          expected=$(awk '{print $1; exit}' \
+            build/input/hword-rootfs.tar.gz.sha256)
+          actual=$(shasum -a 256 build/input/hword-rootfs.tar.gz \
+            | awk '{print $1}')
+          test "$actual" = "$expected"
+
+          image="$RUNNER_TEMP/hrt-m6-hword-appkit.sparsebundle"
+          root="/tmp/h6h-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"
+          mkdir -p "$root"
+          if ! hdiutil create -quiet -size 8g -fs APFSX \
+               -volname HRTM6H -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 8g -fs HFSX \
+              -volname HRTM6H -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >> "$GITHUB_ENV"
+          tar -xzf build/input/hword-rootfs.tar.gz -C "$root"
+
+          test -s "$root/.hrt-closure-v1.json"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+          test -d "$root/opt/hnc/hoffice11/Bin/Hword"
+          test -f "$root/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so"
+          python3 - "$root" "$PROGRAM" "$PROGRAM_SHA256" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          root = pathlib.Path(sys.argv[1])
+          guest = sys.argv[2]
+          marker = json.loads((root / '.hrt-prepatched-v1').read_text())
+          record, = [item for item in marker['objects']
+                     if item['path'] == guest]
+          assert record['sha256_before'] == sys.argv[3], record
+          actual = hashlib.sha256(
+              (root / guest.lstrip('/')).read_bytes()).hexdigest()
+          assert actual == record['sha256_after'], (actual, record)
+          pathlib.Path('build/proof/hword-prepatch-lock.json').write_text(
+              json.dumps(record, indent=2) + '\n')
+          PY
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+
+      - name: Generate the mature syscall and dormant host-call bridge
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+          sw_vers | tee build/proof/sw-vers.txt
+
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m6/augment_appkit_hostcall.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage9.c build/generated/syscall_bridge.c
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('build/generated/syscall_bridge.c')
+          path.write_text(path.read_text().replace(
+              '#define M3_TRACE_LIMIT 256u',
+              '#define M3_TRACE_LIMIT 18000u'))
+          PY
+
+          for syscall in EVENTFD2 PIPE2 POLL GETDENTS64 CONNECT SOCKET; do
+            grep -q "case LINUX_SYS_${syscall}" \
+              build/generated/syscall_bridge.c
+          done
+          grep -q 'case HRT_M6_HOSTCALL_SYSCALL' \
+            build/generated/syscall_bridge.c
+          test "$(grep -c '"+d"(argument3_register)' \
+            build/generated/syscall_bridge.c)" -eq 2
+
+      - name: Compile and sign the AppKit-main-thread exact-HWord runtime
+        run: |
+          set -euxo pipefail
+          common=(
+            -arch x86_64 -std=c17 -O2 -g
+            -fno-stack-protector -fno-omit-frame-pointer
+            -Wall -Wextra -Werror -Wpedantic
+            -Iruntime/m6 -Iruntime/m3 -Iruntime/m1
+          )
+          index=0
+          for source in \
+            runtime/m6/main.c \
+            runtime/m1/common.c \
+            runtime/m3/elf_map.c \
+            runtime/m3/stack.c \
+            runtime/m3/patch.c \
+            build/generated/syscall_bridge.c; do
+            object="build/objects/c-${index}.o"
+            clang "${common[@]}" -c "$source" -o "$object"
+            index=$((index + 1))
+          done
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m6 \
+            -c runtime/m6/appkit_adapter.m \
+            -o build/objects/appkit-adapter.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S \
+            -o build/objects/enter-guest.o
+          clang -arch x86_64 build/objects/*.o \
+            -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO \
+            -o build/host/hrt-m6-hword-appkit
+          file build/host/hrt-m6-hword-appkit \
+            | tee build/proof/host-file.txt
+          lipo -info build/host/hrt-m6-hword-appkit \
+            | tee build/proof/host-arch.txt
+          codesign --force --sign - --timestamp=none \
+            build/host/hrt-m6-hword-appkit
+          codesign --verify --strict build/host/hrt-m6-hword-appkit
+
+      - name: Run exact HWord while AppKit owns the process main thread
+        run: |
+          set -uxo pipefail
+          : >build/proof/stdout.txt
+          : >build/proof/stderr.txt
+          /usr/bin/arch -x86_64 build/host/hrt-m6-hword-appkit \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          appkit_loop=0
+          plugin_loaded=0
+          eventfd_created=0
+          long_enter=0
+          long_return=0
+          alive_after_return=0
+
+          for _ in $(jot 1600); do
+            if [ "$appkit_loop" -eq 0 ] && \
+               grep -q 'hrt-m6: AppKit main run loop entered;' \
+                 build/proof/stderr.txt; then
+              appkit_loop=1
+              ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+                >build/proof/process-at-appkit-loop.txt 2>&1 || true
+            fi
+            if [ "$plugin_loaded" -eq 0 ] && \
+               grep -q 'loaded library "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so"' \
+                 build/proof/stderr.txt; then
+              plugin_loaded=1
+            fi
+            if [ "$eventfd_created" -eq 0 ] && \
+               grep -q 'hrt-m3: Linux eventfd2 bridge stage=created ' \
+                 build/proof/stderr.txt; then
+              eventfd_created=1
+            fi
+            if [ "$long_enter" -eq 0 ] && \
+               grep -q 'hrt-m3: Linux poll bridge long-enter ' \
+                 build/proof/stderr.txt; then
+              long_enter=1
+              ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+                >build/proof/process-at-long-enter.txt 2>&1 || true
+              /usr/bin/sample "$pid" 1 1 \
+                -file build/proof/sample-at-long-enter.txt \
+                >/dev/null 2>&1 || true
+            fi
+            if grep -q 'hrt-m3: Linux poll bridge long-return ' \
+                 build/proof/stderr.txt; then
+              long_return=1
+              sleep 3
+              if kill -0 "$pid" 2>/dev/null; then
+                alive_after_return=1
+                ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+                  >build/proof/process-after-long-return.txt 2>&1 || true
+                /usr/bin/sample "$pid" 1 1 \
+                  -file build/proof/sample-after-long-return.txt \
+                  >/dev/null 2>&1 || true
+              fi
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 0.05
+          done
+
+          if kill -0 "$pid" 2>/dev/null; then
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.3
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e
+          wait "$pid"
+          raw_status=$?
+          set -e
+          status=$raw_status
+          if [ "$long_enter" -eq 1 ]; then status=124; fi
+          printf '%s\n' "$status" >build/proof/exit-status.txt
+          printf '%s\n' "$raw_status" >build/proof/raw-exit-status.txt
+          printf '%s\n' "$appkit_loop" >build/proof/appkit-loop.txt
+          printf '%s\n' "$plugin_loaded" >build/proof/plugin-loaded.txt
+          printf '%s\n' "$eventfd_created" >build/proof/eventfd-created.txt
+          printf '%s\n' "$long_enter" >build/proof/long-enter.txt
+          printf '%s\n' "$long_return" >build/proof/long-return.txt
+          printf '%s\n' "$alive_after_return" \
+            >build/proof/alive-after-return.txt
+
+          echo '--- M6, Qt, and event-loop boundaries ---'
+          grep -E 'hrt-m6|Linux eventfd2 bridge|Found metadata|Got keys|loaded library|Linux poll bridge|Linux syscall ENOSYS|fatal signal|GLib-ERROR|GWakeup|QFactoryLoader' \
+            build/proof/stderr.txt | tail -n 3600 \
+            | tee build/proof/key-lines.txt || true
+          echo '--- process at AppKit loop ---'
+          cat build/proof/process-at-appkit-loop.txt 2>/dev/null || true
+          echo '--- process after long return ---'
+          cat build/proof/process-after-long-return.txt 2>/dev/null || true
+          echo '--- stderr tail ---'
+          tail -n 2600 build/proof/stderr.txt || true
+          echo '--- stdout tail ---'
+          tail -n 400 build/proof/stdout.txt || true
+          echo "status=$status raw-status=$raw_status appkit=$appkit_loop plugin=$plugin_loaded eventfd=$eventfd_created long-enter=$long_enter long-return=$long_return alive-after-return=$alive_after_return"
+
+      - name: Accept only exact-HWord and AppKit-main-thread coexistence
+        run: |
+          set -euxo pipefail
+          grep -F 'hrt-m6-hostcall: AppKit initialized on pid=' \
+            build/proof/stderr.txt
+          grep -F 'hrt-m6: AppKit main run loop entered;' \
+            build/proof/stderr.txt
+          grep -F 'Found metadata in lib /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so' \
+            build/proof/stderr.txt
+          grep -F 'Got keys from plugin meta data ("offscreen")' \
+            build/proof/stderr.txt
+          grep -F 'loaded library "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so"' \
+            build/proof/stderr.txt
+          grep -F 'hrt-m3: Linux eventfd2 bridge stage=created ' \
+            build/proof/stderr.txt
+          grep -F 'hrt-m3: Linux poll bridge long-enter ' \
+            build/proof/stderr.txt
+          grep -F 'hrt-m3: Linux poll bridge long-return ' \
+            build/proof/stderr.txt
+          test "$(cat build/proof/appkit-loop.txt)" -eq 1
+          test "$(cat build/proof/plugin-loaded.txt)" -eq 1
+          test "$(cat build/proof/eventfd-created.txt)" -eq 1
+          test "$(cat build/proof/long-enter.txt)" -eq 1
+          test "$(cat build/proof/long-return.txt)" -eq 1
+          test "$(cat build/proof/alive-after-return.txt)" -eq 1
+          ! grep -F 'Linux syscall ENOSYS ' build/proof/stderr.txt
+          ! grep -F 'fatal signal' build/proof/stderr.txt
+          ! grep -F 'Creating pipes for GWakeup' build/proof/stderr.txt
+          ! grep -F 'poll(2) failed due to' build/proof/stderr.txt
+          ! grep -F 'hrt-m6: host-call opcode=' build/proof/stderr.txt
+
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          stderr = Path('build/proof/stderr.txt').read_text(errors='replace')
+          unsupported = sorted({
+              int(match.group(1))
+              for line in stderr.splitlines()
+              if (match := re.search(
+                  r'Linux syscall ENOSYS ([0-9]+)', line))
+          })
+          poll_lines = [line for line in stderr.splitlines()
+                        if 'hrt-m3: Linux poll bridge ' in line]
+          eventfd_lines = [line for line in stderr.splitlines()
+                           if 'hrt-m3: Linux eventfd2 bridge ' in line]
+          summary = {
+              'program': '/opt/hnc/hoffice11/Bin/hword',
+              'program_sha256_before_prepatch':
+                  '55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb',
+              'host_architecture': 'x86_64 AppKit under Rosetta',
+              'guest_execution_thread': 'worker pthread',
+              'appkit_main_loop_active': bool(int(
+                  Path('build/proof/appkit-loop.txt').read_text())),
+              'offscreen_qpa_loaded': bool(int(
+                  Path('build/proof/plugin-loaded.txt').read_text())),
+              'eventfd_created': bool(int(
+                  Path('build/proof/eventfd-created.txt').read_text())),
+              'eventfd_boundary': eventfd_lines,
+              'poll_boundary': poll_lines,
+              'long_poll_entered': bool(int(
+                  Path('build/proof/long-enter.txt').read_text())),
+              'long_poll_returned': bool(int(
+                  Path('build/proof/long-return.txt').read_text())),
+              'alive_three_seconds_after_return': bool(int(
+                  Path('build/proof/alive-after-return.txt').read_text())),
+              'unsupported_syscalls': unsupported,
+              'fatal_signal_observed': 'fatal signal' in stderr,
+              'reserved_host_calls_observed':
+                  'hrt-m6: host-call opcode=' in stderr,
+              'native_hword_window_claimed': False,
+          }
+          Path('build/proof/summary.json').write_text(
+              json.dumps(summary, indent=2) + '\n')
+          print(json.dumps(summary, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m6-exact-hword-appkit-coexist-proof
+          path: |
+            build/host/hrt-m6-hword-appkit
+            build/generated/syscall_bridge.c
+            build/proof
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach the guest filesystem
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true
