@@ -4,12 +4,34 @@
 #include <stdint.h>
 #include <sys/mman.h>
 
+static int g_prepatched_code_mode;
+
+void set_prepatched_code_mode(int enabled) {
+    g_prepatched_code_mode = enabled != 0;
+}
+
+int prepatched_code_mode_enabled(void) {
+    return g_prepatched_code_mode;
+}
+
 static int host_protection(uint32_t flags) {
     int protection = 0;
     if ((flags & PF_R) != 0u) protection |= PROT_READ;
     if ((flags & PF_W) != 0u) protection |= PROT_WRITE;
     if ((flags & PF_X) != 0u) protection |= PROT_EXEC;
     return protection;
+}
+
+static size_t count_prepatched_syscalls(const unsigned char *bytes,
+                                        size_t length) {
+    size_t count = 0u;
+    for (size_t offset = 0u; offset + 1u < length; ++offset) {
+        if (bytes[offset] == 0x0fu && bytes[offset + 1u] == 0x0bu) {
+            ++count;
+            ++offset;
+        }
+    }
+    return count;
 }
 
 static int is_legacy_prefix(unsigned char value) {
@@ -62,6 +84,11 @@ static int is_tls_memory_opcode(const unsigned char *bytes,
 size_t patch_guest_code(void *address, size_t length,
                         size_t *rewritten_fs_prefixes) {
     unsigned char *bytes = address;
+    if (g_prepatched_code_mode) {
+        (void)rewritten_fs_prefixes;
+        return count_prepatched_syscalls(bytes, length);
+    }
+
     size_t patched_syscalls = 0u;
     size_t patched_fs = 0u;
 
@@ -97,6 +124,12 @@ size_t patch_loaded_elf(LoadedElf *loaded,
         }
 
         uintptr_t segment = loaded->load_bias + (uintptr_t)phdr->p_vaddr;
+        if (g_prepatched_code_mode) {
+            patched_syscalls += count_prepatched_syscalls(
+                (const unsigned char *)segment, (size_t)phdr->p_filesz);
+            continue;
+        }
+
         uintptr_t page_start = align_down(segment, g_page_size);
         uintptr_t page_end = align_up(
             loaded->load_bias + (uintptr_t)(phdr->p_vaddr + phdr->p_memsz),
