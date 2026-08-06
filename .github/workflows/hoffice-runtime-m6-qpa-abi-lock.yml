@@ -66,7 +66,7 @@ jobs:
           sha256sum build/source/qtbase.tar.xz \
             >build/report/qtbase-source.sha256
 
-      - name: Build and reject the Debian-only Vulkan vtable slot
+      - name: Build and reject unresolved HOffice Qt private-ABI slots
         shell: bash
         run: |
           set -euxo pipefail
@@ -103,13 +103,21 @@ jobs:
             build/report/plugin-dynamic.txt
           grep -F 'Shared library: [libQt5Core.so.5]' \
             build/report/plugin-dynamic.txt
-          if grep -F 'createPlatformVulkanInstance' \
-               build/report/plugin-symbols-unpatched.txt; then
-            echo 'The HOffice QtGui ABI does not contain the Vulkan virtual slot.' >&2
+
+          # HOffice QtGui lacks this Debian-only trailing virtual.  A local
+          # definition is allowed; an UND relocation would still make dlopen
+          # fail against the packaged Qt library.
+          if awk '$7 == "UND" && /createPlatformVulkanInstance/' \
+               build/report/plugin-symbols-unpatched.txt | grep .; then
+            echo 'Unresolved Vulkan private-ABI relocation remains.' >&2
             exit 1
           fi
+          grep -F 'createPlatformVulkanInstance' \
+            build/report/plugin-symbols-unpatched.txt \
+            | grep -v ' UND ' \
+            | tee build/report/vulkan-local-definition.txt
           printf '%s\n' \
-            'PASS: no QPlatformIntegration::createPlatformVulkanInstance reference' \
+            'PASS: no unresolved QPlatformIntegration Vulkan relocation' \
             | tee build/report/vulkan-slot-lock.txt
 
       - name: Prepatch only verified Linux instruction boundaries
@@ -135,8 +143,8 @@ jobs:
             >build/report/plugin-patched.sha256
           readelf -Ws "build/plugin-root$PLUGIN_GUEST" \
             >build/report/plugin-symbols-patched.txt
-          ! grep -F 'createPlatformVulkanInstance' \
-            build/report/plugin-symbols-patched.txt
+          ! awk '$7 == "UND" && /createPlatformVulkanInstance/' \
+            build/report/plugin-symbols-patched.txt | grep .
           cat build/report/plugin-patched.sha256
 
       - uses: actions/upload-artifact@v4
