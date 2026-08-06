@@ -1,0 +1,51 @@
+name: HOffice runtime M6 HWord QPA build v2
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m6/qpa/**'
+      - '.github/workflows/hoffice-runtime-m6-hword-qpa-build-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: hrt-m6-hword-qpa-build-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN_ID: '31102898765'
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  QTBASE_COMMIT: 08de243eaa007597c2bfbc97d3d14e2f821ac4be
+  QPA_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  build-qpa-root:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+      - name: Build, prepatch, validate, and pack the custom QPA root
+        run: bash runtime/m6/qpa/build_hrtappkit_root.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m6-hword-hrtappkit-rootfs-v2
+          path: |
+            build/hword-hrtappkit-rootfs.tar.gz
+            build/hword-hrtappkit-rootfs.tar.gz.sha256
+            build/report
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 0
