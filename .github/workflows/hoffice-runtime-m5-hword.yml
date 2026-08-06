@@ -24,6 +24,9 @@ env:
   OFFSCREEN_SHA256: 8ba0ddb433ed8cb838013f833b11d62a0f02c481aa51b2d8193c7179e232dee6
   MINIMAL_PLUGIN: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqminimal.so
   MINIMAL_SHA256: 4fa33c4c6e6f64e06219e2580ab6d843b641b4e49b2f5efbcb7d113b66c3fca4
+  LEGACY_SSL_NAME: libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
+  LEGACY_SSL_URL: https://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
+  LEGACY_SSL_SHA256: 7cf39d70a639017d1dd7c8d36daa2258063608688e449fddf40ffdd46f992a78
 
 jobs:
   build-hword-rootfs:
@@ -50,7 +53,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euxo pipefail
-          mkdir -p build/m5/package build/m5/rootfs
+          mkdir -p build/m5/package build/m5/rootfs build/m5/legacy
           gh release download "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --pattern "$ASSET_NAME" \
@@ -64,6 +67,28 @@ jobs:
             "build/m5/package${OFFSCREEN_PLUGIN}" | sha256sum --check -
           printf '%s  %s\n' "$MINIMAL_SHA256" \
             "build/m5/package${MINIMAL_PLUGIN}" | sha256sum --check -
+      - name: Add the hash-locked OpenSSL 1.1 compatibility pair
+        run: |
+          set -euxo pipefail
+          curl --fail --location --retry 5 --retry-all-errors \
+            --output "build/m5/$LEGACY_SSL_NAME" "$LEGACY_SSL_URL"
+          printf '%s  %s\n' "$LEGACY_SSL_SHA256" \
+            "build/m5/$LEGACY_SSL_NAME" | sha256sum --check -
+          dpkg-deb --extract "build/m5/$LEGACY_SSL_NAME" build/m5/legacy
+          legacy_dir=build/m5/legacy/usr/lib/x86_64-linux-gnu
+          suite_bin=build/m5/package/opt/hnc/hoffice11/Bin
+          test -f "$legacy_dir/libssl.so.1.1"
+          test -f "$legacy_dir/libcrypto.so.1.1"
+          cp -a "$legacy_dir/libssl.so.1.1" "$suite_bin/"
+          cp -a "$legacy_dir/libcrypto.so.1.1" "$suite_bin/"
+          sha256sum \
+            "$suite_bin/libssl.so.1.1" \
+            "$suite_bin/libcrypto.so.1.1" | \
+            tee build/m5/legacy-openssl-sha256.txt
+          file \
+            "$suite_bin/libssl.so.1.1" \
+            "$suite_bin/libcrypto.so.1.1" | \
+            tee build/m5/legacy-openssl-file.txt
       - name: Resolve HWord and runtime-discovered QPA ELF closure
         run: |
           set -euxo pipefail
@@ -83,6 +108,10 @@ jobs:
           jq -e '[.objects[].guest_path] | index("/opt/hnc/hoffice11/Bin/libHwordApp.so") != null' \
             build/m5/rootfs/.hrt-closure-v1.json >/dev/null
           jq -e '[.objects[].guest_path] | index("/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so") != null' \
+            build/m5/rootfs/.hrt-closure-v1.json >/dev/null
+          jq -e '[.objects[].guest_path] | index("/opt/hnc/hoffice11/Bin/libssl.so.1.1") != null' \
+            build/m5/rootfs/.hrt-closure-v1.json >/dev/null
+          jq -e '[.objects[].guest_path] | index("/opt/hnc/hoffice11/Bin/libcrypto.so.1.1") != null' \
             build/m5/rootfs/.hrt-closure-v1.json >/dev/null
       - name: Copy exact non-ELF startup resources
         run: |
@@ -125,6 +154,8 @@ jobs:
             build/m5/prepatch-summary.json
             build/m5/rootfs-size.txt
             build/m5/platform-plugins.txt
+            build/m5/legacy-openssl-sha256.txt
+            build/m5/legacy-openssl-file.txt
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 2
@@ -242,6 +273,8 @@ jobs:
             build/m5/prepatch-summary.json
             build/m5/rootfs-size.txt
             build/m5/platform-plugins.txt
+            build/m5/legacy-openssl-sha256.txt
+            build/m5/legacy-openssl-file.txt
             build/m5/stdout.txt
             build/m5/stderr.txt
             build/m5/process.txt
