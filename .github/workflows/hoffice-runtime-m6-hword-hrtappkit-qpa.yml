@@ -52,8 +52,9 @@ jobs:
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             build-essential binutils ca-certificates curl file jq python3 xz-utils \
             qt5-qmake qtbase5-dev qtbase5-dev-tools qtbase5-private-dev
-          qmake -query QT_VERSION | tee qt-version.txt
-          test "$(qmake -query QT_VERSION)" = 5.11.3
+          export QT_SELECT=qt5
+          qmake -qt=5 -query QT_VERSION | tee qt-version.txt
+          test "$(qmake -qt=5 -query QT_VERSION)" = 5.11.3
           g++ --version | head -n 1 | tee compiler-version.txt
 
       - name: Lock the official Qt 5.11.3 offscreen implementation source
@@ -80,11 +81,12 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
+          export QT_SELECT=qt5
           qtbase=$(cat build/report/qtbase-source-path.txt)
           qpa_source="$PWD/runtime/m6/qpa/hrtappkit.pro"
           offscreen="$PWD/$qtbase/src/plugins/platforms/offscreen"
           cd build/qpa
-          qmake "$qpa_source" "QTOFFSCREEN_DIR=$offscreen"
+          qmake -qt=5 "$qpa_source" "QTOFFSCREEN_DIR=$offscreen"
           make -j2 V=1
           plugin=$(find out . -type f -name 'libqhrtappkit.so' -print -quit)
           test -n "$plugin"
