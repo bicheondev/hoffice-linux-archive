@@ -24,6 +24,7 @@ extern "C" {
 #endif
 
 int hrt_m6_appkit_initialize(void);
+void hrt_m6_appkit_run(void);
 
 int64_t hrt_m6_appkit_hostcall(uint64_t opcode,
                                uint64_t argument1,
