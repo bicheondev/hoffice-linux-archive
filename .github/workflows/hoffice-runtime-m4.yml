@@ -1,0 +1,199 @@
+name: HOffice runtime M4 private entry
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - runtime/m1/**
+      - runtime/m3/**
+      - runtime/m4/**
+      - .github/workflows/hoffice-runtime-m4.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  EXPECTED_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/HncOdfConverterExe
+  PROGRAM_SHA256: a1c84f622aaa72b46c0ec5d222ccbf3f6578098ed3d47d83f80d3881289bb543
+
+jobs:
+  build-hoffice-closure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install closure tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends binutils file jq
+      - name: Download and verify the exact HOffice package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/m4/package build/m4/rootfs
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" \
+            --dir build/m4
+          printf '%s  %s\n' "$EXPECTED_SHA256" "build/m4/$ASSET_NAME" | \
+            sha256sum --check -
+          dpkg-deb --extract "build/m4/$ASSET_NAME" build/m4/package
+          printf '%s  %s\n' "$PROGRAM_SHA256" \
+            "build/m4/package${PROGRAM}" | sha256sum --check -
+      - name: Resolve the actual HOffice ELF dependency closure
+        run: |
+          set -euxo pipefail
+          python3 runtime/m4/build_closure.py \
+            --package-root build/m4/package \
+            --output-root build/m4/rootfs \
+            --program "$PROGRAM" | tee build/m4/closure.txt
+          test -s build/m4/rootfs/.hrt-closure-v1.json
+          jq '{program, object_count, total_bytes}' \
+            build/m4/rootfs/.hrt-closure-v1.json
+          jq -e '.object_count >= 8' \
+            build/m4/rootfs/.hrt-closure-v1.json >/dev/null
+          jq -e '[.objects[].guest_path] | index("/opt/hnc/hoffice11/Bin/HncOdfConverter.so") != null' \
+            build/m4/rootfs/.hrt-closure-v1.json >/dev/null
+          find build/m4/rootfs -type f -print0 | sort -z | \
+            xargs -0 file > build/m4/file-types.txt
+          du -sh build/m4/rootfs | tee build/m4/rootfs-size.txt
+      - name: Prepatch verified instruction boundaries in the shadow root
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/prepatch_elf.py build/m4/rootfs | \
+            tee build/m4/prepatch.txt
+          test -s build/m4/rootfs/.hrt-prepatched-v1
+          jq '{object_count, syscall_count, fs_to_gs_count}' \
+            build/m4/rootfs/.hrt-prepatched-v1
+          jq -e '.syscall_count > 50 and .fs_to_gs_count > 60' \
+            build/m4/rootfs/.hrt-prepatched-v1 >/dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m4-hoffice-converter-rootfs
+          path: |
+            build/m4/rootfs
+            build/m4/closure.txt
+            build/m4/prepatch.txt
+            build/m4/file-types.txt
+            build/m4/rootfs-size.txt
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 6
+
+  execute-on-apple-silicon:
+    needs: build-hoffice-closure
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m4-hoffice-converter-rootfs
+          path: build/m4
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+      - name: Compile the clean-room runtime host
+        run: |
+          set -euxo pipefail
+          mkdir -p build/m4/host build/m4/generated
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c \
+            build/m4/generated/syscall_bridge.c
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Iruntime/m3 -Iruntime/m1 \
+            runtime/m3/main.c runtime/m1/common.c runtime/m3/elf_map.c \
+            runtime/m3/stack.c runtime/m3/patch.c \
+            build/m4/generated/syscall_bridge.c runtime/m1/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/m4/host/hrt-m4
+          file build/m4/host/hrt-m4
+          codesign --force --sign - --timestamp=none build/m4/host/hrt-m4
+          codesign --verify --strict build/m4/host/hrt-m4
+      - name: Probe the exact HOffice private executable
+        run: |
+          set -uxo pipefail
+          test -s build/m4/rootfs/.hrt-prepatched-v1
+          : >build/m4/stdout.txt
+          : >build/m4/stderr.txt
+          /usr/bin/arch -x86_64 build/m4/host/hrt-m4 \
+            --root "$PWD/build/m4/rootfs" \
+            --program "$PROGRAM" \
+            >build/m4/stdout.txt 2>build/m4/stderr.txt &
+          guest_pid=$!
+          timed_out=1
+          for _ in $(jot 300); do
+            if ! kill -0 "$guest_pid" 2>/dev/null; then
+              timed_out=0
+              break
+            fi
+            sleep 0.05
+          done
+          if [ "$timed_out" -ne 0 ]; then
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$guest_pid" \
+              >build/m4/process.txt 2>&1 || true
+            /usr/bin/sample "$guest_pid" 1 1 \
+              -file build/m4/sample.txt >/dev/null 2>&1 || true
+            kill -TERM "$guest_pid" 2>/dev/null || true
+            sleep 0.2
+            kill -KILL "$guest_pid" 2>/dev/null || true
+          fi
+          set +e
+          wait "$guest_pid"
+          status=$?
+          set -e
+          if [ "$timed_out" -ne 0 ]; then status=124; fi
+          printf '%s\n' "$status" > build/m4/exit-status.txt
+          printf '%s\n' "$timed_out" > build/m4/timed-out.txt
+          echo '--- stderr ---'
+          cat build/m4/stderr.txt
+          echo '--- stdout ---'
+          cat build/m4/stdout.txt
+          echo '--- process ---'
+          cat build/m4/process.txt 2>/dev/null || true
+          echo '--- sample key frames ---'
+          grep -E 'Call graph:|Thread_.*DispatchQueue|hrt-m4|0x0*[0-9a-f]{6,}' \
+            build/m4/sample.txt 2>/dev/null | head -n 160 || true
+          echo "--- exit status: $status; timed-out: $timed_out ---"
+          grep -Fx \
+            'hrt-m3: verified instruction-boundary shadow root enabled' \
+            build/m4/stderr.txt
+          grep -E 'interpreter .*syscalls=[1-9][0-9]*' \
+            build/m4/stderr.txt
+          grep -E 'syscall 158 .*a1=0x1002' build/m4/stderr.txt
+          test "$status" -ne 124
+          test "$status" -lt 128
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m4-hoffice-converter-macos-proof
+          path: |
+            build/m4/host/hrt-m4
+            build/m4/generated/syscall_bridge.c
+            build/m4/rootfs/.hrt-closure-v1.json
+            build/m4/rootfs/.hrt-prepatched-v1
+            build/m4/closure.txt
+            build/m4/prepatch.txt
+            build/m4/file-types.txt
+            build/m4/rootfs-size.txt
+            build/m4/stdout.txt
+            build/m4/stderr.txt
+            build/m4/process.txt
+            build/m4/sample.txt
+            build/m4/exit-status.txt
+            build/m4/timed-out.txt
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 2
