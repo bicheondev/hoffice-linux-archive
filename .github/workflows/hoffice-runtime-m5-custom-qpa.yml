@@ -1,0 +1,288 @@
+name: HOffice runtime M5C custom Qt QPA
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-m5-custom-qpa]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  EXPECTED_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  QTBASE_COMMIT: 08de243eaa007597c2bfbc97d3d14e2f821ac4be
+
+jobs:
+  prepare-custom-qpa-rootfs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: qt/qtbase
+          ref: 08de243eaa007597c2bfbc97d3d14e2f821ac4be
+          path: build/qtbase
+          sparse-checkout: |
+            src/plugins/platforms/offscreen
+          sparse-checkout-cone-mode: false
+      - name: Verify and derive the custom QPA source
+        run: |
+          set -euxo pipefail
+          test "$(git -C build/qtbase rev-parse HEAD)" = "$QTBASE_COMMIT"
+          python3 runtime/m5c/prepare_qpa_source.py \
+            --qtbase build/qtbase \
+            --overlay runtime/m5c \
+            --output build/hrtmac
+          find build/hrtmac -maxdepth 1 -type f -print | sort
+      - name: Build hrtmac against Debian 10 Qt 5.11.3 private ABI
+        run: |
+          set -euxo pipefail
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            debian:10-slim \
+            bash -lc '
+              set -euxo pipefail
+              cat > /etc/apt/sources.list <<"EOF"
+          deb [trusted=yes] http://archive.debian.org/debian buster main
+          EOF
+              printf "Acquire::Check-Valid-Until \"false\";\n" \
+                > /etc/apt/apt.conf.d/99hrt-archive
+              apt-get -o Acquire::Check-Valid-Until=false update
+              DEBIAN_FRONTEND=noninteractive apt-get install -y \
+                --no-install-recommends \
+                build-essential ca-certificates pkg-config \
+                qt5-qmake qtbase5-dev qtbase5-private-dev \
+                qtbase5-dev-tools libfontconfig1-dev libfreetype6-dev \
+                libxkbcommon-dev libgl1-mesa-dev
+              qmake -query QT_VERSION | grep -Fx 5.11.3
+              cd build/hrtmac
+              qmake hrtmac.pro CONFIG+=release
+              make -j2
+            '
+          plugin=$(find build/hrtmac -type f -name 'libqhrtmac.so' -print -quit)
+          test -n "$plugin"
+          cp "$plugin" build/libqhrtmac.so
+          file build/libqhrtmac.so
+          readelf -hW build/libqhrtmac.so
+          strings build/libqhrtmac.so | grep -Fx hrtmac
+          strings build/libqhrtmac.so | grep -F 'HRT QPA: integration AppKit request'
+      - name: Download and verify the exact HOffice package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/deb build/extracted build/m5c-rootfs \
+                   build/compat
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" \
+            --dir build/deb
+          printf '%s  %s\n' "$EXPECTED_SHA256" "build/deb/$ASSET_NAME" | \
+            sha256sum --check -
+          dpkg-deb --extract "build/deb/$ASSET_NAME" build/extracted
+      - name: Add ABI-compatible startup libraries absent from Ubuntu 24.04
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libglu1-mesa libharfbuzz-icu0 ca-certificates
+          cat <<'EOF' | sudo tee /etc/apt/sources.list.d/hrt-focal-compat.list
+          deb [arch=amd64 trusted=yes] http://archive.ubuntu.com/ubuntu focal main
+          deb [arch=amd64 trusted=yes] http://archive.ubuntu.com/ubuntu focal-updates main
+          deb [arch=amd64 trusted=yes] http://security.ubuntu.com/ubuntu focal-security main
+          EOF
+          sudo apt-get update
+          (
+            cd build/compat
+            apt-get download libssl1.1
+          )
+          ssl_deb=$(find build/compat -maxdepth 1 \
+            -name 'libssl1.1_*_amd64.deb' -print -quit)
+          test -n "$ssl_deb"
+          dpkg-deb --extract "$ssl_deb" build/extracted
+      - name: Prepare exact HWord with the custom QPA closure
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/prepare_hword_rootfs.py \
+            --root build/extracted \
+            --output build/m5c-rootfs \
+            --generator runtime/m2/generate_fs_patch_map.py
+          python3 runtime/m5c/add_custom_qpa_closure.py \
+            --source-root build/extracted \
+            --output-root build/m5c-rootfs \
+            --plugin build/libqhrtmac.so \
+            --generator runtime/m2/generate_fs_patch_map.py
+          test -f build/m5c-rootfs/opt/hnc/hoffice11/Bin/hword
+          test -f build/m5c-rootfs/opt/hrt/qt/plugins/platforms/libqhrtmac.so
+          test -f build/m5c-rootfs/opt/hrt/qt/plugins/platforms/libqhrtmac.so.syscallpatch
+          grep -qv '^#' \
+            build/m5c-rootfs/opt/hrt/qt/plugins/platforms/libqhrtmac.so.syscallpatch
+          find build/m5c-rootfs -type f | sort \
+            > build/m5c-rootfs/.hrt-m5c/files.txt
+          du -sh build/m5c-rootfs
+          cat build/m5c-rootfs/.hrt-m5c/manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m5c-custom-qpa-rootfs
+          path: build/m5c-rootfs
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 6
+
+  verify-custom-qpa-on-apple-silicon:
+    needs: prepare-custom-qpa-rootfs
+    runs-on: macos-14
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create a case-sensitive guest filesystem
+        run: |
+          set -euxo pipefail
+          image="$RUNNER_TEMP/hrt-m5c.sparsebundle"
+          mount="$RUNNER_TEMP/hrt-m5c-root"
+          rm -rf "$image" "$mount"
+          mkdir -p "$mount"
+          if ! hdiutil create -quiet -size 6g -fs APFSX \
+               -volname HRTM5C -type SPARSEBUNDLE "$image"; then
+            hdiutil create -quiet -size 6g -fs HFSX \
+              -volname HRTM5C -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$mount" "$image"
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5c-custom-qpa-rootfs
+          path: ${{ runner.temp }}/hrt-m5c-root
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+      - name: Compile the AppKit host runtime
+        run: |
+          set -euxo pipefail
+          mkdir -p build/objects build/host
+          c_sources=(
+            runtime/m5/main.c
+            runtime/m2/common.c
+            runtime/m2/patch.c
+            runtime/m2/elf_map.c
+            runtime/m5c/stack.c
+            runtime/m2/syscall_common.c
+            runtime/m2/syscall_memory.c
+            runtime/m2/syscall_misc.c
+            runtime/m2/syscall_dispatch.c
+            runtime/m2/syscall_bridge.c
+          )
+          index=0
+          for source in "${c_sources[@]}"; do
+            clang -arch x86_64 -std=c17 -O1 -g \
+              -fno-stack-protector -fno-omit-frame-pointer \
+              -Wall -Wextra -c "$source" \
+              -o "build/objects/c-$index.o"
+            index=$((index + 1))
+          done
+          clang -arch x86_64 -c runtime/m2/enter_guest.S \
+            -o build/objects/enter_guest.o
+          clang++ -arch x86_64 -std=c++17 -O1 -g \
+            -fobjc-arc -fno-exceptions -fno-rtti \
+            -fno-stack-protector -Wall -Wextra \
+            -c runtime/m5/host_ui.mm \
+            -o build/objects/host_ui.o
+          clang++ -arch x86_64 build/objects/*.o \
+            -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework Foundation \
+            -o build/host/hrt-m5c
+          codesign --force --sign - --timestamp=none build/host/hrt-m5c
+          codesign --verify --strict build/host/hrt-m5c
+      - name: Run exact HWord through the custom Qt platform plugin
+        env:
+          HRT_HOST_WINDOW_MARKER_PATH: ${{ github.workspace }}/build/hrtmac-window.json
+          HRT_HOST_SCREENSHOT_PATH: ${{ github.workspace }}/build/hrtmac-window.png
+        run: |
+          set -euxo pipefail
+          python3 - "$PWD/build/host/hrt-m5c" \
+            "$RUNNER_TEMP/hrt-m5c-root" <<'PY'
+          import os
+          import pathlib
+          import signal
+          import subprocess
+          import sys
+
+          runtime = pathlib.Path(sys.argv[1])
+          root = pathlib.Path(sys.argv[2])
+          stdout = pathlib.Path('build/stdout.txt')
+          stderr = pathlib.Path('build/stderr.txt')
+          command = [
+              '/usr/bin/arch', '-x86_64', str(runtime),
+              '--root', str(root),
+              '--program', '/opt/hnc/hoffice11/Bin/hword',
+          ]
+          process = subprocess.Popen(
+              command,
+              stdout=subprocess.PIPE,
+              stderr=subprocess.PIPE,
+              start_new_session=True,
+              env=os.environ.copy(),
+          )
+          timed_out = False
+          try:
+              out, err = process.communicate(timeout=40)
+          except subprocess.TimeoutExpired:
+              timed_out = True
+              os.killpg(process.pid, signal.SIGTERM)
+              try:
+                  out, err = process.communicate(timeout=5)
+              except subprocess.TimeoutExpired:
+                  os.killpg(process.pid, signal.SIGKILL)
+                  out, err = process.communicate()
+          status = 124 if timed_out else process.returncode
+          stdout.write_bytes(out)
+          stderr.write_bytes(err)
+          pathlib.Path('build/exit-status.txt').write_text(f'{status}\n')
+          print(stderr.read_text(errors='replace'), file=sys.stderr)
+          print(stdout.read_text(errors='replace'), end='')
+          PY
+
+          grep -E 'loaded library .*libqhrtmac\.so' build/stderr.txt
+          grep -E 'HRT QPA: integration AppKit request id=[1-9][0-9]*' \
+            build/stderr.txt
+          grep -E 'hrt-m5: AppKit window visible request=[1-9][0-9]* ' \
+            build/stderr.txt
+          if grep -Fq 'guest preload requested AppKit window' build/stderr.txt; then
+            echo 'unexpected preload proof marker' >&2
+            exit 1
+          fi
+          test -s build/hrtmac-window.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          marker=json.loads(Path('build/hrtmac-window.json').read_text())
+          assert marker['visible'] is True, marker
+          assert marker['windowNumber'] > 0, marker
+          assert 'Qt QPA bridge' in marker['title'], marker
+          print(json.dumps(marker, ensure_ascii=False, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m5c-custom-qpa-proof
+          path: |
+            build/host/hrt-m5c
+            build/stdout.txt
+            build/stderr.txt
+            build/exit-status.txt
+            build/hrtmac-window.json
+            build/hrtmac-window.png
+            ${{ runner.temp }}/hrt-m5c-root/.hrt-m5c
+          if-no-files-found: warn
+          retention-days: 2
+      - name: Detach the case-sensitive guest filesystem
+        if: always()
+        run: |
+          hdiutil detach -quiet "$RUNNER_TEMP/hrt-m5c-root" || true
