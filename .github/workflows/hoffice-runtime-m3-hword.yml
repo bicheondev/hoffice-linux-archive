@@ -1,0 +1,228 @@
+name: HOffice runtime M3 real HWord entry
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'proofs/m2-glibc-bootstrap.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: hrt-m3-hword-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  EXPECTED_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  HWORD_GUEST: /opt/hnc/hoffice11/Bin/hword
+
+jobs:
+  build-hword-sysroot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require durable M2 proof
+        run: |
+          set -euxo pipefail
+          test -f proofs/m2-glibc-bootstrap.json
+          grep -F '"status": "PASS"' proofs/m2-glibc-bootstrap.json
+
+      - name: Install ELF collection tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            binutils file zstd python3
+
+      - name: Download and verify the exact HOffice package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p work/deb work/full-root build/hword-rootfs build/report
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" \
+            --dir work/deb
+          printf '%s  %s\n' "$EXPECTED_SHA256" "work/deb/$ASSET_NAME" \
+            | sha256sum --check -
+          dpkg-deb --extract "work/deb/$ASSET_NAME" work/full-root
+          test -x "work/full-root$HWORD_GUEST"
+          file "work/full-root$HWORD_GUEST" | tee build/report/hword-file.txt
+          readelf -hW "work/full-root$HWORD_GUEST" \
+            | tee build/report/hword-elf-header.txt
+          readelf -lW "work/full-root$HWORD_GUEST" \
+            | tee build/report/hword-program-headers.txt
+          readelf -dW "work/full-root$HWORD_GUEST" \
+            | tee build/report/hword-dynamic.txt
+
+      - name: Collect recursive HWord ELF dependency sysroot
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/collect_rootfs.py \
+            --source-root work/full-root \
+            --target "$HWORD_GUEST" \
+            --output-root build/hword-rootfs \
+            --manifest build/report/hword-rootfs-manifest.json
+          test -x "build/hword-rootfs$HWORD_GUEST"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest=json.loads(Path('build/report/hword-rootfs-manifest.json').read_text())
+          assert manifest['interpreter']
+          assert manifest['unresolved'] == []
+          assert manifest['object_count'] >= 5
+          print(json.dumps({
+              'object_count':manifest['object_count'],
+              'total_size':manifest['total_size'],
+              'interpreter':manifest['interpreter'],
+          }, indent=2))
+          PY
+          tar --sort=name --mtime='UTC 2026-01-01' \
+            --owner=0 --group=0 --numeric-owner \
+            -C build/hword-rootfs -cf - . \
+            | zstd -T0 -19 -o build/hword-rootfs.tar.zst
+          sha256sum build/hword-rootfs.tar.zst \
+            > build/report/hword-rootfs.tar.zst.sha256
+          ls -lh build/hword-rootfs.tar.zst
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m3-hword-sysroot
+          path: |
+            build/hword-rootfs.tar.zst
+            build/report
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  probe-hword-on-apple-silicon:
+    needs: build-hword-sysroot
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m3-hword-sysroot
+          path: build/input
+
+      - name: Ensure Rosetta and unpack the case-safe minimal sysroot
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          mkdir -p build/hword-rootfs build/host build/proof
+          zstd -dc build/input/hword-rootfs.tar.zst \
+            | tar -xf - -C build/hword-rootfs
+          test -x "build/hword-rootfs$HWORD_GUEST"
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+
+      - name: Generate the FS-safe M3 syscall bridge
+        run: |
+          set -euxo pipefail
+          python3 runtime/m2/build_syscall_bridge_v3.py \
+            runtime/m2/syscall_bridge.c build/syscall_bridge_m2_v3.c
+          python3 runtime/m3/add_entry_probe.py \
+            build/syscall_bridge_m2_v3.c build/syscall_bridge_m3.c
+          grep -F 'HRT M3: real HOffice ELF reached its original process entry point' \
+            build/syscall_bridge_m3.c
+
+      - name: Compile and sign the clean-room M3 host
+        run: |
+          set -euxo pipefail
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -Wall -Wextra -Werror -Wpedantic \
+            -fno-stack-protector -mfsgsbase -I. \
+            -include runtime/m2/mmap_shim.h \
+            runtime/m3/main.c runtime/m3/probe.c \
+            runtime/m2/common.c runtime/m2/elf_map.c runtime/m2/stack.c \
+            build/syscall_bridge_m3.c runtime/m2/mmap_shim.c \
+            runtime/m2/fs_trampoline.S runtime/m2/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/host/hrt-m3-hword
+          file build/host/hrt-m3-hword | tee build/proof/host-file.txt
+          lipo -info build/host/hrt-m3-hword | tee build/proof/host-arch.txt
+          codesign --force --sign - --timestamp=none build/host/hrt-m3-hword
+          codesign --verify --strict build/host/hrt-m3-hword
+
+      - name: Let the real loader relocate HWord and stop at its original entry
+        run: |
+          set -uxo pipefail
+          set +e
+          python3 - <<'PY'
+          import pathlib
+          import subprocess
+          root=pathlib.Path.cwd()
+          command=[
+              '/usr/bin/arch','-x86_64',str(root/'build/host/hrt-m3-hword'),
+              '--rootfs',str(root/'build/hword-rootfs'),
+              '--program','/opt/hnc/hoffice11/Bin/hword',
+          ]
+          try:
+              with (root/'build/proof/stdout.txt').open('wb') as stdout, \
+                   (root/'build/proof/stderr.txt').open('wb') as stderr:
+                  completed=subprocess.run(command,stdout=stdout,stderr=stderr,
+                                           timeout=45,check=False)
+              status=completed.returncode
+          except subprocess.TimeoutExpired:
+              status=124
+          (root/'build/proof/exit-status.txt').write_text(f'{status}\n')
+          PY
+          status=$(cat build/proof/exit-status.txt)
+          set -e
+          echo '--- HWord stderr ---'
+          cat build/proof/stderr.txt || true
+          echo '--- HWord stdout ---'
+          cat build/proof/stdout.txt || true
+          echo "--- HWord exit status: $status ---"
+          test "$status" -eq 0
+          grep -Fx 'HRT M3: real HOffice ELF reached its original process entry point' \
+            build/proof/stdout.txt
+          grep -E 'hrt-m3: program=/opt/hnc/hoffice11/Bin/hword .*entry-probe=0x[1-9a-f][0-9a-f]*' \
+            build/proof/stderr.txt
+
+      - name: Commit durable M3 proof
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p proofs
+          cat > proofs/m3-hword-entry.json <<JSON
+          {
+            "schema": 1,
+            "milestone": "M3",
+            "status": "PASS",
+            "commit": "$GITHUB_SHA",
+            "workflow_run": "$GITHUB_RUN_ID",
+            "package_sha256": "$EXPECTED_SHA256",
+            "program": "$HWORD_GUEST",
+            "proof": "HRT M3: real HOffice ELF reached its original process entry point"
+          }
+          JSON
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add proofs/m3-hword-entry.json
+          git commit -m 'proof: verify M3 real HWord process entry [skip ci]'
+          git push origin HEAD:codex/hoffice-runtime-from-scratch
+          gh issue comment 1 --repo "$GITHUB_REPOSITORY" \
+            --body "M3 PASS: exact HWord 11.20.0.1520+h1 reached its original ELF entry on Apple Silicon macOS. Run: $GITHUB_RUN_ID."
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m3-hword-macos-proof
+          path: |
+            build/host/hrt-m3-hword
+            build/input/report
+            build/proof
+          if-no-files-found: warn
+          retention-days: 14
