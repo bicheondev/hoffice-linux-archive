@@ -34,6 +34,18 @@ def main() -> None:
         "sys/uio include",
     )
 
+    text = replace_once(
+        text,
+        "#define DARWIN_SYS_EXIT UINT64_C(1)\n"
+        "#define DARWIN_SYS_WRITE UINT64_C(4)\n",
+        "#define DARWIN_SYS_EXIT UINT64_C(1)\n"
+        "#define DARWIN_SYS_READ UINT64_C(3)\n"
+        "#define DARWIN_SYS_WRITE UINT64_C(4)\n"
+        "#define DARWIN_SYS_OPEN UINT64_C(5)\n"
+        "#define DARWIN_SYS_CLOSE UINT64_C(6)\n",
+        "raw random syscall constants",
+    )
+
     trace_bridge = r'''
 #define M3_TRACE_LIMIT 256u
 static unsigned int g_trace_logs;
@@ -150,6 +162,48 @@ static int64_t host_vector_io_bridge(int fd, const LinuxIovec *vectors,
         "static int64_t host_close_bridge(int fd) {\n",
         vector_bridge + "static int64_t host_close_bridge(int fd) {\n",
         "vector bridge insertion",
+    )
+
+    safe_random = r'''static int64_t bridge_getrandom(void *buffer, size_t size) {
+    if (buffer == NULL && size != 0u) return -LINUX_EFAULT;
+    if (size == 0u) return 0;
+
+    static const char path[] = "/dev/urandom";
+    int64_t fd = raw_bsd_syscall3(
+        DARWIN_SYS_OPEN, (uint64_t)(uintptr_t)path,
+        (uint64_t)(O_RDONLY | O_CLOEXEC), 0u);
+    if (fd < 0) return -LINUX_EIO;
+
+    size_t completed = 0u;
+    while (completed < size) {
+        int64_t amount = raw_bsd_syscall3(
+            DARWIN_SYS_READ, (uint64_t)fd,
+            (uint64_t)(uintptr_t)((unsigned char *)buffer + completed),
+            (uint64_t)(size - completed));
+        if (amount == -(int64_t)EINTR) continue;
+        if (amount <= 0) {
+            (void)raw_bsd_syscall0(DARWIN_SYS_CLOSE);
+            return amount == 0 ? -LINUX_EIO : -LINUX_EIO;
+        }
+        completed += (size_t)amount;
+    }
+    (void)raw_bsd_syscall0(DARWIN_SYS_CLOSE);
+    return (int64_t)completed;
+}
+'''
+    old_random = '''static int64_t bridge_getrandom(void *buffer, size_t size) {
+    if (buffer == NULL && size != 0u) return -LINUX_EFAULT;
+    uintptr_t guest = switch_to_host_context();
+    arc4random_buf(buffer, size);
+    restore_guest_context(guest);
+    return (int64_t)size;
+}
+'''
+    text = replace_once(
+        text,
+        old_random,
+        safe_random,
+        "async-signal-safe getrandom bridge",
     )
 
     vector_cases = r'''        case LINUX_SYS_READV:
