@@ -72,6 +72,10 @@ typedef struct {
     uint64_t code_fs_patches;
 } RuntimeState;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern size_t g_host_page_size;
 extern size_t g_guest_page_size;
 extern RuntimeState g_runtime;
@@ -105,5 +109,9 @@ void *build_initial_stack(const char *guest_path,
 void install_sigill_handler(void);
 void enter_guest(void *stack_pointer, void *entry_point)
     __attribute__((noreturn));
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
