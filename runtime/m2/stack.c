@@ -43,13 +43,38 @@ void *build_initial_stack(const char *guest_path,
     static const char env_lang[] = "LANG=C.UTF-8";
     static const char env_lc[] = "LC_ALL=C.UTF-8";
     static const char env_home[] = "HOME=/tmp/hrt-home";
-    uintptr_t env0 = push_bytes(&cursor, floor, env_library,
-                                sizeof(env_library));
-    uintptr_t env1 = push_bytes(&cursor, floor, env_tunables,
-                                sizeof(env_tunables));
-    uintptr_t env2 = push_bytes(&cursor, floor, env_lang, sizeof(env_lang));
-    uintptr_t env3 = push_bytes(&cursor, floor, env_lc, sizeof(env_lc));
-    uintptr_t env4 = push_bytes(&cursor, floor, env_home, sizeof(env_home));
+    static const char env_xdg[] = "XDG_RUNTIME_DIR=/tmp/hrt-runtime";
+    static const char env_platform[] = "QT_QPA_PLATFORM=offscreen";
+    static const char env_plugin_path[] =
+        "QT_PLUGIN_PATH=/opt/hnc/hoffice11/Bin/qt/plugins";
+    static const char env_platform_plugin_path[] =
+        "QT_QPA_PLATFORM_PLUGIN_PATH="
+        "/opt/hnc/hoffice11/Bin/qt/plugins/platforms";
+    static const char env_debug_plugins[] = "QT_DEBUG_PLUGINS=1";
+    static const char env_qpa_logging[] =
+        "QT_LOGGING_RULES=qt.qpa.*=true";
+    static const char env_webengine[] =
+        "QTWEBENGINE_DISABLE_SANDBOX=1";
+
+    uintptr_t environment[] = {
+        push_bytes(&cursor, floor, env_library, sizeof(env_library)),
+        push_bytes(&cursor, floor, env_tunables, sizeof(env_tunables)),
+        push_bytes(&cursor, floor, env_lang, sizeof(env_lang)),
+        push_bytes(&cursor, floor, env_lc, sizeof(env_lc)),
+        push_bytes(&cursor, floor, env_home, sizeof(env_home)),
+        push_bytes(&cursor, floor, env_xdg, sizeof(env_xdg)),
+        push_bytes(&cursor, floor, env_platform, sizeof(env_platform)),
+        push_bytes(&cursor, floor, env_plugin_path,
+                   sizeof(env_plugin_path)),
+        push_bytes(&cursor, floor, env_platform_plugin_path,
+                   sizeof(env_platform_plugin_path)),
+        push_bytes(&cursor, floor, env_debug_plugins,
+                   sizeof(env_debug_plugins)),
+        push_bytes(&cursor, floor, env_qpa_logging,
+                   sizeof(env_qpa_logging)),
+        push_bytes(&cursor, floor, env_webengine, sizeof(env_webengine)),
+    };
+
     static const char platform[] = "x86_64";
     uintptr_t platform_pointer = push_bytes(&cursor, floor, platform,
                                             sizeof(platform));
@@ -74,11 +99,11 @@ void *build_initial_stack(const char *guest_path,
     WORD(1);
     WORD(argv0);
     WORD(0);
-    WORD(env0);
-    WORD(env1);
-    WORD(env2);
-    WORD(env3);
-    WORD(env4);
+    for (size_t index = 0;
+         index < sizeof(environment) / sizeof(environment[0]);
+         ++index) {
+        WORD(environment[index]);
+    }
     WORD(0);
     AUX(AT_PHDR, program->phdr_address);
     AUX(AT_PHENT, sizeof(Elf64_Phdr));

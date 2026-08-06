@@ -1,0 +1,190 @@
+name: HOffice runtime M4 Qt offscreen probe
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-m4-qt-offscreen]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  EXPECTED_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+
+jobs:
+  prepare-qt-rootfs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and verify exact HOffice package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/deb build/extracted build/m4-rootfs build/compat
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" \
+            --dir build/deb
+          printf '%s  %s\n' "$EXPECTED_SHA256" "build/deb/$ASSET_NAME" | \
+            sha256sum --check -
+          dpkg-deb --extract "build/deb/$ASSET_NAME" build/extracted
+      - name: Add ABI-compatible startup libraries absent from Ubuntu 24.04
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libglu1-mesa libharfbuzz-icu0 ca-certificates
+          cat <<'EOF' | sudo tee /etc/apt/sources.list.d/hrt-focal-compat.list
+          deb [arch=amd64 trusted=yes] http://archive.ubuntu.com/ubuntu focal main
+          deb [arch=amd64 trusted=yes] http://archive.ubuntu.com/ubuntu focal-updates main
+          deb [arch=amd64 trusted=yes] http://security.ubuntu.com/ubuntu focal-security main
+          EOF
+          sudo apt-get update
+          (
+            cd build/compat
+            apt-get download libssl1.1
+          )
+          ssl_deb=$(find build/compat -maxdepth 1 \
+            -name 'libssl1.1_*_amd64.deb' -print -quit)
+          test -n "$ssl_deb"
+          dpkg-deb --extract "$ssl_deb" build/extracted
+      - name: Prepare HWord plus exact offscreen QPA closure
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/prepare_hword_rootfs.py \
+            --root build/extracted \
+            --output build/m4-rootfs \
+            --generator runtime/m2/generate_fs_patch_map.py
+          python3 runtime/m4/add_qt_offscreen_closure.py \
+            --source-root build/extracted \
+            --output-root build/m4-rootfs \
+            --generator runtime/m2/generate_fs_patch_map.py
+          test -f build/m4-rootfs/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so
+          test -f build/m4-rootfs/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so.syscallpatch
+          find build/m4-rootfs -type f | sort > build/m4-rootfs/.hrt-m4/files.txt
+          du -sh build/m4-rootfs
+          cat build/m4-rootfs/.hrt-m4/manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m4-qt-offscreen-rootfs
+          path: build/m4-rootfs
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 6
+
+  probe-qt-on-apple-silicon:
+    needs: prepare-qt-rootfs
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create a case-sensitive guest filesystem
+        run: |
+          set -euxo pipefail
+          image="$RUNNER_TEMP/hrt-m4.sparsebundle"
+          mount="$RUNNER_TEMP/hrt-m4-root"
+          rm -rf "$image" "$mount"
+          mkdir -p "$mount"
+          if ! hdiutil create -quiet -size 6g -fs APFSX \
+               -volname HRTM4 -type SPARSEBUNDLE "$image"; then
+            hdiutil create -quiet -size 6g -fs HFSX \
+              -volname HRTM4 -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$mount" "$image"
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m4-qt-offscreen-rootfs
+          path: ${{ runner.temp }}/hrt-m4-root
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+      - name: Compile the M4 probe runtime
+        run: |
+          set -euxo pipefail
+          mkdir -p build/host
+          clang -arch x86_64 -std=c17 -O1 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra \
+            runtime/m2/main.c runtime/m2/common.c \
+            runtime/m2/patch.c runtime/m2/elf_map.c \
+            runtime/m2/stack.c runtime/m2/syscall_common.c \
+            runtime/m2/syscall_memory.c runtime/m2/syscall_misc.c \
+            runtime/m2/syscall_dispatch.c runtime/m2/syscall_bridge.c \
+            runtime/m2/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/host/hrt-m4
+          codesign --force --sign - --timestamp=none build/host/hrt-m4
+          codesign --verify --strict build/host/hrt-m4
+      - name: Run HWord beyond entry and capture the Qt boundary
+        run: |
+          set -euxo pipefail
+          python3 - "$PWD/build/host/hrt-m4" "$RUNNER_TEMP/hrt-m4-root" <<'PY'
+          import os
+          import pathlib
+          import signal
+          import subprocess
+          import sys
+
+          runtime = pathlib.Path(sys.argv[1])
+          root = pathlib.Path(sys.argv[2])
+          stdout = pathlib.Path("build/stdout.txt")
+          stderr = pathlib.Path("build/stderr.txt")
+          command = [
+              "/usr/bin/arch", "-x86_64", str(runtime),
+              "--root", str(root),
+              "--program", "/opt/hnc/hoffice11/Bin/hword",
+          ]
+          process = subprocess.Popen(
+              command,
+              stdout=subprocess.PIPE,
+              stderr=subprocess.PIPE,
+              start_new_session=True,
+          )
+          timed_out = False
+          try:
+              out, err = process.communicate(timeout=30)
+          except subprocess.TimeoutExpired:
+              timed_out = True
+              os.killpg(process.pid, signal.SIGTERM)
+              try:
+                  out, err = process.communicate(timeout=5)
+              except subprocess.TimeoutExpired:
+                  os.killpg(process.pid, signal.SIGKILL)
+                  out, err = process.communicate()
+          status = 124 if timed_out else process.returncode
+          stdout.write_bytes(out)
+          stderr.write_bytes(err)
+          pathlib.Path("build/exit-status.txt").write_text(f"{status}\n")
+          print(stderr.read_text(errors="replace"), file=sys.stderr)
+          print(stdout.read_text(errors="replace"), end="")
+          PY
+          grep -E 'libqoffscreen\.so|offscreen' build/stderr.txt
+          if grep -Eqi 'loaded library.*libqoffscreen\.so|loaded.*libqoffscreen\.so' \
+               build/stderr.txt; then
+            touch build/offscreen-loaded.marker
+          fi
+          test -f build/offscreen-loaded.marker
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m4-qt-offscreen-proof
+          path: |
+            build/host/hrt-m4
+            build/stdout.txt
+            build/stderr.txt
+            build/exit-status.txt
+            build/offscreen-loaded.marker
+            ${{ runner.temp }}/hrt-m4-root/.hrt-m4
+          if-no-files-found: warn
+          retention-days: 2
+      - name: Detach the case-sensitive guest filesystem
+        if: always()
+        run: |
+          hdiutil detach -quiet "$RUNNER_TEMP/hrt-m4-root" || true
