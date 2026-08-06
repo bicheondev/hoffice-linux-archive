@@ -1,0 +1,250 @@
+name: HOffice runtime M5B exact HWord AppKit window
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-m5-hword-window]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  EXPECTED_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+
+jobs:
+  prepare-exact-hword-rootfs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and verify the exact HOffice package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/deb build/extracted build/m5-hword-rootfs \
+                   build/compat build/objects
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" \
+            --dir build/deb
+          printf '%s  %s\n' "$EXPECTED_SHA256" "build/deb/$ASSET_NAME" | \
+            sha256sum --check -
+          dpkg-deb --extract "build/deb/$ASSET_NAME" build/extracted
+      - name: Add ABI-compatible startup libraries absent from Ubuntu 24.04
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libglu1-mesa libharfbuzz-icu0 ca-certificates
+          cat <<'EOF' | sudo tee /etc/apt/sources.list.d/hrt-focal-compat.list
+          deb [arch=amd64 trusted=yes] http://archive.ubuntu.com/ubuntu focal main
+          deb [arch=amd64 trusted=yes] http://archive.ubuntu.com/ubuntu focal-updates main
+          deb [arch=amd64 trusted=yes] http://security.ubuntu.com/ubuntu focal-security main
+          EOF
+          sudo apt-get update
+          (
+            cd build/compat
+            apt-get download libssl1.1
+          )
+          ssl_deb=$(find build/compat -maxdepth 1 \
+            -name 'libssl1.1_*_amd64.deb' -print -quit)
+          test -n "$ssl_deb"
+          dpkg-deb --extract "$ssl_deb" build/extracted
+      - name: Prepare exact HWord, Qt offscreen QPA, and host-call preload
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/prepare_hword_rootfs.py \
+            --root build/extracted \
+            --output build/m5-hword-rootfs \
+            --generator runtime/m2/generate_fs_patch_map.py
+          python3 runtime/m4/add_qt_offscreen_closure.py \
+            --source-root build/extracted \
+            --output-root build/m5-hword-rootfs \
+            --generator runtime/m2/generate_fs_patch_map.py
+
+          mkdir -p build/m5-hword-rootfs/opt/hrt/lib \
+                   build/m5-hword-rootfs/tmp/hrt-home \
+                   build/m5-hword-rootfs/tmp/hrt-runtime
+          chmod 700 build/m5-hword-rootfs/tmp/hrt-runtime
+          cc -c -O2 -fPIC -nostdlib -fno-stack-protector \
+            runtime/m5/window_preload.c \
+            -o build/objects/window_preload.o
+          ld -shared -nostdlib --build-id=none \
+            build/objects/window_preload.o \
+            -o build/m5-hword-rootfs/opt/hrt/lib/libhrt_window_probe.so
+          python3 runtime/m2/generate_fs_patch_map.py \
+            build/m5-hword-rootfs/opt/hrt/lib/libhrt_window_probe.so
+
+          test -f build/m5-hword-rootfs/opt/hnc/hoffice11/Bin/hword
+          test -f build/m5-hword-rootfs/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so
+          test -f build/m5-hword-rootfs/opt/hrt/lib/libhrt_window_probe.so.syscallpatch
+          mkdir -p build/m5-hword-rootfs/.hrt-m5
+          cp build/m5-hword-rootfs/.hrt-m3/manifest.json \
+             build/m5-hword-rootfs/.hrt-m5/hword-manifest.json
+          cp build/m5-hword-rootfs/.hrt-m4/manifest.json \
+             build/m5-hword-rootfs/.hrt-m5/qpa-manifest.json
+          find build/m5-hword-rootfs -type f | sort \
+            > build/m5-hword-rootfs/.hrt-m5/files.txt
+          du -sh build/m5-hword-rootfs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m5-exact-hword-window-rootfs
+          path: build/m5-hword-rootfs
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 6
+
+  verify-exact-hword-appkit-window:
+    needs: prepare-exact-hword-rootfs
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create a case-sensitive guest filesystem
+        run: |
+          set -euxo pipefail
+          image="$RUNNER_TEMP/hrt-m5-hword.sparsebundle"
+          mount="$RUNNER_TEMP/hrt-m5-hword-root"
+          rm -rf "$image" "$mount"
+          mkdir -p "$mount"
+          if ! hdiutil create -quiet -size 6g -fs APFSX \
+               -volname HRTM5HWORD -type SPARSEBUNDLE "$image"; then
+            hdiutil create -quiet -size 6g -fs HFSX \
+              -volname HRTM5HWORD -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$mount" "$image"
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-exact-hword-window-rootfs
+          path: ${{ runner.temp }}/hrt-m5-hword-root
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+      - name: Compile the AppKit host runtime
+        run: |
+          set -euxo pipefail
+          mkdir -p build/objects build/host
+          c_sources=(
+            runtime/m5/main.c
+            runtime/m2/common.c
+            runtime/m2/patch.c
+            runtime/m2/elf_map.c
+            runtime/m5/stack.c
+            runtime/m2/syscall_common.c
+            runtime/m2/syscall_memory.c
+            runtime/m2/syscall_misc.c
+            runtime/m2/syscall_dispatch.c
+            runtime/m2/syscall_bridge.c
+          )
+          index=0
+          for source in "${c_sources[@]}"; do
+            clang -arch x86_64 -std=c17 -O1 -g \
+              -fno-stack-protector -fno-omit-frame-pointer \
+              -Wall -Wextra -c "$source" \
+              -o "build/objects/c-$index.o"
+            index=$((index + 1))
+          done
+          clang -arch x86_64 -c runtime/m2/enter_guest.S \
+            -o build/objects/enter_guest.o
+          clang++ -arch x86_64 -std=c++17 -O1 -g \
+            -fobjc-arc -fno-exceptions -fno-rtti \
+            -fno-stack-protector -Wall -Wextra \
+            -c runtime/m5/host_ui.mm \
+            -o build/objects/host_ui.o
+          clang++ -arch x86_64 build/objects/*.o \
+            -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework Foundation \
+            -o build/host/hrt-m5-hword
+          codesign --force --sign - --timestamp=none build/host/hrt-m5-hword
+          codesign --verify --strict build/host/hrt-m5-hword
+      - name: Run the exact HWord with a native AppKit host window
+        env:
+          HRT_HOST_WINDOW_MARKER_PATH: ${{ github.workspace }}/build/hword-window.json
+          HRT_HOST_SCREENSHOT_PATH: ${{ github.workspace }}/build/hword-window.png
+        run: |
+          set -euxo pipefail
+          python3 - "$PWD/build/host/hrt-m5-hword" \
+            "$RUNNER_TEMP/hrt-m5-hword-root" <<'PY'
+          import os
+          import pathlib
+          import signal
+          import subprocess
+          import sys
+
+          runtime = pathlib.Path(sys.argv[1])
+          root = pathlib.Path(sys.argv[2])
+          stdout = pathlib.Path('build/stdout.txt')
+          stderr = pathlib.Path('build/stderr.txt')
+          command = [
+              '/usr/bin/arch', '-x86_64', str(runtime),
+              '--root', str(root),
+              '--program', '/opt/hnc/hoffice11/Bin/hword',
+          ]
+          process = subprocess.Popen(
+              command,
+              stdout=subprocess.PIPE,
+              stderr=subprocess.PIPE,
+              start_new_session=True,
+              env=os.environ.copy(),
+          )
+          timed_out = False
+          try:
+              out, err = process.communicate(timeout=35)
+          except subprocess.TimeoutExpired:
+              timed_out = True
+              os.killpg(process.pid, signal.SIGTERM)
+              try:
+                  out, err = process.communicate(timeout=5)
+              except subprocess.TimeoutExpired:
+                  os.killpg(process.pid, signal.SIGKILL)
+                  out, err = process.communicate()
+          status = 124 if timed_out else process.returncode
+          stdout.write_bytes(out)
+          stderr.write_bytes(err)
+          pathlib.Path('build/exit-status.txt').write_text(f'{status}\n')
+          print(stderr.read_text(errors='replace'), file=sys.stderr)
+          print(stdout.read_text(errors='replace'), end='')
+          PY
+
+          grep -Fx 'HRT M5: guest preload requested AppKit window' \
+            build/stderr.txt
+          grep -E 'hrt-m5: AppKit window visible request=[1-9][0-9]* ' \
+            build/stderr.txt
+          grep -E 'loaded library .*libqoffscreen\.so' build/stderr.txt
+          test -s build/hword-window.json
+          test -s build/hword-window.png
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          marker=json.loads(Path('build/hword-window.json').read_text())
+          assert marker['visible'] is True, marker
+          assert marker['windowNumber'] > 0, marker
+          assert marker['title'].startswith('한컴오피스 2022 Beta'), marker
+          assert Path('build/hword-window.png').stat().st_size > 1000
+          print(json.dumps(marker, ensure_ascii=False, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m5-exact-hword-appkit-proof
+          path: |
+            build/host/hrt-m5-hword
+            build/stdout.txt
+            build/stderr.txt
+            build/exit-status.txt
+            build/hword-window.json
+            build/hword-window.png
+            ${{ runner.temp }}/hrt-m5-hword-root/.hrt-m5
+          if-no-files-found: warn
+          retention-days: 2
+      - name: Detach the case-sensitive guest filesystem
+        if: always()
+        run: |
+          hdiutil detach -quiet "$RUNNER_TEMP/hrt-m5-hword-root" || true
