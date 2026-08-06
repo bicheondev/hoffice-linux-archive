@@ -1,0 +1,53 @@
+name: Extract HOffice app icons
+
+on:
+  push:
+    branches:
+      - codex/hoffice-macos-audit
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  EXPECTED_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+
+jobs:
+  extract-icons:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Download exact release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p work/root work/icons
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" \
+            --dir work
+          printf '%s  %s\n' "$EXPECTED_SHA256" "work/$ASSET_NAME" | sha256sum --check -
+
+      - name: Extract official application SVGs
+        run: |
+          set -euxo pipefail
+          dpkg-deb --extract "work/$ASSET_NAME" work/root
+          base=work/root/usr/share/icons/hicolor/scalable/apps
+          cp "$base/hoffice11-hcl.svg" work/icons/
+          cp "$base/hoffice11-hsl.svg" work/icons/
+          cp "$base/hoffice11-hword.svg" work/icons/
+          cp "$base/hoffice11-hwp.svg" work/icons/
+          file work/icons/*
+          sha256sum work/icons/* > work/icons/SHA256SUMS
+
+      - name: Upload exact icon sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: hoffice-11.20.0.1520-h1-official-icons
+          path: work/icons
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 9
