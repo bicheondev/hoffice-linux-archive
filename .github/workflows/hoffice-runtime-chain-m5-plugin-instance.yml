@@ -1,0 +1,26 @@
+name: HOffice chain M5 offscreen plugin instance
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-chain-m5-plugin-instance.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/hoffice-runtime-guest-symbol-probe-chain.yml
+    with:
+      predecessor_proof: proofs/m3-hword-entry.json
+      symbol_regex: '^qt_plugin_instance$'
+      label: Qt offscreen plugin instance
+      milestone: M5-chain-offscreen-plugin-instance
+      diagnostic_path: diagnostics/chain/m5-plugin-instance.json
+      proof_path: proofs/chain/m5-plugin-instance.json
+      trace_limit: 48000
+      run_seconds: 30
+      require_pipe2: true
