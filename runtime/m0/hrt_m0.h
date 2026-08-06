@@ -1,7 +1,7 @@
 #ifndef HRT_M0_H
 #define HRT_M0_H
 
-#include <elf.h>
+#include "elf64_abi.h"
 #include <stddef.h>
 #include <stdint.h>
 
