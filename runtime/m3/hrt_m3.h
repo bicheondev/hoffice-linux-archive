@@ -7,6 +7,8 @@
 #include <stdint.h>
 
 LoadedElf load_unrelocated_elf(const char *path);
+void set_prepatched_code_mode(int enabled);
+int prepatched_code_mode_enabled(void);
 size_t patch_guest_code(void *address, size_t length,
                         size_t *rewritten_fs_prefixes);
 size_t patch_loaded_elf(LoadedElf *loaded,
