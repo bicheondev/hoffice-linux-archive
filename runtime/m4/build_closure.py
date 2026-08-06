@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
-"""Build a minimal guest root for exact HOffice ELF entry points.
+"""Build a hash-locked guest ELF closure for exact HOffice entry points.
 
-The package payload is kept as the source of all HOffice-private objects. Any
-remaining Linux ABI libraries are copied from the pinned CI image. Resolution
-follows each object's DT_RUNPATH/DT_RPATH before the suite-wide Bin/qt search
-paths and finally the host's x86-64 ldconfig cache. Every copied object is
-hashed in a manifest so the macOS execution proof can be tied to an exact
-closure rather than a mutable host installation.
+The HOffice package remains the source of private objects. Missing Linux ABI
+libraries are copied from the pinned CI image. Resolution follows DT_RUNPATH or
+DT_RPATH, the object's own directory, HOffice Bin/qt directories, and finally
+the host x86-64 ldconfig cache.
 
-``--include`` adds ELF roots that are loaded by name or dlopen rather than by a
-DT_NEEDED edge. This is required for Qt platform plugins, image-format plugins,
-and other runtime-discovered modules.
+Repeatable ``--include`` arguments add runtime-discovered ELF roots such as Qt
+QPA plugins that do not appear in DT_NEEDED. Guest paths are normalized with
+POSIX semantics: internal ``..`` components used by legitimate ``$ORIGIN``
+paths are accepted, while escape above guest root remains impossible.
 """
 
 from __future__ import annotations
@@ -19,13 +18,13 @@ import argparse
 import hashlib
 import json
 import os
+import posixpath
 import re
 import shutil
 import subprocess
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 ELF_MAGIC = b"\x7fELF"
 NEEDED_RE = re.compile(r"\(NEEDED\).*?Shared library: \[([^\]]+)\]")
@@ -33,7 +32,9 @@ PATH_RE = re.compile(
     r"\((?:RPATH|RUNPATH)\).*?Library (?:rpath|runpath): \[([^\]]*)\]"
 )
 INTERP_RE = re.compile(r"Requesting program interpreter:\s*([^\]]+)\]")
-LDCONFIG_RE = re.compile(r"^\s*(\S+)\s+\([^)]*x86-64[^)]*\)\s+=>\s+(\S+)\s*$")
+LDCONFIG_RE = re.compile(
+    r"^\s*(\S+)\s+\([^)]*x86-64[^)]*\)\s+=>\s+(\S+)\s*$"
+)
 
 
 @dataclass(frozen=True)
@@ -69,12 +70,28 @@ def is_elf(path: Path) -> bool:
         return False
 
 
-def sha256(path: Path) -> str:
+def file_sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def normalize_guest_path(path: str) -> str:
+    if "\x00" in path:
+        raise ValueError("guest path contains NUL")
+    normalized = posixpath.normpath("/" + path.lstrip("/"))
+    if normalized == "/.." or normalized.startswith("/../"):
+        raise ValueError(f"guest path escapes root: {path}")
+    if not normalized.startswith("/"):
+        raise ValueError(f"guest path is not absolute after normalization: {path}")
+    return normalized
+
+
+def lexical_absolute(path: Path) -> Path:
+    """Normalize dots without resolving symlinks out of the package tree."""
+    return Path(os.path.abspath(os.fspath(path)))
 
 
 def dynamic_metadata(path: Path) -> tuple[list[str], list[str], str | None]:
@@ -91,8 +108,7 @@ def dynamic_metadata(path: Path) -> tuple[list[str], list[str], str | None]:
 
 def parse_ldconfig() -> dict[str, list[Path]]:
     mapping: dict[str, list[Path]] = {}
-    output = run_text(["ldconfig", "-p"])
-    for line in output.splitlines():
+    for line in run_text(["ldconfig", "-p"]).splitlines():
         match = LDCONFIG_RE.match(line)
         if match is None:
             continue
@@ -104,17 +120,18 @@ def parse_ldconfig() -> dict[str, list[Path]]:
 
 
 def package_guest_path(package_root: Path, source: Path) -> str | None:
+    source = lexical_absolute(source)
     try:
         relative = source.relative_to(package_root)
     except ValueError:
         return None
-    return "/" + relative.as_posix()
+    return normalize_guest_path("/" + relative.as_posix())
 
 
 def expand_runtime_path(entry: str, object_source: Path) -> Path:
     expanded = entry.replace("${ORIGIN}", os.fspath(object_source.parent))
     expanded = expanded.replace("$ORIGIN", os.fspath(object_source.parent))
-    return Path(expanded)
+    return lexical_absolute(Path(expanded))
 
 
 def choose_resolution(
@@ -127,16 +144,18 @@ def choose_resolution(
     ldconfig: dict[str, list[Path]],
 ) -> tuple[Path, str]:
     candidates: list[Path] = []
-    candidates.extend(expand_runtime_path(entry, object_source) / name
-                      for entry in runtime_paths)
+    candidates.extend(
+        expand_runtime_path(entry, object_source) / name
+        for entry in runtime_paths
+    )
     candidates.append(object_source.parent / name)
     candidates.extend(directory / name for directory in package_globals)
     candidates.extend(directory / name for directory in system_globals)
     candidates.extend(ldconfig.get(name, []))
 
     seen: set[Path] = set()
-    for candidate in candidates:
-        candidate = candidate.absolute()
+    for raw_candidate in candidates:
+        candidate = lexical_absolute(raw_candidate)
         if candidate in seen:
             continue
         seen.add(candidate)
@@ -144,9 +163,7 @@ def choose_resolution(
             continue
         guest = package_guest_path(package_root, candidate)
         if guest is None:
-            guest = candidate.as_posix()
-            if not guest.startswith("/"):
-                guest = "/" + guest
+            guest = normalize_guest_path(candidate.as_posix())
         return candidate, guest
     raise FileNotFoundError(
         f"could not resolve {name!r} required by {object_source}"
@@ -157,15 +174,7 @@ def copy_object(source: Path, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     resolved = source.resolve(strict=True)
     shutil.copy2(resolved, destination)
-    source_mode = source.stat().st_mode & 0o7777
-    os.chmod(destination, source_mode)
-
-
-def normalize_guest_path(path: str) -> str:
-    result = "/" + path.lstrip("/")
-    if "/../" in result or result.endswith("/.."):
-        raise ValueError(f"unsafe guest path: {path}")
-    return result
+    os.chmod(destination, source.stat().st_mode & 0o7777)
 
 
 def package_elf(package_root: Path, guest_path: str) -> Path:
@@ -174,6 +183,28 @@ def package_elf(package_root: Path, guest_path: str) -> Path:
     if not source.is_file() or not is_elf(source):
         raise FileNotFoundError(f"package path is not an ELF file: {source}")
     return source
+
+
+def enqueue_root(
+    queue: deque[PendingObject],
+    queued: dict[str, Path],
+    source: Path,
+    guest_path: str,
+    reason: str,
+) -> None:
+    guest_path = normalize_guest_path(guest_path)
+    previous = queued.get(guest_path)
+    if previous is not None:
+        if file_sha256(previous.resolve(strict=True)) != file_sha256(
+            source.resolve(strict=True)
+        ):
+            raise RuntimeError(
+                f"root guest path collision at {guest_path}: "
+                f"{previous} versus {source}"
+            )
+        return
+    queued[guest_path] = source
+    queue.append(PendingObject(source, guest_path, reason))
 
 
 def main() -> None:
@@ -190,19 +221,10 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    package_root = args.package_root.resolve(strict=True)
-    output_root = args.output_root.resolve()
+    package_root = lexical_absolute(args.package_root.resolve(strict=True))
+    output_root = lexical_absolute(args.output_root)
     program_guest = normalize_guest_path(args.program)
     program_source = package_elf(package_root, program_guest)
-
-    include_guests: list[str] = []
-    include_sources: list[Path] = []
-    for raw_include in args.include:
-        guest = normalize_guest_path(raw_include)
-        if guest == program_guest or guest in include_guests:
-            continue
-        include_guests.append(guest)
-        include_sources.append(package_elf(package_root, guest))
 
     if output_root.exists():
         shutil.rmtree(output_root)
@@ -218,18 +240,22 @@ def main() -> None:
     ]
     ldconfig = parse_ldconfig()
 
-    roots = [PendingObject(program_source, program_guest, "program")]
-    roots.extend(
-        PendingObject(source, guest, "explicit-include")
-        for source, guest in zip(include_sources, include_guests, strict=True)
-    )
-    queue: deque[PendingObject] = deque(roots)
-    queued: dict[str, Path] = {
-        pending.guest_path: pending.source for pending in roots
-    }
-    root_reasons: dict[str, str] = {
+    queue: deque[PendingObject] = deque()
+    queued: dict[str, Path] = {}
+    enqueue_root(queue, queued, program_source, program_guest, "program")
+
+    explicit_includes: list[str] = []
+    for raw_include in args.include:
+        guest = normalize_guest_path(raw_include)
+        if guest == program_guest or guest in explicit_includes:
+            continue
+        source = package_elf(package_root, guest)
+        enqueue_root(queue, queued, source, guest, "explicit-include")
+        explicit_includes.append(guest)
+
+    root_reasons = {
         pending.guest_path: pending.root_reason
-        for pending in roots
+        for pending in queue
         if pending.root_reason is not None
     }
     records: list[dict[str, object]] = []
@@ -264,14 +290,19 @@ def main() -> None:
                 dependency_guest = requested_guest
             else:
                 dependency_source, dependency_guest = choose_resolution(
-                    request, source, runtime_paths, package_root,
-                    package_globals, system_globals, ldconfig,
+                    request,
+                    source,
+                    runtime_paths,
+                    package_root,
+                    package_globals,
+                    system_globals,
+                    ldconfig,
                 )
 
             dependency_guest = normalize_guest_path(dependency_guest)
             previous = queued.get(dependency_guest)
             if previous is not None:
-                if sha256(previous.resolve(strict=True)) != sha256(
+                if file_sha256(previous.resolve(strict=True)) != file_sha256(
                     dependency_source.resolve(strict=True)
                 ):
                     raise RuntimeError(
@@ -280,9 +311,8 @@ def main() -> None:
                     )
             else:
                 queued[dependency_guest] = dependency_source
-                queue.append(
-                    PendingObject(dependency_source, dependency_guest)
-                )
+                queue.append(PendingObject(dependency_source, dependency_guest))
+
             resolved_dependencies.append(
                 {
                     "request": request,
@@ -291,13 +321,14 @@ def main() -> None:
                 }
             )
 
+        resolved_source = source.resolve(strict=True)
         records.append(
             {
                 "guest_path": guest_path,
                 "root_reason": root_reasons.get(guest_path),
                 "source": os.fspath(source),
-                "sha256": sha256(source.resolve(strict=True)),
-                "size": source.resolve(strict=True).stat().st_size,
+                "sha256": file_sha256(resolved_source),
+                "size": resolved_source.stat().st_size,
                 "needed": needed,
                 "runtime_paths": runtime_paths,
                 "interpreter": interpreter,
@@ -325,14 +356,13 @@ def main() -> None:
     manifest = {
         "schema": 2,
         "program": program_guest,
-        "explicit_includes": include_guests,
-        "root_count": len(roots),
+        "explicit_includes": explicit_includes,
+        "root_count": 1 + len(explicit_includes),
         "object_count": len(records),
         "total_bytes": sum(int(record["size"]) for record in records),
         "objects": sorted(records, key=lambda record: str(record["guest_path"])),
     }
-    manifest_path = output_root / ".hrt-closure-v1.json"
-    manifest_path.write_text(
+    (output_root / ".hrt-closure-v1.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
