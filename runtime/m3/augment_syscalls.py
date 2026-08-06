@@ -2,7 +2,7 @@
 """Generate the M3 syscall bridge with incremental Linux ABI handlers.
 
 The large signal bridge stays readable while new syscall coverage is iterated in
-small, reviewable augmentations.  Every insertion is anchored and fail-closed so
+small, reviewable augmentations. Every insertion is anchored and fail-closed so
 a source refactor cannot silently produce a partially patched runtime.
 """
 
@@ -32,6 +32,86 @@ def main() -> None:
         '#include <sys/time.h>\n',
         '#include <sys/time.h>\n#include <sys/uio.h>\n',
         "sys/uio include",
+    )
+
+    trace_bridge = r'''
+#define M3_TRACE_LIMIT 256u
+static unsigned int g_trace_logs;
+
+static size_t trace_append_literal(char *buffer, size_t cursor,
+                                   size_t capacity,
+                                   const char *literal) {
+    while (*literal != '\0' && cursor < capacity) {
+        buffer[cursor++] = *literal++;
+    }
+    return cursor;
+}
+
+static size_t trace_append_decimal(char *buffer, size_t cursor,
+                                   size_t capacity, uint64_t value) {
+    char digits[24];
+    size_t count = 0u;
+    do {
+        digits[count++] = (char)('0' + (value % 10u));
+        value /= 10u;
+    } while (value != 0u && count < sizeof(digits));
+    while (count != 0u && cursor < capacity) {
+        buffer[cursor++] = digits[--count];
+    }
+    return cursor;
+}
+
+static size_t trace_append_hex(char *buffer, size_t cursor,
+                               size_t capacity, uint64_t value) {
+    static const char hex[] = "0123456789abcdef";
+    if (cursor < capacity) buffer[cursor++] = '0';
+    if (cursor < capacity) buffer[cursor++] = 'x';
+    int started = 0;
+    for (int shift = 60; shift >= 0; shift -= 4) {
+        unsigned int digit = (unsigned int)((value >> shift) & 0x0fu);
+        if (digit != 0u || started || shift == 0) {
+            started = 1;
+            if (cursor < capacity) buffer[cursor++] = hex[digit];
+        }
+    }
+    return cursor;
+}
+
+static void raw_trace_syscall(uint64_t number, uint64_t rip,
+                              uint64_t a1, uint64_t a2, uint64_t a3,
+                              uint64_t a4, uint64_t a5, uint64_t a6) {
+    if (g_trace_logs >= M3_TRACE_LIMIT) return;
+    ++g_trace_logs;
+
+    char buffer[256];
+    size_t cursor = 0u;
+#define APPEND_LITERAL(value) do { \
+    cursor = trace_append_literal(buffer, cursor, sizeof(buffer), value); \
+} while (0)
+#define APPEND_HEX(value) do { \
+    cursor = trace_append_hex(buffer, cursor, sizeof(buffer), value); \
+} while (0)
+    APPEND_LITERAL("hrt-m3: syscall ");
+    cursor = trace_append_decimal(buffer, cursor, sizeof(buffer), number);
+    APPEND_LITERAL(" rip="); APPEND_HEX(rip);
+    APPEND_LITERAL(" a1="); APPEND_HEX(a1);
+    APPEND_LITERAL(" a2="); APPEND_HEX(a2);
+    APPEND_LITERAL(" a3="); APPEND_HEX(a3);
+    APPEND_LITERAL(" a4="); APPEND_HEX(a4);
+    APPEND_LITERAL(" a5="); APPEND_HEX(a5);
+    APPEND_LITERAL(" a6="); APPEND_HEX(a6);
+    if (cursor < sizeof(buffer)) buffer[cursor++] = '\n';
+#undef APPEND_HEX
+#undef APPEND_LITERAL
+    raw_write_literal(buffer, cursor);
+}
+
+'''
+    text = replace_once(
+        text,
+        "__attribute__((noreturn))\nstatic void fail_from_signal",
+        trace_bridge + "__attribute__((noreturn))\nstatic void fail_from_signal",
+        "bounded syscall trace insertion",
     )
 
     vector_bridge = r'''
@@ -90,6 +170,16 @@ static int64_t host_vector_io_bridge(int fd, const LinuxIovec *vectors,
         "        case LINUX_SYS_OPEN:\n",
         vector_cases + "        case LINUX_SYS_OPEN:\n",
         "readv/writev switch insertion",
+    )
+
+    text = replace_once(
+        text,
+        "    int64_t result;\n    switch (state->__rax) {\n",
+        "    raw_trace_syscall(state->__rax, rip, state->__rdi, state->__rsi,\n"
+        "                      state->__rdx, state->__r10, state->__r8,\n"
+        "                      state->__r9);\n"
+        "    int64_t result;\n    switch (state->__rax) {\n",
+        "syscall trace call",
     )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
