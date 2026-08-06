@@ -1,0 +1,190 @@
+name: HOffice runtime M6 HWord hrtappkit Intel diagnostic
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m6-hword-hrtappkit-intel-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: hrt-m6-hword-intel-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HWORD_ROOT_RUN_ID: '31102898765'
+  RUNTIME_RUN_ID: '31116524723'
+  QPA_RUN_ID: '31117936555'
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+  PLUGIN_PATCHED_SHA256: dafdd4fd8af86afe44ca2a6e2f845b0529ce08ff9e79581fc8df837574176ea9
+
+jobs:
+  diagnose-on-intel-macos:
+    runs-on: macos-13
+    timeout-minutes: 20
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input/hword
+          repository: ${{ github.repository }}
+          run-id: ${{ env.HWORD_ROOT_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m6-hword-hrtappkit-run-v2-proof
+          path: build/input/runtime
+          repository: ${{ github.repository }}
+          run-id: ${{ env.RUNTIME_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m6-qt5113-hrtappkit-qpa
+          path: build/input/qpa
+          repository: ${{ github.repository }}
+          run-id: ${{ env.QPA_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Reconstruct the verified case-sensitive guest root
+        run: |
+          set -euxo pipefail
+          mkdir -p build/proof
+          expected=$(awk '{print $1; exit}' \
+            build/input/hword/hword-rootfs.tar.gz.sha256)
+          actual=$(shasum -a 256 build/input/hword/hword-rootfs.tar.gz \
+            | awk '{print $1}')
+          test "$actual" = "$expected"
+
+          host=build/input/runtime/host/hrt-m6-hword-qpa-v2
+          chmod 0755 "$host"
+          test -s "$host"
+          file "$host" | tee build/proof/host-file.txt
+          echo "HRT_HOST=$PWD/$host" >> "$GITHUB_ENV"
+
+          qpa_root=build/input/qpa/build/plugin-root
+          test -f "$qpa_root$PLUGIN_GUEST"
+          actual_plugin=$(shasum -a 256 "$qpa_root$PLUGIN_GUEST" | awk '{print $1}')
+          test "$actual_plugin" = "$PLUGIN_PATCHED_SHA256"
+          ! readelf -Ws "$qpa_root$PLUGIN_GUEST" \
+            | awk '$7 == "UND" && /createPlatformVulkanInstance/' \
+            | grep .
+
+          image="$RUNNER_TEMP/hrt-m6-intel.sparsebundle"
+          root="/tmp/h6intel-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"
+          mkdir -p "$root"
+          hdiutil create -quiet -size 8g -fs HFSX \
+            -volname HRTM6INTEL -type SPARSEBUNDLE "$image"
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >> "$GITHUB_ENV"
+
+          tar -xzf build/input/hword/hword-rootfs.tar.gz -C "$root"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+          test -d "$root/opt/hnc/hoffice11/Bin/Hword"
+          mkdir -p "$root$(dirname "$PLUGIN_GUEST")"
+          cp "$qpa_root$PLUGIN_GUEST" "$root$PLUGIN_GUEST"
+          chmod 0755 "$root$PLUGIN_GUEST"
+
+          python3 - "$root" "$PROGRAM" "$PROGRAM_SHA256" \
+                    "$PLUGIN_GUEST" "$PLUGIN_PATCHED_SHA256" <<'PY'
+          import hashlib,json,pathlib,sys
+          root=pathlib.Path(sys.argv[1]); program=sys.argv[2]
+          marker=json.loads((root/'.hrt-prepatched-v1').read_text())
+          record,=[x for x in marker['objects'] if x['path']==program]
+          assert record['sha256_before']==sys.argv[3]
+          assert hashlib.sha256((root/program.lstrip('/')).read_bytes()).hexdigest()==record['sha256_after']
+          assert hashlib.sha256((root/sys.argv[4].lstrip('/')).read_bytes()).hexdigest()==sys.argv[5]
+          PY
+          uname -a | tee build/proof/uname.txt
+          sysctl -n hw.optional.arm64 2>/dev/null \
+            | tee build/proof/arm64-capability.txt || true
+          getconf PAGESIZE | tee build/proof/page-size.txt
+
+      - name: Execute exact HWord and record the first custom-QPA boundary
+        run: |
+          set -uxo pipefail
+          export HRT_M6_CAPTURE_PATH="$PWD/build/proof/hword-hrtappkit-intel.png"
+          : >build/proof/stdout.txt
+          : >build/proof/stderr.txt
+          "$HRT_HOST" --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          reached=0
+          for _ in $(jot 600); do
+            if grep -q 'hrt-m6: host-call opcode=259 result=1' \
+                 build/proof/stderr.txt 2>/dev/null; then
+              reached=1
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 0.05
+          done
+          if kill -0 "$pid" 2>/dev/null; then
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+              >build/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$pid" 1 1 -file build/proof/sample.txt \
+              >/dev/null 2>&1 || true
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.2
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e
+          wait "$pid"
+          status=$?
+          set -e
+          printf '%s\n' "$status" >build/proof/raw-exit-status.txt
+          printf '%s\n' "$reached" >build/proof/reached-window.txt
+          grep -E 'libqhrtappkit|HRT M6 QPA|host-call opcode=25[6-9]|fatal signal|Qt platform plugin|Linux syscall ENOSYS|symbol lookup error' \
+            build/proof/stderr.txt | tail -n 2400 \
+            | tee build/proof/key-lines.txt || true
+          tail -n 250 build/proof/stdout.txt || true
+          echo "status=$status reached=$reached"
+
+      - name: Classify without granting the Apple-Silicon milestone
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          calls=[]
+          for line in stderr.splitlines():
+              m=re.fullmatch(r'hrt-m6: host-call opcode=(\d+) result=(-?\d+)',line)
+              if m: calls.append({'opcode':int(m.group(1)),'result':int(m.group(2))})
+          summary={
+              'runner':'macos-13 Intel diagnostic only',
+              'reached_window':bool(int(Path('build/proof/reached-window.txt').read_text())),
+              'raw_status':int(Path('build/proof/raw-exit-status.txt').read_text()),
+              'plugin_metadata_observed':'Got keys from plugin meta data ("hrtappkit")' in stderr,
+              'plugin_loaded':'loaded library "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so"' in stderr,
+              'integration_constructed':'HRT M6 QPA: integration constructed' in stderr,
+              'platform_window_constructed':'HRT M6 QPA: QPlatformWindow constructed' in stderr,
+              'vulkan_lookup_failure':'createPlatformVulkanInstance' in stderr,
+              'fatal_signal_observed':'fatal signal' in stderr,
+              'host_calls':calls,
+              'credit':'diagnostic only; Apple Silicon proof still required',
+          }
+          Path('build/proof/summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+          print(json.dumps(summary,indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m6-hword-hrtappkit-intel-diagnostic
+          path: build/proof
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach guest filesystem
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true
