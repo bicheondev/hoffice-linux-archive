@@ -13,18 +13,23 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Build deterministic static Linux x86-64 test ELF
+      - name: Build deterministic static Linux x86-64 PIE test ELF
         run: |
           set -euxo pipefail
           mkdir -p build/guest
           clang -c -nostdlib -fno-asynchronous-unwind-tables runtime/m0/test_guest.S -o build/guest/test_guest.o
-          ld -nostdlib -static --build-id=none -z max-page-size=4096 -Ttext=0x400000 \
+          ld -nostdlib -pie --no-dynamic-linker --build-id=none \
+            -z max-page-size=4096 -e _start \
             build/guest/test_guest.o -o build/guest/linux-hello
           file build/guest/linux-hello
           readelf -hW build/guest/linux-hello
           readelf -lW build/guest/linux-hello
-          readelf -hW build/guest/linux-hello | grep -q 'Type:.*EXEC'
+          readelf -hW build/guest/linux-hello | grep -q 'Type:.*DYN'
           readelf -hW build/guest/linux-hello | grep -q 'Machine:.*X86-64'
+          if readelf -lW build/guest/linux-hello | grep -q 'INTERP'; then
+            echo 'unexpected PT_INTERP in static PIE' >&2
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: hrt-m0-linux-guest
@@ -58,7 +63,6 @@ jobs:
             -Wl,-pagezero_size,0x1000 -o build/host/hrt-m0
           file build/host/hrt-m0
           lipo -info build/host/hrt-m0
-          otool -l build/host/hrt-m0 | awk '/segname __PAGEZERO/{show=1} show&&/vmsize/{print; exit}'
           codesign --force --sign - --timestamp=none build/host/hrt-m0
           codesign --verify --strict build/host/hrt-m0
       - name: Execute raw Linux ELF and verify syscall translation
@@ -78,7 +82,7 @@ jobs:
           echo "--- exit status: $status ---"
           test "$status" -eq 0
           grep -Fx 'HRT M0: Linux ELF executed through the macOS syscall bridge' build/stdout.txt
-          grep -E 'mapped ELF .*patched=[1-9][0-9]*' build/stderr.txt
+          grep -E 'mapped ELF .*bias=0x[1-9a-f][0-9a-f]*, entry=0x[1-9a-f][0-9a-f]*, patched=[1-9][0-9]*' build/stderr.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
