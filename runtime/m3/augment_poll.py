@@ -216,7 +216,7 @@ static int64_t host_poll_bridge(LinuxPollfd *guest_fds, size_t count,
         raise SystemExit("poll dispatch was not injected exactly once")
     if text.count("host_poll_bridge(") != 2:
         raise SystemExit("poll bridge definition/call count mismatch")
-    if "Linux poll bridge long-enter" not in text:
+    if 'raw_trace_poll_boundary("long-enter"' not in text:
         raise SystemExit("durable long-wait marker was not retained")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
