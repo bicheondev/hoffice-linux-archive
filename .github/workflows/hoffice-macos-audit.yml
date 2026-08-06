@@ -1,0 +1,275 @@
+name: HOffice macOS compatibility audit
+
+on:
+  push:
+    branches:
+      - codex/hoffice-macos-audit
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  EXPECTED_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Install audit tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends binutils file jq python3
+
+      - name: Download exact release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p work/report
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" \
+            --dir work
+          test -f "work/$ASSET_NAME"
+          printf '%s  %s\n' "$EXPECTED_SHA256" "work/$ASSET_NAME" | sha256sum --check -
+          stat -c '%n %s bytes' "work/$ASSET_NAME" | tee work/report/asset-size.txt
+          sha256sum "work/$ASSET_NAME" | tee work/report/SHA256SUMS
+
+      - name: Extract package and collect package metadata
+        run: |
+          set -euxo pipefail
+          mkdir -p work/root work/control work/report
+          dpkg-deb --control "work/$ASSET_NAME" work/control
+          dpkg-deb --extract "work/$ASSET_NAME" work/root
+          dpkg-deb --info "work/$ASSET_NAME" > work/report/dpkg-info.txt
+          dpkg-deb --contents "work/$ASSET_NAME" > work/report/dpkg-contents.txt
+          cp -a work/control work/report/control
+          du -sh work/root | tee work/report/extracted-size.txt
+
+      - name: Build deterministic file and executable inventories
+        run: |
+          set -euxo pipefail
+          cd work/root
+          find . -xdev -printf '%y\t%m\t%U\t%G\t%s\t%p\n' | LC_ALL=C sort > ../report/file-inventory.tsv
+          find . -xdev -type f -perm /111 -print0 \
+            | LC_ALL=C sort -z \
+            | xargs -0 -r file -b --separator $'\t' -- \
+            > ../report/executable-file-types.tsv || true
+          find . -xdev -type f \( -iname '*.desktop' -o -iname '*.service' -o -iname '*.conf' -o -iname 'qt.conf' \) \
+            -printf '%p\n' | LC_ALL=C sort > ../report/config-file-list.txt
+          find . -xdev -type f \( -iname '*.png' -o -iname '*.svg' -o -iname '*.xpm' -o -iname '*.ico' \) \
+            -printf '%s\t%p\n' | LC_ALL=C sort -n > ../report/image-file-list.tsv
+          find . -xdev -type f \
+            | grep -Eai '/(hword|hcell|hshow|hoffice|hancom|qt|platforms|plugins|fonts?)(/|$|[^/]*$)' \
+            | LC_ALL=C sort > ../report/relevant-paths.txt || true
+
+      - name: Inspect every ELF object
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import csv
+          import hashlib
+          import json
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+
+          root = Path('work/root')
+          report = Path('work/report')
+          elf_rows = []
+          likely_apps = []
+          needed_counter = {}
+          interp_counter = {}
+          machine_counter = {}
+
+          def run(*args):
+              p = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+              return p.returncode, p.stdout
+
+          for path in sorted(p for p in root.rglob('*') if p.is_file()):
+              try:
+                  with path.open('rb') as f:
+                      if f.read(4) != b'\x7fELF':
+                          continue
+              except OSError:
+                  continue
+
+              rel = '/' + path.relative_to(root).as_posix()
+              stat = path.stat()
+              sha = hashlib.sha256()
+              with path.open('rb') as f:
+                  for chunk in iter(lambda: f.read(1024 * 1024), b''):
+                      sha.update(chunk)
+
+              _, hdr = run('readelf', '-hW', str(path))
+              _, dyn = run('readelf', '-dW', str(path))
+              _, ph = run('readelf', '-lW', str(path))
+              _, ver = run('readelf', '-VW', str(path))
+
+              machine = next((m.group(1).strip() for line in hdr.splitlines() if (m := re.match(r'\s*Machine:\s*(.*)', line))), '')
+              elf_type = next((m.group(1).strip() for line in hdr.splitlines() if (m := re.match(r'\s*Type:\s*(.*)', line))), '')
+              entry = next((m.group(1).strip() for line in hdr.splitlines() if (m := re.match(r'\s*Entry point address:\s*(.*)', line))), '')
+              interpreter = next((m.group(1).strip() for line in ph.splitlines() if (m := re.search(r'Requesting program interpreter:\s*([^\]]+)', line))), '')
+              needed = re.findall(r'\(NEEDED\).*?\[([^\]]+)\]', dyn)
+              rpath = re.findall(r'\((?:RPATH|RUNPATH)\).*?\[([^\]]+)\]', dyn)
+              soname = next(iter(re.findall(r'\(SONAME\).*?\[([^\]]+)\]', dyn)), '')
+              glibc_versions = sorted(set(re.findall(r'GLIBC_[0-9.]+', ver)), key=lambda s: tuple(map(int, s.split('_', 1)[1].split('.'))))
+              glibcxx_versions = sorted(set(re.findall(r'GLIBCXX_[0-9.]+', ver)), key=lambda s: tuple(map(int, s.split('_', 1)[1].split('.'))))
+
+              for lib in needed:
+                  needed_counter[lib] = needed_counter.get(lib, 0) + 1
+              if interpreter:
+                  interp_counter[interpreter] = interp_counter.get(interpreter, 0) + 1
+              machine_counter[machine] = machine_counter.get(machine, 0) + 1
+
+              row = {
+                  'path': rel,
+                  'size': stat.st_size,
+                  'mode': oct(stat.st_mode & 0o7777),
+                  'sha256': sha.hexdigest(),
+                  'machine': machine,
+                  'type': elf_type,
+                  'entry': entry,
+                  'interpreter': interpreter,
+                  'soname': soname,
+                  'needed': needed,
+                  'rpath_runpath': rpath,
+                  'max_glibc': glibc_versions[-1] if glibc_versions else '',
+                  'max_glibcxx': glibcxx_versions[-1] if glibcxx_versions else '',
+              }
+              elf_rows.append(row)
+
+              low = rel.lower()
+              if any(token in low for token in ('hword', 'hcell', 'hshow', 'hoffice')) and ('exec' in elf_type.lower() or (stat.st_mode & 0o111)):
+                  likely_apps.append(row)
+
+          with (report / 'elf-objects.json').open('w', encoding='utf-8') as f:
+              json.dump(elf_rows, f, ensure_ascii=False, indent=2)
+          with (report / 'likely-app-executables.json').open('w', encoding='utf-8') as f:
+              json.dump(likely_apps, f, ensure_ascii=False, indent=2)
+          with (report / 'elf-objects.tsv').open('w', encoding='utf-8', newline='') as f:
+              fieldnames = ['path','size','mode','sha256','machine','type','entry','interpreter','soname','needed','rpath_runpath','max_glibc','max_glibcxx']
+              w = csv.DictWriter(f, fieldnames=fieldnames, delimiter='\t')
+              w.writeheader()
+              for row in elf_rows:
+                  out = row.copy()
+                  out['needed'] = ';'.join(out['needed'])
+                  out['rpath_runpath'] = ';'.join(out['rpath_runpath'])
+                  w.writerow(out)
+
+          summary = {
+              'elf_count': len(elf_rows),
+              'likely_app_count': len(likely_apps),
+              'machine_counts': dict(sorted(machine_counter.items())),
+              'interpreter_counts': dict(sorted(interp_counter.items())),
+              'needed_library_counts': dict(sorted(needed_counter.items(), key=lambda kv: (-kv[1], kv[0]))),
+          }
+          with (report / 'elf-summary.json').open('w', encoding='utf-8') as f:
+              json.dump(summary, f, ensure_ascii=False, indent=2)
+          PY
+
+      - name: Capture launcher and desktop metadata safely
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import configparser
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          root = Path('work/root')
+          out = []
+          for path in sorted(root.rglob('*.desktop')):
+              rel = '/' + path.relative_to(root).as_posix()
+              cp = configparser.ConfigParser(interpolation=None, strict=False)
+              try:
+                  cp.read(path, encoding='utf-8')
+              except UnicodeDecodeError:
+                  cp.read(path, encoding='cp949')
+              sec = cp['Desktop Entry'] if cp.has_section('Desktop Entry') else {}
+              out.append({
+                  'path': rel,
+                  'name': sec.get('Name', ''),
+                  'name_ko': sec.get('Name[ko]', ''),
+                  'generic_name': sec.get('GenericName', ''),
+                  'exec': sec.get('Exec', ''),
+                  'try_exec': sec.get('TryExec', ''),
+                  'icon': sec.get('Icon', ''),
+                  'mime_type': sec.get('MimeType', ''),
+                  'categories': sec.get('Categories', ''),
+                  'startup_wm_class': sec.get('StartupWMClass', ''),
+              })
+          Path('work/report/desktop-entries.json').write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding='utf-8')
+          PY
+
+      - name: Record selected small text configuration files
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p work/report/text-samples
+          cd work/root
+          while IFS= read -r rel; do
+            rel="${rel#./}"
+            test -f "$rel" || continue
+            size=$(stat -c '%s' "$rel")
+            if [ "$size" -le 262144 ]; then
+              mime=$(file -b --mime-type "$rel")
+              case "$mime" in
+                text/*|application/json|application/xml|application/x-desktop)
+                  safe=$(printf '%s' "$rel" | tr '/' '_')
+                  {
+                    printf 'SOURCE: /%s\n' "$rel"
+                    printf 'MIME: %s\n\n' "$mime"
+                    sed -n '1,1000p' "$rel"
+                  } > "../report/text-samples/$safe.txt"
+                  ;;
+              esac
+            fi
+          done < ../report/config-file-list.txt
+
+      - name: Create compact audit summary
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = Path('work/report')
+          control = {}
+          for line in (report / 'control' / 'control').read_text(errors='replace').splitlines():
+              if ': ' in line:
+                  k, v = line.split(': ', 1)
+                  control[k] = v
+          elf_summary = json.loads((report / 'elf-summary.json').read_text())
+          apps = json.loads((report / 'likely-app-executables.json').read_text())
+          desktop = json.loads((report / 'desktop-entries.json').read_text())
+          summary = {
+              'package': control.get('Package'),
+              'version': control.get('Version'),
+              'architecture': control.get('Architecture'),
+              'depends': control.get('Depends'),
+              'installed_size_kib': control.get('Installed-Size'),
+              'elf': elf_summary,
+              'likely_apps': apps,
+              'desktop_entries': desktop,
+          }
+          (report / 'SUMMARY.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding='utf-8')
+          PY
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: hoffice-11.20.0.1520-h1-audit
+          path: work/report
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 9
