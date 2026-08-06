@@ -62,15 +62,24 @@ jobs:
           codesign --verify --strict build/host/hrt-m0
       - name: Execute raw Linux ELF and verify syscall translation
         run: |
-          set -euxo pipefail
+          set -uxo pipefail
           chmod +x build/guest/linux-hello
+          set +e
           /usr/bin/arch -x86_64 build/host/hrt-m0 build/guest/linux-hello \
             >build/stdout.txt 2>build/stderr.txt
+          status=$?
+          set -e
+          printf '%s\n' "$status" > build/exit-status.txt
+          echo '--- stderr ---'
           cat build/stderr.txt
+          echo '--- stdout ---'
           cat build/stdout.txt
+          echo "--- exit status: $status ---"
+          test "$status" -eq 0
           grep -Fx 'HRT M0: Linux ELF executed through the macOS syscall bridge' build/stdout.txt
           grep -E 'mapped ELF .*patched=[1-9][0-9]*' build/stderr.txt
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: hrt-m0-macos-proof
           path: |
@@ -78,5 +87,6 @@ jobs:
             build/guest/linux-hello
             build/stdout.txt
             build/stderr.txt
+            build/exit-status.txt
           if-no-files-found: error
           retention-days: 2
