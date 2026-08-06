@@ -33,17 +33,23 @@ void *build_initial_stack(const char *guest_path,
     uintptr_t argv0 = push_bytes(&cursor, floor, guest_path,
                                  strlen(guest_path) + 1u);
     static const char env_library[] =
-        "LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu";
+        "LD_LIBRARY_PATH=/opt/hnc/hoffice11/Bin:"
+        "/opt/hnc/hoffice11/Bin/qt/lib:"
+        "/opt/hnc/hoffice11/Bin/Hword:"
+        "/opt/hnc/hoffice11/Bin/Hwp:"
+        "/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu";
     static const char env_tunables[] =
         "GLIBC_TUNABLES=glibc.pthread.rseq=0";
-    static const char env_lang[] = "LANG=C";
-    static const char env_lc[] = "LC_ALL=C";
+    static const char env_lang[] = "LANG=C.UTF-8";
+    static const char env_lc[] = "LC_ALL=C.UTF-8";
+    static const char env_home[] = "HOME=/tmp/hrt-home";
     uintptr_t env0 = push_bytes(&cursor, floor, env_library,
                                 sizeof(env_library));
     uintptr_t env1 = push_bytes(&cursor, floor, env_tunables,
                                 sizeof(env_tunables));
     uintptr_t env2 = push_bytes(&cursor, floor, env_lang, sizeof(env_lang));
     uintptr_t env3 = push_bytes(&cursor, floor, env_lc, sizeof(env_lc));
+    uintptr_t env4 = push_bytes(&cursor, floor, env_home, sizeof(env_home));
     static const char platform[] = "x86_64";
     uintptr_t platform_pointer = push_bytes(&cursor, floor, platform,
                                             sizeof(platform));
@@ -72,6 +78,7 @@ void *build_initial_stack(const char *guest_path,
     WORD(env1);
     WORD(env2);
     WORD(env3);
+    WORD(env4);
     WORD(0);
     AUX(AT_PHDR, program->phdr_address);
     AUX(AT_PHENT, sizeof(Elf64_Phdr));

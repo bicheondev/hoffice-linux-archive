@@ -61,7 +61,11 @@ typedef struct {
     uintptr_t clear_child_tid;
     uintptr_t host_gs_base;
     uintptr_t guest_gs_base;
+    uintptr_t entry_trap_address;
+    unsigned char entry_trap_original[2];
     int guest_gs_active;
+    int stop_at_entry;
+    int entry_trap_armed;
     uint64_t syscall_count;
     uint64_t unsupported_count;
     uint64_t code_syscall_patches;
@@ -85,6 +89,7 @@ void translate_guest_path(const char *guest_path,
 size_t patch_guest_code(void *start, size_t length,
                         const char *host_path, uint64_t file_offset,
                         size_t *fs_prefix_count);
+void arm_entry_trap(uintptr_t address);
 void record_fd_path(int fd, const char *host_path);
 const char *lookup_fd_path(int fd);
 void clear_fd_path(int fd);

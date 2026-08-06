@@ -1,0 +1,165 @@
+name: HOffice runtime M3 HWord entry
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-m3-hword-entry]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  EXPECTED_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+
+jobs:
+  prepare-exact-hword-rootfs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and verify exact HOffice package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/deb build/extracted build/m3-rootfs
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" \
+            --dir build/deb
+          printf '%s  %s\n' "$EXPECTED_SHA256" "build/deb/$ASSET_NAME" | \
+            sha256sum --check -
+          dpkg-deb --extract "build/deb/$ASSET_NAME" build/extracted
+      - name: Resolve HWord startup closure and generate exact FS patch maps
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/prepare_hword_rootfs.py \
+            --root build/extracted \
+            --output build/m3-rootfs \
+            --generator runtime/m2/generate_fs_patch_map.py
+          test -f build/m3-rootfs/opt/hnc/hoffice11/Bin/hword
+          test -f build/m3-rootfs/opt/hnc/hoffice11/Bin/hword.fspatch
+          test -f build/m3-rootfs/.hrt-m3/manifest.json
+          find build/m3-rootfs -type f | sort > build/m3-rootfs/.hrt-m3/files.txt
+          du -sh build/m3-rootfs
+          cat build/m3-rootfs/.hrt-m3/manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m3-exact-hword-rootfs
+          path: build/m3-rootfs
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 6
+
+  enter-original-hword:
+    needs: prepare-exact-hword-rootfs
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create a case-sensitive guest filesystem
+        run: |
+          set -euxo pipefail
+          image="$RUNNER_TEMP/hrt-m3.sparsebundle"
+          mount="$RUNNER_TEMP/hrt-m3-root"
+          rm -rf "$image" "$mount"
+          mkdir -p "$mount"
+          if ! hdiutil create -quiet -size 6g -fs APFSX \
+               -volname HRTM3 -type SPARSEBUNDLE "$image"; then
+            hdiutil create -quiet -size 6g -fs HFSX \
+              -volname HRTM3 -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$mount" "$image"
+          test -d "$mount"
+          touch "$mount/.hrt-m3-mounted"
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m3-exact-hword-rootfs
+          path: ${{ runner.temp }}/hrt-m3-root
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+      - name: Compile the M3 entry-gate runtime
+        run: |
+          set -euxo pipefail
+          mkdir -p build/host
+          clang -arch x86_64 -std=c17 -O1 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra \
+            runtime/m2/main.c runtime/m2/common.c \
+            runtime/m2/patch.c runtime/m2/entry_trap.c \
+            runtime/m2/elf_map.c runtime/m2/stack.c \
+            runtime/m2/syscall_common.c runtime/m2/syscall_memory.c \
+            runtime/m2/syscall_misc.c runtime/m2/syscall_dispatch.c \
+            runtime/m2/syscall_bridge.c runtime/m2/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/host/hrt-m3
+          file build/host/hrt-m3
+          lipo -info build/host/hrt-m3
+          codesign --force --sign - --timestamp=none build/host/hrt-m3
+          codesign --verify --strict build/host/hrt-m3
+      - name: Run the exact original HWord until its ELF entry point
+        run: |
+          set -euxo pipefail
+          root="$RUNNER_TEMP/hrt-m3-root"
+          test -f "$root/opt/hnc/hoffice11/Bin/hword"
+          python3 - "$PWD/build/host/hrt-m3" "$root" <<'PY'
+          import pathlib
+          import subprocess
+          import sys
+
+          runtime = pathlib.Path(sys.argv[1])
+          root = pathlib.Path(sys.argv[2])
+          stdout = pathlib.Path("build/stdout.txt")
+          stderr = pathlib.Path("build/stderr.txt")
+          command = [
+              "/usr/bin/arch", "-x86_64", str(runtime),
+              "--root", str(root),
+              "--program", "/opt/hnc/hoffice11/Bin/hword",
+              "--stop-at-entry",
+          ]
+          try:
+              completed = subprocess.run(
+                  command,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE,
+                  timeout=120,
+                  check=False,
+              )
+              status = completed.returncode
+              stdout.write_bytes(completed.stdout)
+              stderr.write_bytes(completed.stderr)
+          except subprocess.TimeoutExpired as error:
+              status = 124
+              stdout.write_bytes(error.stdout or b"")
+              stderr.write_bytes((error.stderr or b"") + b"\nM3 timeout\n")
+          pathlib.Path("build/exit-status.txt").write_text(f"{status}\n")
+          print(stderr.read_text(errors="replace"), file=sys.stderr)
+          print(stdout.read_text(errors="replace"), end="")
+          raise SystemExit(0 if status == 0 else status)
+          PY
+          grep -Fx 'hrt-m3: original HWord ELF entry reached' build/stderr.txt
+          grep -E 'hrt-m2: loader=.*syscalls=[1-9][0-9]* fs=[1-9][0-9]*' \
+            build/stderr.txt
+          test "$(cat build/exit-status.txt)" = 0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m3-hword-entry-proof
+          path: |
+            build/host/hrt-m3
+            build/stdout.txt
+            build/stderr.txt
+            build/exit-status.txt
+            ${{ runner.temp }}/hrt-m3-root/.hrt-m3
+          if-no-files-found: error
+          retention-days: 2
+      - name: Detach the case-sensitive guest filesystem
+        if: always()
+        run: |
+          hdiutil detach -quiet "$RUNNER_TEMP/hrt-m3-root" || true

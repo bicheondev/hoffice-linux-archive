@@ -52,6 +52,14 @@ static void sigill_handler(int signo, siginfo_t *info,
         (void)raw_set_gs(g_runtime.host_gs_base);
     }
 
+    if (g_runtime.stop_at_entry && g_runtime.entry_trap_armed &&
+        rip == g_runtime.entry_trap_address) {
+        static const char message[] =
+            "hrt-m3: original HWord ELF entry reached\n";
+        (void)write(STDERR_FILENO, message, sizeof(message) - 1u);
+        _exit(0);
+    }
+
     ++g_runtime.syscall_count;
     HrtSyscallControl control;
     memset(&control, 0, sizeof(control));

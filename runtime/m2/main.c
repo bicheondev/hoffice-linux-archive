@@ -6,12 +6,21 @@
 #include <unistd.h>
 
 static void usage(const char *program) {
-    fprintf(stderr, "usage: %s --root /host/rootfs --program /guest/program\n",
+    fprintf(stderr,
+            "usage: %s --root /host/rootfs --program /guest/program "
+            "[--stop-at-entry]\n",
             program);
 }
 
 int main(int argc, char **argv) {
-    if (argc != 5 || strcmp(argv[1], "--root") != 0 ||
+    int stop_at_entry = 0;
+    if (argc == 6 && strcmp(argv[5], "--stop-at-entry") == 0) {
+        stop_at_entry = 1;
+    } else if (argc != 5) {
+        usage(argv[0]);
+        return 64;
+    }
+    if (strcmp(argv[1], "--root") != 0 ||
         strcmp(argv[3], "--program") != 0) {
         usage(argv[0]);
         return 64;
@@ -26,6 +35,7 @@ int main(int argc, char **argv) {
         errno = 0;
         fatal("guest program path must be absolute");
     }
+    g_runtime.stop_at_entry = stop_at_entry;
 
     g_host_page_size = (size_t)getpagesize();
     install_sigill_handler();
@@ -63,6 +73,12 @@ int main(int argc, char **argv) {
             (void *)interpreter.entry_address,
             interpreter.patched_syscalls,
             interpreter.patched_fs_prefixes);
+
+    if (g_runtime.stop_at_entry) {
+        arm_entry_trap(program.entry_address);
+        fprintf(stderr, "hrt-m3: armed original program entry trap at %p\n",
+                (void *)program.entry_address);
+    }
 
     void *stack_pointer = build_initial_stack(
         g_runtime.guest_program, &program, &interpreter);
