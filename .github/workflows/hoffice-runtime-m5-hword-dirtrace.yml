@@ -86,8 +86,8 @@ jobs:
           p.write_text(p.read_text().replace('#define M3_TRACE_LIMIT 256u',
                                              '#define M3_TRACE_LIMIT 8192u'))
           PY
-          grep -q 'getdents stage=host' build/generated/syscall_bridge.c
-          grep -q 'getdents stage=record' build/generated/syscall_bridge.c
+          grep -Fq 'raw_trace_directory("host",' build/generated/syscall_bridge.c
+          grep -Fq 'raw_trace_directory("record",' build/generated/syscall_bridge.c
           clang -arch x86_64 -std=c17 -O2 -g \
             -fno-stack-protector -fno-omit-frame-pointer \
             -Wall -Wextra -Werror -Wpedantic \
