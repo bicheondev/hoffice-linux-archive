@@ -1,0 +1,122 @@
+name: HOffice runtime M3 glibc
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - runtime/m3/**
+      - .github/workflows/hoffice-runtime-m3.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-glibc-rootfs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build real dynamically linked glibc TLS program
+        run: |
+          set -euxo pipefail
+          mkdir -p build/m3/rootfs/bin \
+                   build/m3/rootfs/lib64 \
+                   build/m3/rootfs/lib/x86_64-linux-gnu \
+                   build/m3/rootfs/usr/lib/x86_64-linux-gnu \
+                   build/m3/rootfs/etc
+
+          gcc -O2 -fPIE -pie -Wall -Wextra -Werror \
+            runtime/m3/test_glibc.c \
+            -o build/m3/rootfs/bin/hrt-m3-glibc
+
+          interpreter=/lib64/ld-linux-x86-64.so.2
+          libc=$(ldd build/m3/rootfs/bin/hrt-m3-glibc | \
+            awk '/libc\.so\.6/{print $3; exit}')
+          test -x "$interpreter"
+          test -f "$libc"
+          cp -L "$interpreter" build/m3/rootfs/lib64/ld-linux-x86-64.so.2
+          cp -L "$libc" build/m3/rootfs/lib/x86_64-linux-gnu/libc.so.6
+
+          file build/m3/rootfs/bin/hrt-m3-glibc \
+               build/m3/rootfs/lib64/ld-linux-x86-64.so.2 \
+               build/m3/rootfs/lib/x86_64-linux-gnu/libc.so.6
+          readelf -hW build/m3/rootfs/bin/hrt-m3-glibc
+          readelf -lW build/m3/rootfs/bin/hrt-m3-glibc
+          readelf -dW build/m3/rootfs/bin/hrt-m3-glibc
+          readelf -lW build/m3/rootfs/bin/hrt-m3-glibc | \
+            grep -q 'Requesting program interpreter: /lib64/ld-linux-x86-64.so.2'
+          ldd build/m3/rootfs/bin/hrt-m3-glibc | tee build/m3/ldd.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m3-glibc-rootfs
+          path: |
+            build/m3/rootfs
+            build/m3/ldd.txt
+          if-no-files-found: error
+          retention-days: 2
+
+  execute-on-apple-silicon:
+    needs: build-glibc-rootfs
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m3-glibc-rootfs
+          path: build/m3
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+      - name: Compile the clean-room M3 Mach-O host
+        run: |
+          set -euxo pipefail
+          mkdir -p build/m3/host
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra -Werror -Wpedantic \
+            runtime/m3/main.c runtime/m1/common.c runtime/m3/elf_map.c \
+            runtime/m3/stack.c runtime/m3/patch.c \
+            runtime/m3/syscall_bridge.c runtime/m1/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/m3/host/hrt-m3
+          file build/m3/host/hrt-m3
+          lipo -info build/m3/host/hrt-m3
+          codesign --force --sign - --timestamp=none build/m3/host/hrt-m3
+          codesign --verify --strict build/m3/host/hrt-m3
+      - name: Enter the real glibc dynamic loader
+        run: |
+          set -uxo pipefail
+          set +e
+          /usr/bin/arch -x86_64 build/m3/host/hrt-m3 \
+            --root "$PWD/build/m3/rootfs" \
+            --program /bin/hrt-m3-glibc \
+            >build/m3/stdout.txt 2>build/m3/stderr.txt
+          status=$?
+          set -e
+          printf '%s\n' "$status" > build/m3/exit-status.txt
+          echo '--- stderr ---'
+          cat build/m3/stderr.txt
+          echo '--- stdout ---'
+          cat build/m3/stdout.txt
+          echo "--- exit status: $status ---"
+          test "$status" -eq 0
+          grep -Fx \
+            'HRT M3: real glibc loader, malloc, TLS, time and random passed' \
+            build/m3/stdout.txt
+          grep -E 'interpreter .*syscalls=[1-9][0-9]*' build/m3/stderr.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m3-glibc-macos-proof
+          path: |
+            build/m3/host/hrt-m3
+            build/m3/rootfs
+            build/m3/ldd.txt
+            build/m3/stdout.txt
+            build/m3/stderr.txt
+            build/m3/exit-status.txt
+          if-no-files-found: error
+          retention-days: 2
