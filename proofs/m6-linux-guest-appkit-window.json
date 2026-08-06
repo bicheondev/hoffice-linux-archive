@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "gate": "M6 transport prerequisite",
+  "status": "PASS",
+  "boundary": "a prepatched dynamic Linux x86-64 PIE issued the reserved host-call syscall through the existing UD2 trap, synchronously marshaled window operations to the true AppKit main thread, created a visible WindowServer-listed NSWindow, captured it, destroyed it, and exited with status zero",
+  "commit": "3471167158ec4a1e2a59e13ca0d39ee4961be9a8",
+  "workflow_run": "31112765193",
+  "workflow": "HOffice runtime M6 Linux guest AppKit window",
+  "runner": "macos-14-arm64",
+  "guest": {
+    "program": "/opt/hrt/m6-linux-window-guest",
+    "architecture": "Linux x86_64 dynamic PIE",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+    "dependency_count": 0,
+    "prepatched_objects": 2
+  },
+  "host": {
+    "architecture": "x86_64 Mach-O under Rosetta",
+    "window_system": "AppKit and WindowServer",
+    "appkit_thread": "process main thread",
+    "guest_execution_thread": "worker pthread",
+    "transport": "signal-safe request and completion pipes with a lock-free single-request mailbox"
+  },
+  "host_calls": [
+    {
+      "opcode": 256,
+      "operation": "CREATE_WINDOW",
+      "result": 24
+    },
+    {
+      "opcode": 257,
+      "operation": "PUMP_EVENTS",
+      "result": 0
+    },
+    {
+      "opcode": 258,
+      "operation": "QUERY_WINDOW",
+      "result": 127
+    },
+    {
+      "opcode": 259,
+      "operation": "CAPTURE_WINDOW",
+      "result": 1
+    },
+    {
+      "opcode": 257,
+      "operation": "PUMP_EVENTS",
+      "result": 0
+    },
+    {
+      "opcode": 260,
+      "operation": "DESTROY_WINDOW",
+      "result": 0
+    }
+  ],
+  "observations": {
+    "guest_pass_marker": "HRT M6 GUEST PASS: trapped Linux host call created a visible AppKit window",
+    "window_number": 24,
+    "window_flags_hex": "0x7f",
+    "allocated": true,
+    "visible": true,
+    "window_server_listed": true,
+    "key_window": true,
+    "main_window": true,
+    "screen_available": true,
+    "operation_executed_on_main_thread": true,
+    "screenshot_created": true,
+    "reserved_syscall_reached_enosys": false,
+    "exit_status": 0
+  },
+  "artifact": {
+    "id": "8972392227",
+    "name": "hrt-m6-linux-guest-window-proof",
+    "digest": "sha256:ea37750277eebc9045460a92664b4805b96036ab5ae26ca68f944658ec0fbee8"
+  },
+  "scope": {
+    "integrated_with_linux_guest": true,
+    "integrated_with_hword": false,
+    "does_not_credit": [
+      "HWord or Qt QPA to AppKit integration",
+      "HWord content rendering",
+      "native HWord mouse or keyboard input",
+      "Korean IME",
+      "document open, edit, save, or print",
+      "clean HWord shutdown"
+    ]
+  }
+}
