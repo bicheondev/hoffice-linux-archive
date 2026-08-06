@@ -2,6 +2,7 @@
 #include "hrt_m0.h"
 
 #include <errno.h>
+#include <mach/i386/thread_status.h>
 #include <signal.h>
 #include <stdint.h>
 #include <string.h>
