@@ -4,7 +4,12 @@ CONFIG += plugin c++11
 CONFIG -= app_bundle
 
 QT += core-private gui-private eventdispatcher_support-private fontdatabase_support-private
-DEFINES += QT_NO_FOREACH
+# The bundled HOffice QtGui omits QPlatformIntegration's Vulkan virtual slot.
+# Building against Debian's Vulkan-enabled 5.11.3 headers otherwise leaves an
+# undefined Qt_5_PRIVATE_API createPlatformVulkanInstance symbol and changes
+# the private QPlatformIntegration vtable shape.  Compile this plugin with the
+# same feature disabled so its private ABI matches the packaged Qt libraries.
+DEFINES += QT_NO_FOREACH QT_NO_VULKAN
 INCLUDEPATH += $$QTOFFSCREEN_DIR
 
 # The archived Debian Buster runtime packages expose the versioned libraries
