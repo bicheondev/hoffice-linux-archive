@@ -123,7 +123,7 @@ jobs:
           file build/m4/host/hrt-m4
           codesign --force --sign - --timestamp=none build/m4/host/hrt-m4
           codesign --verify --strict build/m4/host/hrt-m4
-      - name: Probe the exact HOffice private executable
+      - name: Execute the exact HOffice private converter
         run: |
           set -uxo pipefail
           test -s build/m4/rootfs/.hrt-prepatched-v1
@@ -173,9 +173,10 @@ jobs:
             build/m4/stderr.txt
           grep -E 'interpreter .*syscalls=[1-9][0-9]*' \
             build/m4/stderr.txt
-          grep -E 'syscall 158 .*a1=0x1002' build/m4/stderr.txt
-          test "$status" -ne 124
-          test "$status" -lt 128
+          grep -F 'Usage: ODF_OOXML_Converter.exe' build/m4/stdout.txt
+          grep -F '/ODT2DOCX' build/m4/stdout.txt
+          test "$timed_out" -eq 0
+          test "$status" -eq 0
       - uses: actions/upload-artifact@v4
         if: always()
         with:
