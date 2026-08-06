@@ -1,0 +1,41 @@
+name: HOffice legacy OpenSSL audit
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - .github/workflows/hoffice-legacy-openssl-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PACKAGE_NAME: libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
+  PACKAGE_URL: https://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Download exact Ubuntu Focal security package
+        run: |
+          set -euxo pipefail
+          curl --fail --location --retry 5 --retry-all-errors \
+            --output "$PACKAGE_NAME" "$PACKAGE_URL"
+          stat -c '%n %s bytes' "$PACKAGE_NAME"
+          sha256sum "$PACKAGE_NAME" | tee SHA256SUMS
+          dpkg-deb --info "$PACKAGE_NAME" | tee package-info.txt
+          dpkg-deb --contents "$PACKAGE_NAME" | tee package-contents.txt
+          dpkg-deb --contents "$PACKAGE_NAME" | \
+            grep -E 'lib/(x86_64-linux-gnu/)?lib(ssl|crypto)\.so\.1\.1$'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hoffice-legacy-openssl-audit
+          path: |
+            SHA256SUMS
+            package-info.txt
+            package-contents.txt
+          if-no-files-found: error
+          retention-days: 2
