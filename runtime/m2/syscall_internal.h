@@ -5,6 +5,17 @@
 
 #include <mach/i386/thread_status.h>
 #include <stdint.h>
+#include <sys/stat.h>
+
+#ifdef st_atime
+#undef st_atime
+#endif
+#ifdef st_mtime
+#undef st_mtime
+#endif
+#ifdef st_ctime
+#undef st_ctime
+#endif
 
 #define HRT_LINUX_ENOSYS 38
 #define HRT_LINUX_EAGAIN 11
