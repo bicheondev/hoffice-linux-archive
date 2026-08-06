@@ -118,6 +118,44 @@ static void raw_trace_syscall(uint64_t number, uint64_t rip,
     raw_write_literal(buffer, cursor);
 }
 
+__attribute__((noreturn))
+static void crash_signal_handler(int signo, siginfo_t *info,
+                                 void *context_pointer) {
+#if defined(__x86_64__)
+    ucontext_t *context = (ucontext_t *)context_pointer;
+    x86_thread_state64_t *state = &context->uc_mcontext->__ss;
+    char buffer[256];
+    size_t cursor = 0u;
+#define APPEND_LITERAL(value) do { \
+    cursor = trace_append_literal(buffer, cursor, sizeof(buffer), value); \
+} while (0)
+#define APPEND_HEX(value) do { \
+    cursor = trace_append_hex(buffer, cursor, sizeof(buffer), value); \
+} while (0)
+    APPEND_LITERAL("hrt-m3: fatal signal ");
+    cursor = trace_append_decimal(buffer, cursor, sizeof(buffer),
+                                  (uint64_t)(unsigned int)signo);
+    APPEND_LITERAL(" code=");
+    cursor = trace_append_decimal(buffer, cursor, sizeof(buffer),
+                                  (uint64_t)(unsigned int)
+                                      (info == NULL ? 0 : info->si_code));
+    APPEND_LITERAL(" address=");
+    APPEND_HEX((uint64_t)(uintptr_t)
+               (info == NULL ? NULL : info->si_addr));
+    APPEND_LITERAL(" rip="); APPEND_HEX(state->__rip);
+    APPEND_LITERAL(" rax="); APPEND_HEX(state->__rax);
+    APPEND_LITERAL(" rsp="); APPEND_HEX(state->__rsp);
+    if (cursor < sizeof(buffer)) buffer[cursor++] = '\n';
+#undef APPEND_HEX
+#undef APPEND_LITERAL
+    raw_write_literal(buffer, cursor);
+#else
+    (void)info;
+    (void)context_pointer;
+#endif
+    raw_exit(128 + signo);
+}
+
 '''
     text = replace_once(
         text,
@@ -162,6 +200,55 @@ static int64_t host_vector_io_bridge(int fd, const LinuxIovec *vectors,
         "static int64_t host_close_bridge(int fd) {\n",
         vector_bridge + "static int64_t host_close_bridge(int fd) {\n",
         "vector bridge insertion",
+    )
+
+    readlinkat_bridge = r'''static int64_t host_readlinkat_bridge(int directory_fd,
+                                      const char *guest_path,
+                                      char *buffer, size_t size) {
+    if (guest_path == NULL || buffer == NULL) return -LINUX_EFAULT;
+
+    uintptr_t guest = switch_to_host_context();
+    if (strcmp(guest_path, "/proc/self/exe") == 0) {
+        size_t length = strlen(g_guest_program);
+        if (length > size) length = size;
+        memcpy(buffer, g_guest_program, length);
+        restore_guest_context(guest);
+        return (int64_t)length;
+    }
+
+    char path[PATH_MAX];
+    if (translate_guest_path(guest_path, path, sizeof(path)) != 0) {
+        restore_guest_context(guest);
+        return -LINUX_ENAMETOOLONG;
+    }
+    errno = 0;
+    ssize_t result;
+    if (guest_path[0] == '/' || directory_fd == LINUX_AT_FDCWD) {
+        result = readlink(path, buffer, size);
+    } else {
+        result = readlinkat(directory_fd, path, buffer, size);
+    }
+    int saved_errno = errno;
+    restore_guest_context(guest);
+    return linux_host_result((int64_t)result, saved_errno);
+}
+
+'''
+    text = replace_once(
+        text,
+        "static int64_t host_mmap_bridge(uintptr_t address, size_t length,\n",
+        readlinkat_bridge +
+        "static int64_t host_mmap_bridge(uintptr_t address, size_t length,\n",
+        "readlinkat bridge insertion",
+    )
+
+    text = replace_once(
+        text,
+        "    int needs_exec_patch = (protection & PROT_EXEC) != 0;\n",
+        "    int needs_exec_patch =\n"
+        "        (protection & PROT_EXEC) != 0 &&\n"
+        "        !prepatched_code_mode_enabled();\n",
+        "skip mmap byte scan for prepatched roots",
     )
 
     safe_random = r'''static int64_t bridge_getrandom(void *buffer, size_t size) {
@@ -318,6 +405,21 @@ static int64_t bridge_clock_gettime(int clock_id,
         "readv/writev switch insertion",
     )
 
+    readlinkat_case = r'''        case LINUX_SYS_READLINKAT:
+            result = host_readlinkat_bridge(
+                (int)state->__rdi,
+                (const char *)(uintptr_t)state->__rsi,
+                (char *)(uintptr_t)state->__rdx,
+                (size_t)state->__r10);
+            break;
+'''
+    text = replace_once(
+        text,
+        "        case LINUX_SYS_SET_ROBUST_LIST:\n",
+        readlinkat_case + "        case LINUX_SYS_SET_ROBUST_LIST:\n",
+        "readlinkat switch insertion",
+    )
+
     text = replace_once(
         text,
         "    int64_t result;\n    switch (state->__rax) {\n",
@@ -326,6 +428,25 @@ static int64_t bridge_clock_gettime(int clock_id,
         "                      state->__r9);\n"
         "    int64_t result;\n    switch (state->__rax) {\n",
         "syscall trace call",
+    )
+
+    crash_actions = r'''    action.sa_sigaction = crash_signal_handler;
+    if (sigaction(SIGBUS, &action, NULL) != 0) {
+        fatal("M3 sigaction(SIGBUS)");
+    }
+    if (sigaction(SIGSEGV, &action, NULL) != 0) {
+        fatal("M3 sigaction(SIGSEGV)");
+    }
+'''
+    text = replace_once(
+        text,
+        "    if (sigaction(SIGILL, &action, NULL) != 0) {\n"
+        "        fatal(\"M3 sigaction(SIGILL)\");\n"
+        "    }\n",
+        "    if (sigaction(SIGILL, &action, NULL) != 0) {\n"
+        "        fatal(\"M3 sigaction(SIGILL)\");\n"
+        "    }\n" + crash_actions,
+        "fatal signal handlers",
     )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
