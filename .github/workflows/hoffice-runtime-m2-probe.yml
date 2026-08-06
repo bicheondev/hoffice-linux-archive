@@ -23,7 +23,7 @@ jobs:
             sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
           fi
           /usr/bin/arch -x86_64 /usr/bin/true
-      - name: Compile x86-64 FSGSBASE probe
+      - name: Compile x86-64 TLS probe
         run: |
           set -euxo pipefail
           mkdir -p build/m2-probe
@@ -47,7 +47,7 @@ jobs:
           cat build/m2-probe/stderr.txt
           cat build/m2-probe/stdout.txt
           test "$status" -eq 0
-          grep -Fx 'HRT M2 probe: direct FS-base control works under Rosetta' \
+          grep -Fx 'HRT M2 probe: GS TLS fallback works under Rosetta' \
             build/m2-probe/stdout.txt
       - uses: actions/upload-artifact@v4
         if: always()
