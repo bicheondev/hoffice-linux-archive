@@ -3,6 +3,9 @@ name: HOffice runtime M0
 on:
   push:
     branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m0/**'
+      - '.github/workflows/hoffice-runtime-m0.yml'
   workflow_dispatch:
 
 permissions:
