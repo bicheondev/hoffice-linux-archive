@@ -12,6 +12,11 @@
 
 static NSWindow *g_window;
 static BOOL g_initialized;
+static pthread_t g_appkit_thread;
+
+static BOOL on_appkit_thread(void) {
+    return g_initialized && pthread_equal(pthread_self(), g_appkit_thread) != 0;
+}
 
 static void pump_events(NSTimeInterval seconds) {
     NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:seconds];
@@ -82,7 +87,7 @@ static BOOL capture_window(CGWindowID window_id, const char *path) {
 static int64_t create_window(const char *guest_title,
                              uint64_t requested_width,
                              uint64_t requested_height) {
-    if (!g_initialized || !pthread_main_np()) return -1001;
+    if (!on_appkit_thread()) return -1001;
     if (guest_title == NULL) return -1002;
 
     const size_t title_length = strnlen(guest_title, 256u);
@@ -168,7 +173,7 @@ static int64_t query_window(uint64_t expected_number) {
     if (g_window.keyWindow) flags |= HRT_M6_WINDOW_KEY;
     if (g_window.mainWindow) flags |= HRT_M6_WINDOW_MAIN;
     if ([NSScreen mainScreen] != nil) flags |= HRT_M6_SCREEN_AVAILABLE;
-    if (pthread_main_np()) flags |= HRT_M6_ON_MAIN_THREAD;
+    if (on_appkit_thread()) flags |= HRT_M6_ON_MAIN_THREAD;
     return (int64_t)flags;
 }
 
@@ -179,6 +184,7 @@ int hrt_m6_appkit_initialize(void) {
         if (application == nil) return -2;
         [application setActivationPolicy:NSApplicationActivationPolicyAccessory];
         [application finishLaunching];
+        g_appkit_thread = pthread_self();
         g_initialized = YES;
         fprintf(stderr,
                 "hrt-m6-hostcall: AppKit initialized on pid=%d main-thread=1\n",
@@ -202,7 +208,7 @@ int64_t hrt_m6_appkit_hostcall(uint64_t opcode,
                 return create_window((const char *)(uintptr_t)argument1,
                                      argument2, argument3);
             case HRT_M6_OP_PUMP_EVENTS: {
-                if (!g_initialized || !pthread_main_np()) return -1020;
+                if (!on_appkit_thread()) return -1020;
                 uint64_t milliseconds = argument1;
                 if (milliseconds > 5000u) milliseconds = 5000u;
                 pump_events((NSTimeInterval)milliseconds / 1000.0);
