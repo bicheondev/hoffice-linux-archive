@@ -1,0 +1,31 @@
+name: HOffice runtime M6 HWord offscreen create platform window
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'proofs/m5-hword-offscreen-integration-constructor.json'
+      - '.github/workflows/hoffice-runtime-m6-hword-create-platform-window.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m6-create-platform-window-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    uses: ./.github/workflows/hoffice-runtime-guest-symbol-probe.yml
+    with:
+      predecessor_proof: proofs/m5-hword-offscreen-integration-constructor.json
+      symbol_regex: QOffscreenIntegration.*createPlatformWindow
+      label: Qt offscreen createPlatformWindow
+      milestone: M6-offscreen-create-platform-window
+      diagnostic_path: diagnostics/m6-hword-create-platform-window-latest.json
+      proof_path: proofs/m6-hword-offscreen-create-platform-window.json
+      trace_limit: 64000
+      run_seconds: 35
+      require_pipe2: true
