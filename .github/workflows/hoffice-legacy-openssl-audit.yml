@@ -11,6 +11,7 @@ permissions:
   contents: read
 
 env:
+  # Ubuntu Focal's final OpenSSL 1.1 security build.
   PACKAGE_NAME: libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
   PACKAGE_URL: https://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
 
