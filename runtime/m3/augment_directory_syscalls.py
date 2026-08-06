@@ -51,14 +51,15 @@ def main() -> None:
                                        uint64_t argument4) {
     uint64_t result;
     unsigned char failed;
-    register uint64_t register10 __asm__("r10") = argument4;
     __asm__ volatile(
+        "movq %[argument4], %%r10\n\t"
         "syscall\n\t"
         "setc %1"
-        : "=a"(result), "=qm"(failed), "+r"(register10)
+        : "=a"(result), "=qm"(failed)
         : "0"(DARWIN_BSD_SYSCALL(number)),
-          "D"(argument1), "S"(argument2), "d"(argument3)
-        : "rcx", "r11", "cc", "memory");
+          "D"(argument1), "S"(argument2), "d"(argument3),
+          [argument4] "r"(argument4)
+        : "rcx", "r10", "r11", "cc", "memory");
     return failed ? -(int64_t)result : (int64_t)result;
 }
 
