@@ -1,0 +1,26 @@
+name: HOffice chain M5 offscreen integration create
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'proofs/chain/m5-plugin-instance.json'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/hoffice-runtime-guest-symbol-probe-chain.yml
+    with:
+      predecessor_proof: proofs/chain/m5-plugin-instance.json
+      symbol_regex: 'QOffscreenIntegrationPlugin.*create'
+      label: Qt offscreen integration create
+      milestone: M5-chain-offscreen-integration-create
+      diagnostic_path: diagnostics/chain/m5-integration-create.json
+      proof_path: proofs/chain/m5-integration-create.json
+      trace_limit: 56000
+      run_seconds: 30
+      require_pipe2: true
