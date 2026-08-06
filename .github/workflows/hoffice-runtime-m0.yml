@@ -18,7 +18,7 @@ jobs:
           set -euxo pipefail
           mkdir -p build/guest
           clang -c -nostdlib -fno-asynchronous-unwind-tables runtime/m0/test_guest.S -o build/guest/test_guest.o
-          ld.lld -nostdlib -static --build-id=none -z max-page-size=4096 -Ttext=0x400000 \
+          ld -nostdlib -static --build-id=none -z max-page-size=4096 -Ttext=0x400000 \
             build/guest/test_guest.o -o build/guest/linux-hello
           file build/guest/linux-hello
           readelf -hW build/guest/linux-hello
