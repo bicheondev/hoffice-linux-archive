@@ -58,8 +58,33 @@ jobs:
           test -s "$root/.hrt-prepatched-v1"
           test -f "$root/opt/hnc/hoffice11/Bin/hword"
           test -d "$root/opt/hnc/hoffice11/Bin/Hword"
-          printf '%s  %s\n' "$PROGRAM_SHA256" "$root${PROGRAM}" | \
-            shasum -a 256 -c -
+          python3 - "$root" "$PROGRAM" "$PROGRAM_SHA256" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          root = pathlib.Path(sys.argv[1])
+          guest = sys.argv[2]
+          expected_original = sys.argv[3]
+          image = root / guest.lstrip('/')
+          marker = json.loads((root / '.hrt-prepatched-v1').read_text())
+          matches = [item for item in marker['objects'] if item['path'] == guest]
+          assert len(matches) == 1, matches
+          record = matches[0]
+          assert record['sha256_before'] == expected_original, record
+          actual = hashlib.sha256(image.read_bytes()).hexdigest()
+          assert actual == record['sha256_after'], (actual, record)
+          pathlib.Path('build/m5/proof/hword-prepatch-lock.json').write_text(
+              json.dumps({
+                  'guest_path': guest,
+                  'sha256_before': record['sha256_before'],
+                  'sha256_after': record['sha256_after'],
+                  'syscalls': record['syscalls'],
+                  'fs_to_gs': record['fs_to_gs'],
+              }, indent=2) + '\n')
+          print(json.dumps(record, indent=2))
+          PY
           diskutil info "$root" | tee build/m5/proof/guest-volume.txt
           test "$(stat -f '%HT' "$root/opt/hnc/hoffice11/Bin/hword")" = 'Regular File'
           test "$(stat -f '%HT' "$root/opt/hnc/hoffice11/Bin/Hword")" = 'Directory'
