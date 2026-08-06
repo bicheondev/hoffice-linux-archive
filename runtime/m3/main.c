@@ -24,6 +24,15 @@ int main(int argc, char **argv) {
     resolve_guest_path(root, guest_program,
                        program_path, sizeof(program_path));
 
+    char prepatch_marker[HRT_MAX_PATH];
+    resolve_guest_path(root, "/.hrt-prepatched-v1",
+                       prepatch_marker, sizeof(prepatch_marker));
+    if (access(prepatch_marker, R_OK) == 0) {
+        set_prepatched_code_mode(1);
+        fprintf(stderr,
+                "hrt-m3: verified instruction-boundary shadow root enabled\n");
+    }
+
     g_page_size = (size_t)getpagesize();
     initialize_syscall_bridge(root, guest_program);
 
@@ -64,7 +73,7 @@ int main(int argc, char **argv) {
 
     if (interpreter.patched_syscalls == 0u) {
         errno = 0;
-        fatal("M3 interpreter contains no Linux syscall instructions");
+        fatal("M3 interpreter contains no trapped Linux syscall instructions");
     }
 
     void *stack_pointer = build_m3_initial_stack(
