@@ -1,0 +1,66 @@
+name: HOffice runtime M5 getdents ABI probe
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m3/getdents_probe.c'
+      - '.github/workflows/hoffice-runtime-m5-getdents-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hrt-m5-getdents-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe-on-apple-silicon:
+    runs-on: macos-14
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure Rosetta and create a known directory
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          mkdir -p build/probe/directory/subdir build/proof
+          : > build/probe/directory/libqoffscreen.so
+          : > build/probe/directory/libqminimal.so
+          : > build/probe/directory/ordinary.txt
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+
+      - name: Compile and execute the raw getdirentries64 probe
+        run: |
+          set -euxo pipefail
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -Wall -Wextra -Werror -Wpedantic \
+            runtime/m3/getdents_probe.c -o build/probe/getdents-probe
+          file build/probe/getdents-probe | tee build/proof/file.txt
+          codesign --force --sign - --timestamp=none build/probe/getdents-probe
+          codesign --verify --strict build/probe/getdents-probe
+          /usr/bin/arch -x86_64 build/probe/getdents-probe \
+            "$PWD/build/probe/directory" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt
+          cat build/proof/stderr.txt
+          cat build/proof/stdout.txt
+          grep -Fx \
+            'HRT M5 DIRENTS: Darwin records converted to Linux getdents64 records' \
+            build/proof/stdout.txt
+          grep -F 'name=libqoffscreen.so' build/proof/stdout.txt
+          grep -F 'name=libqminimal.so' build/proof/stdout.txt
+          grep -F 'name=subdir' build/proof/stdout.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m5-getdents-abi-proof
+          path: |
+            build/probe/getdents-probe
+            build/proof
+          if-no-files-found: error
+          retention-days: 14
