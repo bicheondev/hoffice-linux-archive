@@ -1,0 +1,107 @@
+name: Reusable chained HOffice guest ELF symbol probe
+
+on:
+  workflow_call:
+    inputs:
+      predecessor_proof:
+        required: true
+        type: string
+      symbol_regex:
+        required: true
+        type: string
+      label:
+        required: true
+        type: string
+      milestone:
+        required: true
+        type: string
+      diagnostic_path:
+        required: true
+        type: string
+      proof_path:
+        required: true
+        type: string
+      trace_limit:
+        required: false
+        type: number
+        default: 48000
+      run_seconds:
+        required: false
+        type: number
+        default: 30
+      require_pipe2:
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/hoffice-runtime-guest-symbol-probe.yml
+    with:
+      predecessor_proof: ${{ inputs.predecessor_proof }}
+      symbol_regex: ${{ inputs.symbol_regex }}
+      label: ${{ inputs.label }}
+      milestone: ${{ inputs.milestone }}
+      diagnostic_path: ${{ inputs.diagnostic_path }}
+      proof_path: ${{ inputs.proof_path }}
+      trace_limit: ${{ inputs.trace_limit }}
+      run_seconds: ${{ inputs.run_seconds }}
+      require_pipe2: ${{ inputs.require_pipe2 }}
+
+  relay-proof:
+    needs: probe
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PROOF_PATH: ${{ inputs.proof_path }}
+      MILESTONE: ${{ inputs.milestone }}
+      SOURCE_PROBE_RUN: ${{ github.run_id }}
+      BRANCH: codex/hoffice-runtime-from-scratch
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/hoffice-runtime-from-scratch
+          fetch-depth: 0
+
+      - name: Fetch and validate the accepted proof
+        run: |
+          set -euxo pipefail
+          git fetch origin "$BRANCH"
+          git reset --hard "origin/$BRANCH"
+          test -s "$PROOF_PATH"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path(os.environ['PROOF_PATH'])
+          proof = json.loads(path.read_text())
+          assert proof.get('schema') == 1
+          assert proof.get('selected_symbol_entered') is True
+          assert proof.get('milestone') == os.environ['MILESTONE']
+          proof['chain_relay'] = {
+              'schema': 1,
+              'workflow_run': os.environ['SOURCE_PROBE_RUN'],
+              'branch': os.environ['BRANCH'],
+              'status': 'READY_FOR_NEXT_GATE',
+          }
+          path.write_text(json.dumps(proof, indent=2) + '\n')
+          print(json.dumps(proof['chain_relay'], indent=2))
+          PY
+
+      - name: Commit a non-skipped proof relay
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$PROOF_PATH"
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "proof relay: $MILESTONE is ready for the next gate"
+          git pull --rebase origin "$BRANCH"
+          git push origin HEAD:"$BRANCH"
