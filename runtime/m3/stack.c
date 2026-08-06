@@ -41,14 +41,22 @@ void *build_m3_initial_stack(const char *guest_path,
 
     static const char milestone[] = "HRT_MILESTONE=M3";
     static const char language[] = "LANG=C";
+    static const char home[] = "HOME=/tmp/hrt-home";
+    static const char tmpdir[] = "TMPDIR=/tmp";
     static const char library_path[] =
-        "LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:"
+        "LD_LIBRARY_PATH=/opt/hnc/hoffice11/Bin:"
+        "/opt/hnc/hoffice11/Bin/qt/lib:"
+        "/lib/x86_64-linux-gnu:"
         "/usr/lib/x86_64-linux-gnu:/lib64";
     uintptr_t env0 = push_bytes(&cursor, floor, milestone,
                                 sizeof(milestone));
     uintptr_t env1 = push_bytes(&cursor, floor, language,
                                 sizeof(language));
-    uintptr_t env2 = push_bytes(&cursor, floor, library_path,
+    uintptr_t env2 = push_bytes(&cursor, floor, home,
+                                sizeof(home));
+    uintptr_t env3 = push_bytes(&cursor, floor, tmpdir,
+                                sizeof(tmpdir));
+    uintptr_t env4 = push_bytes(&cursor, floor, library_path,
                                 sizeof(library_path));
 
     static const char platform[] = "x86_64";
@@ -79,6 +87,8 @@ void *build_m3_initial_stack(const char *guest_path,
     WORD(env0);
     WORD(env1);
     WORD(env2);
+    WORD(env3);
+    WORD(env4);
     WORD(0);
     AUX(AT_PHDR, program->phdr_address);
     AUX(AT_PHENT, sizeof(Elf64_Phdr));
