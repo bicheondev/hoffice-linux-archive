@@ -24,11 +24,10 @@
 typedef struct {
     _Alignas(64) uint64_t guest_tls_a[8];
     _Alignas(64) uint64_t guest_tls_b[8];
-    volatile uint64_t host_gs_base;
+    volatile uint64_t initial_set_return;
     volatile uint64_t before_signal_gs0;
     volatile uint64_t handler_gs0;
-    volatile uint64_t handler_to_host_previous;
-    volatile uint64_t handler_to_guest_previous;
+    volatile uint64_t handler_set_b_return;
     volatile uint64_t after_signal_gs0;
     volatile uint64_t handler_rip;
     volatile uint32_t handler_entered;
@@ -68,13 +67,13 @@ static inline uint64_t read_gs_zero(void) {
 }
 
 static inline uintptr_t raw_set_gs(uintptr_t base) {
-    uintptr_t previous;
+    uintptr_t result;
     __asm__ volatile(
         "syscall"
-        : "=a"(previous)
+        : "=a"(result)
         : "0"(DARWIN_THREAD_FAST_SET_CTHREAD_SELF), "D"(base)
         : "rcx", "r11", "cc", "memory");
-    return previous;
+    return result;
 }
 
 static void guest_sigill(int signo, siginfo_t *info, void *context_pointer) {
@@ -92,15 +91,8 @@ static void guest_sigill(int signo, siginfo_t *info, void *context_pointer) {
     g_shared->handler_instruction_ok =
         instruction[0] == 0x0f && instruction[1] == 0x0b;
     g_shared->handler_entered = 1u;
-
-    uintptr_t previous_guest = raw_set_gs(
-        (uintptr_t)g_shared->host_gs_base);
-    g_shared->handler_to_host_previous = previous_guest;
-
-    uintptr_t previous_host = raw_set_gs(
+    g_shared->handler_set_b_return = raw_set_gs(
         (uintptr_t)&g_shared->guest_tls_b[0]);
-    g_shared->handler_to_guest_previous = previous_host;
-
     state->__rip = rip + 2u;
 #else
 #error "M2 TLS probe must be compiled as x86_64"
@@ -110,7 +102,7 @@ static void guest_sigill(int signo, siginfo_t *info, void *context_pointer) {
 __attribute__((noreturn, noinline))
 static void child_switch_signal_and_exit(ProbeShared *shared) {
     uintptr_t guest_base = (uintptr_t)&shared->guest_tls_a[0];
-    volatile uint64_t *host_base = &shared->host_gs_base;
+    volatile uint64_t *set_return = &shared->initial_set_return;
     volatile uint64_t *before = &shared->before_signal_gs0;
     volatile uint64_t *after = &shared->after_signal_gs0;
 
@@ -118,7 +110,7 @@ static void child_switch_signal_and_exit(ProbeShared *shared) {
         "movq %[guest], %%rdi\n\t"
         "movq %[set_number], %%rax\n\t"
         "syscall\n\t"
-        "movq %%rax, (%[host_base])\n\t"
+        "movq %%rax, (%[set_return])\n\t"
         "movq %%gs:0, %%r8\n\t"
         "movq %%r8, (%[before])\n\t"
         "ud2\n\t"
@@ -130,7 +122,7 @@ static void child_switch_signal_and_exit(ProbeShared *shared) {
         "ud2\n\t"
         :
         : [guest] "r"(guest_base),
-          [host_base] "r"(host_base),
+          [set_return] "r"(set_return),
           [before] "r"(before),
           [after] "r"(after),
           [set_number] "i"(DARWIN_THREAD_FAST_SET_CTHREAD_SELF),
@@ -201,29 +193,27 @@ int main(void) {
     printf("HRT M2 probe: direct-fs=%s trapped=%s original-fs=0x%" PRIxPTR "\n",
            direct_fs_supported ? "yes" : "no",
            g_direct_fs_trapped ? "yes" : "no", original_fs);
-    printf("HRT M2 probe: host-gs-base=0x%016" PRIx64
+    printf("HRT M2 probe: initial-set-return=0x%016" PRIx64
            " guest-gs-before=0x%016" PRIx64 "\n",
-           shared->host_gs_base, shared->before_signal_gs0);
+           shared->initial_set_return, shared->before_signal_gs0);
     printf("HRT M2 probe: handler-entered=%u instruction-ok=%u"
            " handler-gs0=0x%016" PRIx64 " rip=0x%016" PRIx64 "\n",
            shared->handler_entered, shared->handler_instruction_ok,
            shared->handler_gs0, shared->handler_rip);
-    printf("HRT M2 probe: to-host-previous=0x%016" PRIx64
-           " to-guest-previous=0x%016" PRIx64 "\n",
-           shared->handler_to_host_previous,
-           shared->handler_to_guest_previous);
+    printf("HRT M2 probe: handler-set-b-return=0x%016" PRIx64 "\n",
+           shared->handler_set_b_return);
     printf("HRT M2 probe: guest-gs-after=0x%016" PRIx64 "\n",
            shared->after_signal_gs0);
 
     int child_ok = WIFEXITED(child_status) && WEXITSTATUS(child_status) == 0;
     uintptr_t guest_a = (uintptr_t)&shared->guest_tls_a[0];
-    if (!child_ok || shared->host_gs_base == 0u ||
+    uintptr_t guest_b = (uintptr_t)&shared->guest_tls_b[0];
+    if (!child_ok || shared->initial_set_return != guest_a ||
         shared->before_signal_gs0 != TLS_MARKER_A ||
         shared->handler_entered != 1u ||
         shared->handler_instruction_ok != 1u ||
         shared->handler_gs0 != TLS_MARKER_A ||
-        shared->handler_to_host_previous != guest_a ||
-        shared->handler_to_guest_previous != shared->host_gs_base ||
+        shared->handler_set_b_return != guest_b ||
         shared->after_signal_gs0 != TLS_MARKER_B) {
         if (WIFSIGNALED(child_status)) {
             fprintf(stderr, "HRT M2 probe: child terminated by signal %d\n",
@@ -232,10 +222,10 @@ int main(void) {
             fprintf(stderr, "HRT M2 probe: child exited with status %d\n",
                     WEXITSTATUS(child_status));
         }
-        fprintf(stderr, "HRT M2 probe: host/guest GS context switch failed\n");
+        fprintf(stderr, "HRT M2 probe: persistent guest GS update failed\n");
         return 2;
     }
 
-    puts("HRT M2 probe: host and guest GS context switching works under Rosetta");
+    puts("HRT M2 probe: guest GS updates persist through SIGILL under Rosetta");
     return 0;
 }
