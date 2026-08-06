@@ -144,6 +144,10 @@ jobs:
             sleep 0.05
           done
           if [ "$timed_out" -ne 0 ]; then
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$guest_pid" \
+              >build/m3/process.txt 2>&1 || true
+            /usr/bin/sample "$guest_pid" 1 1 \
+              -file build/m3/sample.txt >/dev/null 2>&1 || true
             kill -TERM "$guest_pid" 2>/dev/null || true
             sleep 0.2
             kill -KILL "$guest_pid" 2>/dev/null || true
@@ -159,6 +163,11 @@ jobs:
           cat build/m3/stderr.txt
           echo '--- stdout ---'
           cat build/m3/stdout.txt
+          echo '--- process ---'
+          cat build/m3/process.txt 2>/dev/null || true
+          echo '--- sample key frames ---'
+          grep -E 'Call graph:|Thread_.*DispatchQueue|hrt-m3|0x0*[0-9a-f]{6,}' \
+            build/m3/sample.txt 2>/dev/null | head -n 120 || true
           echo "--- exit status: $status; timed-out: $timed_out ---"
           grep -Fx \
             'hrt-m3: verified instruction-boundary shadow root enabled' \
@@ -180,6 +189,8 @@ jobs:
             build/m3/prepatch.txt
             build/m3/stdout.txt
             build/m3/stderr.txt
+            build/m3/process.txt
+            build/m3/sample.txt
             build/m3/exit-status.txt
             build/m3/timed-out.txt
           include-hidden-files: true
