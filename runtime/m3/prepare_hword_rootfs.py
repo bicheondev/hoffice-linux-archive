@@ -150,14 +150,13 @@ def main() -> int:
         destination = output / guest_path.lstrip("/")
         copy_regular(source, destination)
         subprocess.run(
-            ["python3", str(generator), str(source)],
+            ["python3", str(generator), str(destination)],
             check=True,
             text=True,
         )
-        sidecar = Path(str(source) + ".fspatch")
+        sidecar = Path(str(destination) + ".fspatch")
         if not sidecar.is_file():
             raise RuntimeError(f"FS patch map missing: {sidecar}")
-        shutil.copy2(sidecar, Path(str(destination) + ".fspatch"))
 
     cache = Path("/etc/ld.so.cache")
     if cache.is_file():
