@@ -1,0 +1,113 @@
+name: HOffice runtime M2 TLS
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m2/test_tls_interp.S'
+      - 'runtime/m2/tls_syscall_bridge.c'
+      - 'runtime/m2/**'
+      - '.github/workflows/hoffice-runtime-m2-tls.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux-rootfs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build synthetic TLS-aware Linux interpreter and main
+        run: |
+          set -euxo pipefail
+          mkdir -p build/guest build/rootfs/lib64 build/rootfs/opt/hrt
+
+          clang -c -nostdlib -fPIC runtime/m2/test_tls_interp.S \
+            -o build/guest/test_tls_interp.o
+          ld -shared -nostdlib --build-id=none -z max-page-size=4096 \
+            -e _start build/guest/test_tls_interp.o \
+            -o build/rootfs/lib64/ld-hrt-m2-tls.so
+
+          clang -c -nostdlib -fPIE runtime/m1/test_main.S \
+            -o build/guest/test_main.o
+          ld -pie -nostdlib --build-id=none -z max-page-size=4096 \
+            -e _start --dynamic-linker /lib64/ld-hrt-m2-tls.so \
+            build/guest/test_main.o -o build/rootfs/opt/hrt/main
+
+          file build/rootfs/lib64/ld-hrt-m2-tls.so build/rootfs/opt/hrt/main
+          readelf -lW build/rootfs/opt/hrt/main \
+            | grep -F 'Requesting program interpreter: /lib64/ld-hrt-m2-tls.so'
+          objdump -d build/rootfs/lib64/ld-hrt-m2-tls.so \
+            | grep -E 'wrfs|fs:'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m2-tls-linux-rootfs
+          path: build/rootfs
+          if-no-files-found: error
+          retention-days: 7
+
+  execute-on-apple-silicon:
+    needs: build-linux-rootfs
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m2-tls-linux-rootfs
+          path: build/rootfs
+
+      - name: Ensure Rosetta and FSGSBASE are available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+
+      - name: Compile TLS-safe bridge host
+        run: |
+          set -euxo pipefail
+          mkdir -p build/host
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -Wall -Wextra -Werror -Wpedantic \
+            -fno-stack-protector -mfsgsbase \
+            runtime/m2/main.c runtime/m2/common.c runtime/m2/elf_map.c \
+            runtime/m2/stack.c runtime/m2/tls_syscall_bridge.c \
+            runtime/m2/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/host/hrt-m2-tls
+          file build/host/hrt-m2-tls
+          codesign --force --sign - --timestamp=none build/host/hrt-m2-tls
+          codesign --verify --strict build/host/hrt-m2-tls
+
+      - name: Verify FS-base persistence across multiple trapped syscalls
+        run: |
+          set -uxo pipefail
+          set +e
+          /usr/bin/arch -x86_64 build/host/hrt-m2-tls \
+            --rootfs "$PWD/build/rootfs" --program /opt/hrt/main \
+            >build/stdout.txt 2>build/stderr.txt
+          status=$?
+          set -e
+          printf '%s\n' "$status" > build/exit-status.txt
+          cat build/stderr.txt || true
+          cat build/stdout.txt || true
+          test "$status" -eq 0
+          grep -Fx 'HRT M2 TLS: ARCH_SET_FS survived signal-return and another syscall' \
+            build/stdout.txt
+          grep -Fx 'HRT M1: main program reached through synthetic Linux interpreter' \
+            build/stdout.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m2-tls-macos-proof
+          path: |
+            build/host/hrt-m2-tls
+            build/rootfs
+            build/stdout.txt
+            build/stderr.txt
+            build/exit-status.txt
+          if-no-files-found: warn
+          retention-days: 7
