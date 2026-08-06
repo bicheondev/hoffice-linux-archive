@@ -15,6 +15,8 @@ typedef struct {
     Elf64_Phdr phdrs[HRT_MAX_PHDRS];
     uintptr_t image_start;
     uintptr_t image_end;
+    uintptr_t load_bias;
+    uintptr_t entry_address;
     uintptr_t phdr_address;
     size_t patched_syscalls;
 } LoadedElf;
@@ -25,7 +27,7 @@ void fatal(const char *message) __attribute__((noreturn));
 uintptr_t align_down(uintptr_t value, size_t alignment);
 uintptr_t align_up(uintptr_t value, size_t alignment);
 void install_sigill_handler(void);
-LoadedElf load_static_elf(const char *path);
+LoadedElf load_elf(const char *path);
 void *build_initial_stack(const char *guest_path, const LoadedElf *loaded);
 void enter_guest(void *stack_pointer, void *entry_point) __attribute__((noreturn));
 
