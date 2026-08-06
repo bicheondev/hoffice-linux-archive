@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Build a minimal guest root for one exact HOffice ELF executable.
+"""Build a minimal guest root for exact HOffice ELF entry points.
 
-The package payload is kept as the source of all HOffice-private objects.  Any
-remaining Linux ABI libraries are copied from the pinned CI image.  Resolution
+The package payload is kept as the source of all HOffice-private objects. Any
+remaining Linux ABI libraries are copied from the pinned CI image. Resolution
 follows each object's DT_RUNPATH/DT_RPATH before the suite-wide Bin/qt search
-paths and finally the host's x86-64 ldconfig cache.  Every copied object is
+paths and finally the host's x86-64 ldconfig cache. Every copied object is
 hashed in a manifest so the macOS execution proof can be tied to an exact
 closure rather than a mutable host installation.
+
+``--include`` adds ELF roots that are loaded by name or dlopen rather than by a
+DT_NEEDED edge. This is required for Qt platform plugins, image-format plugins,
+and other runtime-discovered modules.
 """
 
 from __future__ import annotations
@@ -21,6 +25,7 @@ import subprocess
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Iterable
 
 ELF_MAGIC = b"\x7fELF"
 NEEDED_RE = re.compile(r"\(NEEDED\).*?Shared library: \[([^\]]+)\]")
@@ -35,6 +40,7 @@ LDCONFIG_RE = re.compile(r"^\s*(\S+)\s+\([^)]*x86-64[^)]*\)\s+=>\s+(\S+)\s*$")
 class PendingObject:
     source: Path
     guest_path: str
+    root_reason: str | None = None
 
 
 def run_text(arguments: list[str]) -> str:
@@ -162,19 +168,41 @@ def normalize_guest_path(path: str) -> str:
     return result
 
 
+def package_elf(package_root: Path, guest_path: str) -> Path:
+    normalized = normalize_guest_path(guest_path)
+    source = package_root / normalized.lstrip("/")
+    if not source.is_file() or not is_elf(source):
+        raise FileNotFoundError(f"package path is not an ELF file: {source}")
+    return source
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--package-root", required=True, type=Path)
     parser.add_argument("--output-root", required=True, type=Path)
     parser.add_argument("--program", required=True)
+    parser.add_argument(
+        "--include",
+        action="append",
+        default=[],
+        metavar="GUEST_ELF",
+        help="additional package ELF root, repeatable (for dlopen plugins)",
+    )
     args = parser.parse_args()
 
     package_root = args.package_root.resolve(strict=True)
     output_root = args.output_root.resolve()
     program_guest = normalize_guest_path(args.program)
-    program_source = package_root / program_guest.lstrip("/")
-    if not program_source.is_file() or not is_elf(program_source):
-        raise SystemExit(f"program is not an ELF file: {program_source}")
+    program_source = package_elf(package_root, program_guest)
+
+    include_guests: list[str] = []
+    include_sources: list[Path] = []
+    for raw_include in args.include:
+        guest = normalize_guest_path(raw_include)
+        if guest == program_guest or guest in include_guests:
+            continue
+        include_guests.append(guest)
+        include_sources.append(package_elf(package_root, guest))
 
     if output_root.exists():
         shutil.rmtree(output_root)
@@ -190,10 +218,20 @@ def main() -> None:
     ]
     ldconfig = parse_ldconfig()
 
-    queue: deque[PendingObject] = deque(
-        [PendingObject(program_source, program_guest)]
+    roots = [PendingObject(program_source, program_guest, "program")]
+    roots.extend(
+        PendingObject(source, guest, "explicit-include")
+        for source, guest in zip(include_sources, include_guests, strict=True)
     )
-    queued: dict[str, Path] = {program_guest: program_source}
+    queue: deque[PendingObject] = deque(roots)
+    queued: dict[str, Path] = {
+        pending.guest_path: pending.source for pending in roots
+    }
+    root_reasons: dict[str, str] = {
+        pending.guest_path: pending.root_reason
+        for pending in roots
+        if pending.root_reason is not None
+    }
     records: list[dict[str, object]] = []
 
     while queue:
@@ -256,6 +294,7 @@ def main() -> None:
         records.append(
             {
                 "guest_path": guest_path,
+                "root_reason": root_reasons.get(guest_path),
                 "source": os.fspath(source),
                 "sha256": sha256(source.resolve(strict=True)),
                 "size": source.resolve(strict=True).stat().st_size,
@@ -269,9 +308,11 @@ def main() -> None:
     for directory in (
         output_root / "tmp",
         output_root / "tmp/hrt-home",
+        output_root / "tmp/hrt-runtime",
         output_root / "etc",
     ):
         directory.mkdir(parents=True, exist_ok=True)
+    os.chmod(output_root / "tmp/hrt-runtime", 0o700)
     (output_root / "etc/nsswitch.conf").write_text(
         "passwd: files\ngroup: files\nhosts: files dns\n",
         encoding="utf-8",
@@ -282,8 +323,10 @@ def main() -> None:
     )
 
     manifest = {
-        "schema": 1,
+        "schema": 2,
         "program": program_guest,
+        "explicit_includes": include_guests,
+        "root_count": len(roots),
         "object_count": len(records),
         "total_bytes": sum(int(record["size"]) for record in records),
         "objects": sorted(records, key=lambda record: str(record["guest_path"])),
@@ -294,8 +337,8 @@ def main() -> None:
         encoding="utf-8",
     )
     print(
-        f"closure program={program_guest} objects={manifest['object_count']} "
-        f"bytes={manifest['total_bytes']}"
+        f"closure program={program_guest} roots={manifest['root_count']} "
+        f"objects={manifest['object_count']} bytes={manifest['total_bytes']}"
     )
 
 
