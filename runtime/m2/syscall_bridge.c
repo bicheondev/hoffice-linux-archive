@@ -1,5 +1,6 @@
 #define _DARWIN_C_SOURCE 1
 #include "syscall_internal.h"
+#include "../m5/host_ui.h"
 
 #include <dirent.h>
 #include <errno.h>
@@ -200,7 +201,7 @@ static void sigill_handler(int signo, siginfo_t *info,
     const unsigned char *instruction =
         (const unsigned char *)(uintptr_t)rip;
     if (instruction[0] != 0x0f || instruction[1] != 0x0b) {
-        static const char message[] = "hrt-m2: unexpected SIGILL\n";
+        static const char message[] = "hrt-m5: unexpected SIGILL\n";
         (void)write(STDERR_FILENO, message, sizeof(message) - 1u);
         _exit(124);
     }
@@ -211,19 +212,19 @@ static void sigill_handler(int signo, siginfo_t *info,
         (void)raw_set_gs(g_runtime.host_gs_base);
     }
 
-    if (g_runtime.stop_at_entry && g_runtime.entry_trap_armed &&
-        rip == g_runtime.entry_trap_address) {
-        static const char message[] =
-            "hrt-m3: original HWord ELF entry reached\n";
-        (void)write(STDERR_FILENO, message, sizeof(message) - 1u);
-        _exit(0);
-    }
-
     ++g_runtime.syscall_count;
     HrtSyscallControl control;
     memset(&control, 0, sizeof(control));
     int64_t result;
-    if (state->__rax == HRT_LINUX_GETDENTS64) {
+    if (state->__rax == HRT_HOST_CREATE_WINDOW) {
+        result = hrt_host_ui_submit_window(
+            (const char *)(uintptr_t)state->__rdi,
+            (size_t)state->__rsi,
+            (uint32_t)state->__rdx,
+            (uint32_t)state->__r10);
+    } else if (state->__rax == HRT_HOST_VISIBLE_WINDOWS) {
+        result = hrt_host_ui_visible_windows();
+    } else if (state->__rax == HRT_LINUX_GETDENTS64) {
         result = linux_getdents64(
             (int)state->__rdi,
             (void *)(uintptr_t)state->__rsi,
@@ -246,7 +247,7 @@ static void sigill_handler(int signo, siginfo_t *info,
     }
     g_in_handler = 0;
 #else
-#error "hrt-m2 must be compiled as x86_64 Mach-O"
+#error "hrt-m5 must be compiled as x86_64 Mach-O"
 #endif
 }
 

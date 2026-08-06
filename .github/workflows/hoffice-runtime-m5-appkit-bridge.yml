@@ -1,0 +1,161 @@
+name: HOffice runtime M5A AppKit bridge
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-m5-appkit-bridge]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux-window-probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build glibc probe and freestanding preload constructor
+        run: |
+          set -euxo pipefail
+          root="$PWD/build/m5-rootfs"
+          mkdir -p "$root/bin" "$root/opt/hrt/lib" \
+                   "$root/lib64" "$root/lib/x86_64-linux-gnu" \
+                   "$root/tmp/hrt-home" "$root/tmp/hrt-runtime" \
+                   build/objects
+          chmod 700 "$root/tmp/hrt-runtime"
+
+          cc -O2 -fPIE -pie -Wl,--build-id=none \
+            runtime/m5/window_probe_main.c \
+            -o "$root/bin/hrt-m5-window-probe"
+          cc -c -O2 -fPIC -nostdlib -fno-stack-protector \
+            runtime/m5/window_preload.c \
+            -o build/objects/window_preload.o
+          ld -shared -nostdlib --build-id=none \
+            build/objects/window_preload.o \
+            -o "$root/opt/hrt/lib/libhrt_window_probe.so"
+
+          loader=$(readlink -f /lib64/ld-linux-x86-64.so.2)
+          libc=$(ldd "$root/bin/hrt-m5-window-probe" | \
+            awk '/libc\.so\.6/{print $3; exit}')
+          cp -L "$loader" "$root/lib64/ld-linux-x86-64.so.2"
+          cp -L "$libc" "$root/lib/x86_64-linux-gnu/libc.so.6"
+
+          for object in \
+            "$root/bin/hrt-m5-window-probe" \
+            "$root/opt/hrt/lib/libhrt_window_probe.so" \
+            "$root/lib64/ld-linux-x86-64.so.2" \
+            "$root/lib/x86_64-linux-gnu/libc.so.6"; do
+            python3 runtime/m2/generate_fs_patch_map.py "$object"
+          done
+          file "$root/bin/hrt-m5-window-probe" \
+               "$root/opt/hrt/lib/libhrt_window_probe.so"
+          readelf -lW "$root/bin/hrt-m5-window-probe" | \
+            grep -q 'Requesting program interpreter: /lib64/ld-linux-x86-64.so.2'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m5-window-probe-rootfs
+          path: build/m5-rootfs
+          if-no-files-found: error
+          retention-days: 2
+
+  verify-appkit-window:
+    needs: build-linux-window-probe
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-window-probe-rootfs
+          path: build/m5-rootfs
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+      - name: Compile x86-64 runtime with AppKit on the Mach-O main thread
+        run: |
+          set -euxo pipefail
+          mkdir -p build/objects build/host
+          c_sources=(
+            runtime/m5/main.c
+            runtime/m2/common.c
+            runtime/m2/patch.c
+            runtime/m2/elf_map.c
+            runtime/m5/stack.c
+            runtime/m2/syscall_common.c
+            runtime/m2/syscall_memory.c
+            runtime/m2/syscall_misc.c
+            runtime/m2/syscall_dispatch.c
+            runtime/m2/syscall_bridge.c
+          )
+          index=0
+          for source in "${c_sources[@]}"; do
+            clang -arch x86_64 -std=c17 -O1 -g \
+              -fno-stack-protector -fno-omit-frame-pointer \
+              -Wall -Wextra -c "$source" \
+              -o "build/objects/c-$index.o"
+            index=$((index + 1))
+          done
+          clang -arch x86_64 -c runtime/m2/enter_guest.S \
+            -o build/objects/enter_guest.o
+          clang++ -arch x86_64 -std=c++17 -O1 -g \
+            -fobjc-arc -fno-exceptions -fno-rtti \
+            -fno-stack-protector -Wall -Wextra \
+            -c runtime/m5/host_ui.mm \
+            -o build/objects/host_ui.o
+          clang++ -arch x86_64 build/objects/*.o \
+            -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework Foundation \
+            -o build/host/hrt-m5
+          file build/host/hrt-m5
+          lipo -info build/host/hrt-m5
+          codesign --force --sign - --timestamp=none build/host/hrt-m5
+          codesign --verify --strict build/host/hrt-m5
+      - name: Prove Linux guest to visible native AppKit window transport
+        env:
+          HRT_HOST_WINDOW_MARKER_PATH: ${{ github.workspace }}/build/m5-window.json
+          HRT_HOST_SCREENSHOT_PATH: ${{ github.workspace }}/build/m5-window.png
+        run: |
+          set -euxo pipefail
+          /usr/bin/arch -x86_64 build/host/hrt-m5 \
+            --root "$PWD/build/m5-rootfs" \
+            --program /bin/hrt-m5-window-probe \
+            >build/stdout.txt 2>build/stderr.txt
+          status=$?
+          printf '%s\n' "$status" > build/exit-status.txt
+          cat build/stderr.txt
+          cat build/stdout.txt
+          grep -Fx 'HRT M5: guest preload requested AppKit window' \
+            build/stderr.txt
+          grep -Fx 'HRT M5: guest observed visible AppKit window' \
+            build/stdout.txt
+          grep -E 'hrt-m5: AppKit window visible request=[1-9][0-9]* '
+            build/stderr.txt
+          test -s build/m5-window.json
+          test -s build/m5-window.png
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          marker=json.loads(Path('build/m5-window.json').read_text())
+          assert marker['visible'] is True, marker
+          assert marker['windowNumber'] > 0, marker
+          assert marker['title'].startswith('한컴오피스 2022 Beta'), marker
+          assert Path('build/m5-window.png').stat().st_size > 1000
+          print(json.dumps(marker, ensure_ascii=False, indent=2))
+          PY
+          file build/m5-window.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m5-appkit-window-proof
+          path: |
+            build/host/hrt-m5
+            build/stdout.txt
+            build/stderr.txt
+            build/exit-status.txt
+            build/m5-window.json
+            build/m5-window.png
+          if-no-files-found: warn
+          retention-days: 2
