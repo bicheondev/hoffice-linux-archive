@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: hrt-m3-hword-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
@@ -94,10 +94,8 @@ jobs:
             dpkg-deb --field "$ssl_deb" Package Version Architecture
             sha256sum "$ssl_deb"
           } | tee build/report/legacy-openssl-lock.txt
-          test -f work/full-root/usr/lib/x86_64-linux-gnu/libssl.so.1.1
-          test -f work/full-root/usr/lib/x86_64-linux-gnu/libcrypto.so.1.1
 
-      - name: Collect recursive HWord ELF dependency sysroot
+      - name: Collect and prepatch the recursive HWord ELF sysroot
         run: |
           set -euxo pipefail
           python3 runtime/m3/collect_rootfs.py \
@@ -106,17 +104,26 @@ jobs:
             --output-root build/hword-rootfs \
             --manifest build/report/hword-rootfs-manifest.json
           test -x "build/hword-rootfs$HWORD_GUEST"
+          python3 runtime/m3/prepatch_elf.py build/hword-rootfs \
+            | tee build/report/hword-prepatch.txt
+          test -s build/hword-rootfs/.hrt-prepatched-v1
           python3 - <<'PY'
           import json
           from pathlib import Path
           manifest=json.loads(Path('build/report/hword-rootfs-manifest.json').read_text())
+          patches=json.loads(Path('build/hword-rootfs/.hrt-prepatched-v1').read_text())
           assert manifest['interpreter']
           assert manifest['unresolved'] == []
-          assert manifest['object_count'] >= 5
+          assert manifest['object_count'] >= 90
+          assert patches['object_count'] >= manifest['object_count']
+          assert patches['syscall_count'] > 50
+          assert patches['fs_to_gs_count'] > 60
           print(json.dumps({
               'object_count':manifest['object_count'],
               'total_size':manifest['total_size'],
               'interpreter':manifest['interpreter'],
+              'syscall_count':patches['syscall_count'],
+              'fs_to_gs_count':patches['fs_to_gs_count'],
           }, indent=2))
           PY
           tar --sort=name --mtime='UTC 2026-01-01' \
@@ -148,40 +155,46 @@ jobs:
           name: hrt-m3-hword-sysroot
           path: build/input
 
-      - name: Ensure Rosetta and unpack the case-safe minimal sysroot
+      - name: Ensure Rosetta and unpack the verified shadow root
         run: |
           set -euxo pipefail
           if ! /usr/bin/arch -x86_64 /usr/bin/true; then
             sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
           fi
-          mkdir -p build/hword-rootfs build/host build/proof
+          mkdir -p build/hword-rootfs build/host build/proof build/generated
           zstd -dc build/input/hword-rootfs.tar.zst \
             | tar -xf - -C build/hword-rootfs
           test -x "build/hword-rootfs$HWORD_GUEST"
+          test -s build/hword-rootfs/.hrt-prepatched-v1
           /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
             | tee build/proof/x86-page-size.txt
 
-      - name: Generate the FS-safe M3 syscall bridge
+      - name: Generate the proven M3 bridge with an HWord entry gate
         run: |
           set -euxo pipefail
-          python3 runtime/m2/build_syscall_bridge_v3.py \
-            runtime/m2/syscall_bridge.c build/syscall_bridge_m2_v3.c
-          python3 runtime/m3/add_entry_probe.py \
-            build/syscall_bridge_m2_v3.c build/syscall_bridge_m3.c
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c \
+            build/generated/syscall_bridge_augmented.c
+          python3 runtime/m3/add_entry_probe_m3.py \
+            build/generated/syscall_bridge_augmented.c \
+            build/generated/syscall_bridge_hword.c
           grep -F 'HRT M3: real HOffice ELF reached its original process entry point' \
-            build/syscall_bridge_m3.c
+            build/generated/syscall_bridge_hword.c
+          grep -q 'case LINUX_SYS_WRITEV' \
+            build/generated/syscall_bridge_hword.c
 
-      - name: Compile and sign the clean-room M3 host
+      - name: Compile and sign the coherent M3 HWord host
         run: |
           set -euxo pipefail
           clang -arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
             -Wall -Wextra -Werror -Wpedantic \
-            -fno-stack-protector -mfsgsbase -I. \
-            -include runtime/m2/mmap_shim.h \
-            runtime/m3/main.c runtime/m3/probe.c \
-            runtime/m2/common.c runtime/m2/elf_map.c runtime/m2/stack.c \
-            build/syscall_bridge_m3.c runtime/m2/mmap_shim.c \
-            runtime/m2/fs_trampoline.S runtime/m2/enter_guest.S \
+            -Iruntime/m3 -Iruntime/m1 \
+            runtime/m3/hword_main.c runtime/m1/common.c \
+            runtime/m3/elf_map.c runtime/m3/stack.c runtime/m3/patch.c \
+            runtime/m3/hword_probe.c \
+            build/generated/syscall_bridge_hword.c \
+            runtime/m1/enter_guest.S \
             -Wl,-pagezero_size,0x1000 -o build/host/hrt-m3-hword
           file build/host/hrt-m3-hword | tee build/proof/host-file.txt
           lipo -info build/host/hrt-m3-hword | tee build/proof/host-arch.txt
@@ -198,7 +211,7 @@ jobs:
           root=pathlib.Path.cwd()
           command=[
               '/usr/bin/arch','-x86_64',str(root/'build/host/hrt-m3-hword'),
-              '--rootfs',str(root/'build/hword-rootfs'),
+              '--root',str(root/'build/hword-rootfs'),
               '--program','/opt/hnc/hoffice11/Bin/hword',
           ]
           try:
@@ -207,8 +220,11 @@ jobs:
                   completed=subprocess.run(command,stdout=stdout,stderr=stderr,
                                            timeout=45,check=False)
               status=completed.returncode
-          except subprocess.TimeoutExpired:
+          except subprocess.TimeoutExpired as error:
               status=124
+              (root/'build/proof/stdout.txt').write_bytes(error.stdout or b'')
+              (root/'build/proof/stderr.txt').write_bytes(
+                  (error.stderr or b'') + b'\nHWord M3 timeout\n')
           (root/'build/proof/exit-status.txt').write_text(f'{status}\n')
           PY
           status=$(cat build/proof/exit-status.txt)
@@ -222,6 +238,8 @@ jobs:
           grep -Fx 'HRT M3: real HOffice ELF reached its original process entry point' \
             build/proof/stdout.txt
           grep -E 'hrt-m3: program=/opt/hnc/hoffice11/Bin/hword .*entry-probe=0x[1-9a-f][0-9a-f]*' \
+            build/proof/stderr.txt
+          grep -Fx 'hrt-m3: verified instruction-boundary HWord rootfs enabled' \
             build/proof/stderr.txt
 
       - name: Commit durable M3 proof
@@ -257,6 +275,7 @@ jobs:
           name: hrt-m3-hword-macos-proof
           path: |
             build/host/hrt-m3-hword
+            build/generated/syscall_bridge_hword.c
             build/input/report
             build/proof
           if-no-files-found: warn
