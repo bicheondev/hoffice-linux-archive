@@ -83,6 +83,7 @@ jobs:
           clang -arch x86_64 -std=c17 -O2 -g \
             -fno-stack-protector -fno-omit-frame-pointer \
             -Wall -Wextra -Werror -Wpedantic \
+            -Iruntime/m3 -Iruntime/m1 \
             runtime/m3/main.c runtime/m1/common.c runtime/m3/elf_map.c \
             runtime/m3/stack.c runtime/m3/patch.c \
             build/m3/generated/syscall_bridge.c runtime/m1/enter_guest.S \
