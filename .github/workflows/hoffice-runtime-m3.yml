@@ -74,13 +74,18 @@ jobs:
       - name: Compile the clean-room M3 Mach-O host
         run: |
           set -euxo pipefail
-          mkdir -p build/m3/host
+          mkdir -p build/m3/host build/m3/generated
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c \
+            build/m3/generated/syscall_bridge.c
+          grep -q 'case LINUX_SYS_WRITEV' \
+            build/m3/generated/syscall_bridge.c
           clang -arch x86_64 -std=c17 -O2 -g \
             -fno-stack-protector -fno-omit-frame-pointer \
             -Wall -Wextra -Werror -Wpedantic \
             runtime/m3/main.c runtime/m1/common.c runtime/m3/elf_map.c \
             runtime/m3/stack.c runtime/m3/patch.c \
-            runtime/m3/syscall_bridge.c runtime/m1/enter_guest.S \
+            build/m3/generated/syscall_bridge.c runtime/m1/enter_guest.S \
             -Wl,-pagezero_size,0x1000 -o build/m3/host/hrt-m3
           file build/m3/host/hrt-m3
           lipo -info build/m3/host/hrt-m3
@@ -113,6 +118,7 @@ jobs:
           name: hrt-m3-glibc-macos-proof
           path: |
             build/m3/host/hrt-m3
+            build/m3/generated/syscall_bridge.c
             build/m3/rootfs
             build/m3/ldd.txt
             build/m3/stdout.txt
