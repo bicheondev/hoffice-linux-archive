@@ -7,6 +7,16 @@ QT += core-private gui-private eventdispatcher_support-private fontdatabase_supp
 DEFINES += QT_NO_FOREACH
 INCLUDEPATH += $$QTOFFSCREEN_DIR
 
+# The archived Debian Buster runtime packages expose the versioned libraries
+# used by Qt's private font database module but omit the unversioned linker
+# aliases unless the separate development packages are installed.  Keep the
+# ABI locked to the exact runtime SONAMEs and provide only local build aliases.
+HRT_COMPAT_LIBDIR = $$OUT_PWD/compat-libs
+system(mkdir -p $$HRT_COMPAT_LIBDIR)
+system(ln -sf /usr/lib/x86_64-linux-gnu/libfontconfig.so.1 $$HRT_COMPAT_LIBDIR/libfontconfig.so)
+system(ln -sf /usr/lib/x86_64-linux-gnu/libfreetype.so.6 $$HRT_COMPAT_LIBDIR/libfreetype.so)
+QMAKE_LIBDIR += $$HRT_COMPAT_LIBDIR
+
 SOURCES += $$PWD/main.cpp
 SOURCES += $$PWD/qhrtappkitintegration.cpp
 SOURCES += $$PWD/qhrtappkitwindow.cpp
