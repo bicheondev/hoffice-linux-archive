@@ -55,9 +55,10 @@ jobs:
           clang -arch x86_64 -std=c17 -O2 -g -Wall -Wextra -Werror -Wpedantic \
             runtime/m0/main.c runtime/m0/common.c runtime/m0/elf_map.c \
             runtime/m0/stack.c runtime/m0/syscall_bridge.c runtime/m0/enter_guest.S \
-            -o build/host/hrt-m0
+            -Wl,-pagezero_size,0x1000 -o build/host/hrt-m0
           file build/host/hrt-m0
           lipo -info build/host/hrt-m0
+          otool -l build/host/hrt-m0 | awk '/segname __PAGEZERO/{show=1} show&&/vmsize/{print; exit}'
           codesign --force --sign - --timestamp=none build/host/hrt-m0
           codesign --verify --strict build/host/hrt-m0
       - name: Execute raw Linux ELF and verify syscall translation
