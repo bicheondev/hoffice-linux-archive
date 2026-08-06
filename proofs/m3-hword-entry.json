@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "milestone": "M3",
+  "status": "PASS",
+  "commit": "c71fe65b3a9238cfd9a0a26577ec150388ed6997",
+  "workflow_run": "31102898832",
+  "package_sha256": "23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "proof": "HRT M3: real HOffice ELF reached its original process entry point"
+}
