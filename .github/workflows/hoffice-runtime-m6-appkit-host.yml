@@ -1,0 +1,107 @@
+name: HOffice runtime M6 AppKit host capability
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m6/appkit_window_probe.m'
+      - '.github/workflows/hoffice-runtime-m6-appkit-host.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hrt-m6-appkit-host-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prove-window-server-host:
+    runs-on: macos-14
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure the x86_64 host slice can run
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+          mkdir -p build/m6/host build/m6/proof
+          sw_vers | tee build/m6/proof/sw-vers.txt
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/m6/proof/x86-page-size.txt
+
+      - name: Compile and sign the clean-room AppKit probe
+        run: |
+          set -euxo pipefail
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic \
+            runtime/m6/appkit_window_probe.m \
+            -framework AppKit -framework CoreGraphics -framework ImageIO \
+            -o build/m6/host/hrt-m6-appkit-window
+          file build/m6/host/hrt-m6-appkit-window \
+            | tee build/m6/proof/host-file.txt
+          lipo -info build/m6/host/hrt-m6-appkit-window \
+            | tee build/m6/proof/host-arch.txt
+          codesign --force --sign - --timestamp=none \
+            build/m6/host/hrt-m6-appkit-window
+          codesign --verify --strict build/m6/host/hrt-m6-appkit-window
+
+      - name: Create and enumerate a real AppKit window under Rosetta
+        run: |
+          set -euxo pipefail
+          /usr/bin/arch -x86_64 build/m6/host/hrt-m6-appkit-window \
+            build/m6/proof/window.png \
+            >build/m6/proof/stdout.txt 2>build/m6/proof/stderr.txt
+          cat build/m6/proof/stderr.txt
+          cat build/m6/proof/stdout.txt
+          grep -Fx \
+            'HRT M6 HOST: x86_64 AppKit NSWindow is visible in WindowServer' \
+            build/m6/proof/stdout.txt
+          grep -E 'window-number=[1-9][0-9]* .*visible=1 .*window-server-listed=1' \
+            build/m6/proof/stdout.txt
+          test -s build/m6/proof/window.png || true
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          stdout = Path('build/m6/proof/stdout.txt').read_text()
+          match = re.search(
+              r'pid=(\d+) window-number=(\d+) visible=(\d+) key=(\d+) '
+              r'main=(\d+) window-server-listed=(\d+) screenshot=(\d+) '
+              r'screen=(\d+)', stdout)
+          assert match, stdout
+          values = [int(value) for value in match.groups()]
+          summary = {
+              'pid': values[0],
+              'window_number': values[1],
+              'visible': bool(values[2]),
+              'key_window': bool(values[3]),
+              'main_window': bool(values[4]),
+              'window_server_listed': bool(values[5]),
+              'screenshot_created': bool(values[6]),
+              'screen_available': bool(values[7]),
+              'execution_architecture': 'x86_64 under Rosetta',
+              'integrated_with_linux_guest': False,
+          }
+          assert summary['window_number'] > 0
+          assert summary['visible']
+          assert summary['window_server_listed']
+          Path('build/m6/proof/summary.json').write_text(
+              json.dumps(summary, indent=2) + '\n')
+          print(json.dumps(summary, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m6-appkit-host-proof
+          path: |
+            build/m6/host/hrt-m6-appkit-window
+            build/m6/proof
+          if-no-files-found: error
+          retention-days: 14
