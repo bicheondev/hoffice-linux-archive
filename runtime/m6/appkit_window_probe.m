@@ -79,7 +79,6 @@ int main(int argc, const char *argv[]) {
 
     @autoreleasepool {
         const pid_t pid = getpid();
-        NSString *title = @"HRT M6 AppKit Host Probe";
 
         NSApplication *application = [NSApplication sharedApplication];
         if (application == nil) {
@@ -111,7 +110,7 @@ int main(int argc, const char *argv[]) {
             return 2;
         }
 
-        window.title = title;
+        window.title = @"HRT M6 AppKit Host Probe";
         window.releasedWhenClosed = NO;
         window.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces |
                                     NSWindowCollectionBehaviorFullScreenAuxiliary;
@@ -140,7 +139,8 @@ int main(int argc, const char *argv[]) {
         const BOOL main = window.mainWindow;
         const CGWindowID window_id = number > 0 ? (CGWindowID)number : 0;
         const BOOL listed = window_id != 0 &&
-            window_server_contains(window_id, pid, title);
+            window_server_contains(window_id, pid,
+                                   @"HRT M6 AppKit Host Probe");
         const BOOL captured = window_id != 0 && capture_window(window_id, argv[1]);
 
         printf("hrt-m6-host: pid=%d window-number=%ld visible=%d key=%d main=%d "
