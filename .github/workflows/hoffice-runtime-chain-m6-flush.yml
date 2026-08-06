@@ -1,0 +1,26 @@
+name: HOffice chain M6 offscreen backing store flush
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'proofs/chain/m6-paint-device.json'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/hoffice-runtime-guest-symbol-probe-chain.yml
+    with:
+      predecessor_proof: proofs/chain/m6-paint-device.json
+      symbol_regex: 'QOffscreenBackingStore.*flush'
+      label: Qt offscreen backing store flush
+      milestone: M6-chain-offscreen-backing-store-flush
+      diagnostic_path: diagnostics/chain/m6-flush.json
+      proof_path: proofs/chain/m6-flush.json
+      trace_limit: 112000
+      run_seconds: 60
+      require_pipe2: true
