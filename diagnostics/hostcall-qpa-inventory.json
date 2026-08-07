@@ -1,16 +1,16 @@
 {
   "schema": 1,
-  "commit": "a316b7b50de6036b3164a6f8d9762b2a8efb8908",
-  "workflow_run": "31121782982",
-  "file_count": 102,
+  "commit": "35add633a92a2fb5234fdcceba7e3c40a4e74ed8",
+  "workflow_run": "31147007374",
+  "file_count": 109,
   "match_counts": {
-    "opcode_256": 456,
-    "create_operation": 39,
-    "host_call": 342,
-    "custom_qpa": 452,
-    "appkit": 115,
-    "rendering": 185,
-    "input_ime": 1290
+    "opcode_256": 504,
+    "create_operation": 41,
+    "host_call": 352,
+    "custom_qpa": 475,
+    "appkit": 116,
+    "rendering": 217,
+    "input_ime": 1408
   },
   "files": [
     {
@@ -127,8 +127,8 @@
     },
     {
       "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
-      "sha256": "769b93e0412a0f496b1bfbf2773154924c4099f48ac7e6463e2732fd433864f0",
-      "size": 1282,
+      "sha256": "29478a6cbb4e6bc14868d146f2e3cc075f5d2a2ed890338ee1bee99ffc74ee81",
+      "size": 1416,
       "groups": [
         "custom_qpa",
         "opcode_256"
@@ -243,6 +243,28 @@
       ]
     },
     {
+      "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+      "sha256": "7c9cb6186f9a8bb615a7a80cd20e16ddccaa14bd2d663c69d4a0ad7914a39e8e",
+      "size": 5212,
+      "groups": [
+        "custom_qpa",
+        "host_call",
+        "input_ime",
+        "opcode_256",
+        "rendering"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+      "sha256": "f35d8aebe854eefa05f13004bfbdfb928178b34f5c00ab80f78b1c23ea50641f",
+      "size": 4668,
+      "groups": [
+        "host_call",
+        "input_ime",
+        "opcode_256"
+      ]
+    },
+    {
       "path": ".github/workflows/hoffice-runtime-chain-m5-integration-constructor.yml",
       "sha256": "ba460cc2f3220afee38e16893e7258f3465b1b87f549f2d0ff7d411fd33ca239",
       "size": 783,
@@ -326,6 +348,17 @@
       "groups": [
         "host_call",
         "input_ime"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+      "sha256": "ae631ed21a82b41a5feb36633db731b23a3a6323ce0528e5b178ef195e2ea3e0",
+      "size": 20890,
+      "groups": [
+        "custom_qpa",
+        "host_call",
+        "input_ime",
+        "opcode_256"
       ]
     },
     {
@@ -727,6 +760,17 @@
       ]
     },
     {
+      "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+      "sha256": "df825951b79e9f2b4e3adb98c22c80fcc61aed72865439718abd2bbb3520a52f",
+      "size": 6202,
+      "groups": [
+        "create_operation",
+        "host_call",
+        "input_ime",
+        "rendering"
+      ]
+    },
+    {
       "path": ".github/workflows/hoffice-runtime-m5-qoffscreen-symbol-inventory.yml",
       "sha256": "c27f5c76b1ca01f2dbe7c40beca6af667942d250d7971ce347a27291daca7bd6",
       "size": 7523,
@@ -908,15 +952,16 @@
     },
     {
       "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-      "sha256": "b577b4ed387579bd0efa54a7fc6fc108dd04c982aa5c5d86b382bf9a2cacc961",
-      "size": 16687,
+      "sha256": "d31ae2900884d7cd5848b0affeb0637c80903583a355ab2d9a69519c6db91d48",
+      "size": 17874,
       "groups": [
         "appkit",
         "create_operation",
         "custom_qpa",
         "host_call",
         "input_ime",
-        "opcode_256"
+        "opcode_256",
+        "rendering"
       ]
     },
     {
@@ -1018,6 +1063,17 @@
       ]
     },
     {
+      "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+      "sha256": "e046927d04e24889db7f0e336e164f4ecfaaee3e61d2a5ffa6cd2b9c998b06d6",
+      "size": 6114,
+      "groups": [
+        "custom_qpa",
+        "host_call",
+        "input_ime",
+        "opcode_256"
+      ]
+    },
+    {
       "path": ".github/workflows/hoffice-runtime-m7-hostcall-inventory.yml",
       "sha256": "ce1b68967671fb4ae76b31deba079370adf4bf5819b8c106d46d6bae66746592",
       "size": 5813,
@@ -1049,6 +1105,31 @@
       "size": 13852,
       "groups": [
         "create_operation",
+        "host_call",
+        "input_ime",
+        "opcode_256",
+        "rendering"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+      "sha256": "327bc956825bea76ec85dd97704c8f5735a4a2cb9375c1a153fde80bdd355dfa",
+      "size": 11749,
+      "groups": [
+        "custom_qpa",
+        "host_call",
+        "input_ime",
+        "rendering"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+      "sha256": "9a766d97b1a96388110d394013f128d5b4c9bb6cb9ab2474cd10f49d6471c7c3",
+      "size": 8272,
+      "groups": [
+        "appkit",
+        "create_operation",
+        "custom_qpa",
         "host_call",
         "input_ime",
         "opcode_256",
@@ -1132,7 +1213,7 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 21,
-        "text": "\"xz_sha256\": \"8bf51803d3df6364d1030db12bdc5f546a324657d7382d326fd7f050e83b3eeb\","
+        "text": "\"xz_sha256\": \"296fdcb497c7a7d7a3a270f79794968558543cdb8ddd57aadf0284cd586bd140\","
       },
       {
         "path": "runtime/m6/qpa/build_hrtappkit_root.sh",
@@ -1258,6 +1339,131 @@
         "path": ".github/workflows/hoffice-runtime-augmentors-static.yml",
         "line": 269,
         "text": "hashes[filename]=hashlib.sha256(path.read_bytes()).hexdigest()"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 91,
+        "text": "\"          assert hashlib.sha256(compressed).hexdigest() == \\\\\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 92,
+        "text": "\"              lock['plugin']['xz_sha256'], lock\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 94,
+        "text": "\"          assert hashlib.sha256(plugin).hexdigest() == \\\\\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 95,
+        "text": "\"              lock['plugin']['sha256_after_prepatch'], lock\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 20,
+        "text": "ARCHIVE_SHA256: da302bdb94542231b80b7cb2f99b0374a05a5581755ad111e6e4e76c9c0ac16e"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 42,
+        "text": "printf '%s  %s\\n' \"$ARCHIVE_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 43,
+        "text": "build/bootstrap/payload.tar.gz | sha256sum --check -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 60,
+        "text": "| sha256sum --check -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 71,
+        "text": "PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 123,
+        "text": "expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 124,
+        "text": "actual=$(shasum -a 256 build/input/hword-rootfs.tar.gz | awk '{print $1}')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 126,
+        "text": "printf '%s\\n' \"$actual\" > build/proof/rootfs-archive.sha256"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 148,
+        "text": "python3 - \"$root\" \"$PROGRAM\" \"$PROGRAM_SHA256\" \"$PLUGIN\" <<'PY'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 162,
+        "text": "assert program_record['sha256_before'] == expected_program"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 163,
+        "text": "assert hashlib.sha256("
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 165,
+        "text": "program_record['sha256_after']"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 166,
+        "text": "assert hashlib.sha256("
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 168,
+        "text": "plugin_record['sha256_after']"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 219,
+        "text": "assert probe['sha256_before'] == lock['plugin']['sha256_after']"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 222,
+        "text": "assert probe['sha256_before'] != probe['sha256_after']"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 262,
+        "text": "anchor = '#define M3_TRACE_LIMIT 256u'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 281,
+        "text": "shasum -a 256 build/generated/syscall_bridge.c \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 282,
+        "text": "> build/proof/generated-bridge.sha256"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 395,
+        "text": "'program_sha256_before_prepatch': os.environ['PROGRAM_SHA256'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 397,
+        "text": "'plugin_sha256_before_probe': probe['sha256_before'],"
       },
       {
         "path": ".github/workflows/hoffice-runtime-guest-symbol-probe-v2.yml",
@@ -2901,87 +3107,107 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 20,
+        "line": 21,
         "text": "ROOTFS_ARTIFACT_SHA256: 3e301d3c6269926c62804bff18671136fcf8c0b0b22b3952072e427a8fa9918a"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 21,
+        "line": 22,
         "text": "ROOTFS_ARCHIVE_SHA256: 322fcf228092b296a34edbfa7ee43f9a7b237d5bcedaee50109ac4bb44d9ca28"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 23,
+        "line": 24,
         "text": "PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 61,
+        "line": 69,
         "text": "printf '%s  %s\\n' \"$ROOTFS_ARTIFACT_SHA256\" \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 62,
+        "line": 70,
         "text": "/tmp/hrt-m6-build/input/hword-artifact.zip | shasum -a 256 -c -"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 66,
+        "line": 74,
         "text": "printf '%s  %s\\n' \"$ROOTFS_ARCHIVE_SHA256\" \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 68,
+        "line": 76,
         "text": "| shasum -a 256 -c -"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 96,
-        "text": "python3 - \"$root\" \"$PROGRAM\" \"$PROGRAM_SHA256\" \\"
+        "line": 114,
+        "text": "assert hashlib.sha256(compressed).hexdigest() == \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 109,
-        "text": "assert record['sha256_before'] == original_sha, record"
+        "line": 115,
+        "text": "lock['plugin']['xz_sha256'], lock"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 110,
-        "text": "actual_program = hashlib.sha256("
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 112,
-        "text": "assert actual_program == record['sha256_after'], (actual_program, record)"
+        "line": 117,
+        "text": "assert hashlib.sha256(plugin).hexdigest() == \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
         "line": 118,
+        "text": "lock['plugin']['sha256_after_prepatch'], lock"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
+        "line": 122,
+        "text": "python3 - \"$root\" \"$PROGRAM\" \"$PROGRAM_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
+        "line": 135,
+        "text": "assert record['sha256_before'] == original_sha, record"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
+        "line": 136,
+        "text": "actual_program = hashlib.sha256("
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
+        "line": 138,
+        "text": "assert actual_program == record['sha256_after'], (actual_program, record)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
+        "line": 144,
         "text": "actual_plugin = hashlib.sha256(plugin.read_bytes()).hexdigest()"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 119,
-        "text": "assert actual_plugin == lock['sha256_after_prepatch'], (actual_plugin, lock)"
+        "line": 145,
+        "text": "assert actual_plugin == lock['plugin']['sha256_after_prepatch'], (actual_plugin, lock)"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 181,
+        "line": 207,
         "text": "old = '#define M3_TRACE_LIMIT 256u'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 290,
+        "line": 316,
         "text": "grep -E 'hrt-m6: host-call opcode=256 result=[1-9][0-9]*' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 310,
+        "line": 336,
         "text": "creates = [item for item in calls if item['opcode'] == 256 and item['result'] > 0]"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 321,
+        "line": 347,
         "text": "'program_sha256_before_prepatch': '55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb',"
       },
       {
@@ -3295,6 +3521,61 @@
         "text": "'sha256_after_prepatch': record['sha256_after'],"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 52,
+        "text": "print(lock['artifact']['zip_sha256'])"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 54,
+        "text": "print(lock['plugin']['sha256_after_prepatch'])"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 69,
+        "text": "/tmp/hrt-republish-build/artifact.zip | sha256sum --check -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 74,
+        "text": "printf '%s  %s\\n' \"$plugin_sha\" \"$plugin\" | sha256sum --check -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 107,
+        "text": "compressed_sha = hashlib.sha256(compressed).hexdigest()"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 108,
+        "text": "plugin_sha = hashlib.sha256(plugin).hexdigest()"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 109,
+        "text": "assert plugin_sha == lock['plugin']['sha256_after_prepatch'], {"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 111,
+        "text": "'expected': lock['plugin']['sha256_after_prepatch'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 113,
+        "text": "lock['plugin']['xz_sha256'] = compressed_sha"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 124,
+        "text": "'xz_sha256': compressed_sha,"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 126,
+        "text": "'plugin_sha256': plugin_sha,"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m7-hostcall-inventory.yml",
         "line": 46,
         "text": "'opcode_256':re.compile(r'(?<![0-9])256(?![0-9])|0x100\\b'),"
@@ -3333,6 +3614,46 @@
         "path": ".github/workflows/hoffice-runtime-progress-snapshot.yml",
         "line": 305,
         "text": "f\"- Plugin SHA-256: `{inventory_summary['plugin_sha256']}`\","
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 45,
+        "text": "expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 46,
+        "text": "actual=$(sha256sum build/input/hword-rootfs.tar.gz | awk '{print $1}')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 62,
+        "text": "actual = hashlib.sha256("
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 64,
+        "text": "assert actual == record['sha256_after'], (actual, record)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 127,
+        "text": "assert manifest['sha256_before'] == lock['sha256_after']"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 140,
+        "text": "'plugin_sha256_before_prepatch': lock['sha256_before'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 141,
+        "text": "'plugin_sha256_after_prepatch': lock['sha256_after'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 169,
+        "text": "f\"Exact prepatched plugin SHA-256: `{lock['sha256_after']}`\","
       },
       {
         "path": ".github/workflows/hoffice-runtime-qt-abi-lock.yml",
@@ -3442,6 +3763,11 @@
         "text": "label: Qt offscreen createPlatformWindow"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 82,
+        "text": "label: Qt offscreen createPlatformWindow"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m5-qoffscreen-symbol-inventory.yml",
         "line": 122,
         "text": "if 'createPlatformWindow' in r['demangled']],"
@@ -3498,7 +3824,7 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 289,
+        "line": 315,
         "text": "grep -F 'HRT M6 QPA: QPlatformWindow constructed' \"$stderr\""
       },
       {
@@ -3545,6 +3871,11 @@
         "path": ".github/workflows/hoffice-runtime-progress-snapshot.yml",
         "line": 142,
         "text": "'title': 'createPlatformWindow',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 156,
+        "text": "'QPlatformWindow construction',"
       }
     ],
     "host_call": [
@@ -4074,6 +4405,16 @@
         "text": "workflow_dispatch:"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 8,
+        "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 9,
+        "text": "workflow_dispatch:"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-chain-m5-integration-constructor.yml",
         "line": 8,
         "text": "workflow_dispatch:"
@@ -4117,6 +4458,11 @@
         "path": ".github/workflows/hoffice-runtime-chain-m6-window-constructor.yml",
         "line": 8,
         "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 356,
+        "text": "grep -E 'Call graph:|Thread_.*DispatchQueue|libqoffscreen|Qt5|GLib|poll|ppoll|kevent|QEventLoop|QPlatform' \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-guest-symbol-probe-v2.yml",
@@ -4356,6 +4702,11 @@
       {
         "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-probe-matrix.yml",
         "line": 11,
+        "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 12,
         "text": "workflow_dispatch:"
       },
       {
@@ -4900,77 +5251,77 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 8,
+        "line": 9,
         "text": "workflow_dispatch:"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 171,
+        "line": 197,
         "text": "python3 runtime/m6/augment_appkit_hostcall_deferred.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 187,
+        "line": 213,
         "text": "grep -q 'case HRT_M6_HOSTCALL_SYSCALL' \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 189,
+        "line": 215,
         "text": "grep -q 'schedule_m6_appkit_hostcall' \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 204,
+        "line": 230,
         "text": "runtime/m6/main.c runtime/m6/hostcall_trampoline.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 218,
+        "line": 244,
         "text": "clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 219,
+        "line": 245,
         "text": "-o /tmp/hrt-m6-build/objects/hostcall-trampoline.o"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 247,
+        "line": 273,
         "text": "if grep -q 'hrt-m6: host-call opcode=259 result=1' \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 273,
+        "line": 299,
         "text": "grep -E 'libqhrtappkit|HRT M6 QPA|host-call opcode=25[6-9]|fatal signal|Qt platform plugin|Linux syscall ENOSYS|directory stream' \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 290,
+        "line": 316,
         "text": "grep -E 'hrt-m6: host-call opcode=256 result=[1-9][0-9]*' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 291,
+        "line": 317,
         "text": "grep -E 'hrt-m6: host-call opcode=258 result=1[0-9][0-9]' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 292,
+        "line": 318,
         "text": "grep -F 'hrt-m6: host-call opcode=259 result=1' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 306,
+        "line": 332,
         "text": "match = re.fullmatch(r'hrt-m6: host-call opcode=(\\d+) result=(-?\\d+)', line)"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 324,
+        "line": 350,
         "text": "'host_calls': calls,"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 329,
+        "line": 355,
         "text": "'HWord pixel transport', 'native input', 'Korean IME',"
       },
       {
@@ -5149,6 +5500,11 @@
         "text": "workflow_dispatch:"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 8,
+        "text": "workflow_dispatch:"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m7-hostcall-inventory.yml",
         "line": 1,
         "text": "name: HOffice runtime M7 custom QPA host-call inventory"
@@ -5251,6 +5607,31 @@
       {
         "path": ".github/workflows/hoffice-runtime-progress-snapshot.yml",
         "line": 8,
+        "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 8,
+        "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 52,
+        "text": "'hoffice-runtime-m7-hostcall-inventory.yml',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 179,
+        "text": "'hostcall':read_json("
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 180,
+        "text": "'diagnostics/hostcall-qpa-inventory.json'),"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 9,
         "text": "workflow_dispatch:"
       },
       {
@@ -5594,6 +5975,71 @@
         "path": ".github/workflows/hoffice-runtime-augmentors-static.yml",
         "line": 123,
         "text": "QPlatformWindow *createPlatformWindow(QWindow *window) {"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 1,
+        "text": "name: Bootstrap exact HWord prebuilt QPA replay v3"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 14,
+        "text": "group: hrt-bootstrap-prebuilt-qpa-v3-${{ github.ref }}"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 38,
+        "text": "path = Path('.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 45,
+        "text": "\"      - '.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml'\\n\","
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 80,
+        "text": "\"          python3 - \\\"$prebuilt\\\" \\\"$lock\\\" \\\"$root$PLUGIN_GUEST\\\" <<'PYQPA'\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 97,
+        "text": "\"          PYQPA\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 105,
+        "text": "git diff -- .github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 113,
+        "text": "git add .github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 115,
+        "text": "echo 'The prebuilt QPA replay is already repaired.'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 118,
+        "text": "git commit -m 'ci: replay exact HWord from the locked prebuilt QPA'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 72,
+        "text": "PLUGIN: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 408,
+        "text": "'loaded library \"/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so\"'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-guest-symbol-probe-v2.yml",
@@ -6627,102 +7073,117 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 15,
+        "line": 8,
+        "text": "- '.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
+        "line": 16,
         "text": "group: hrt-m6-hword-prebuilt-qpa-${{ github.ref }}"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 24,
+        "line": 25,
         "text": "PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 73,
+        "line": 81,
         "text": "image=\"$RUNNER_TEMP/hrt-m6-prebuilt-qpa.sparsebundle\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 121,
-        "text": "assert lock['qpa_key'] == 'hrtappkit'"
+        "line": 103,
+        "text": "python3 - \"$prebuilt\" \"$lock\" \"$root$PLUGIN_GUEST\" <<'PYQPA'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 122,
+        "line": 120,
+        "text": "PYQPA"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
+        "line": 147,
+        "text": "assert lock['plugin']['qpa_key'] == 'hrtappkit'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
+        "line": 148,
         "text": "pathlib.Path('/tmp/hrt-m6-build/proof/qpa-lock.json').write_text("
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 142,
+        "line": 168,
         "text": "grep -F 'QT_QPA_PLATFORM=hrtappkit' \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 223,
+        "line": 249,
         "text": "-o /tmp/hrt-m6-build/host/hrt-m6-hword-qpa"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 224,
+        "line": 250,
         "text": "file /tmp/hrt-m6-build/host/hrt-m6-hword-qpa \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 226,
+        "line": 252,
         "text": "lipo -info /tmp/hrt-m6-build/host/hrt-m6-hword-qpa \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 229,
+        "line": 255,
         "text": "/tmp/hrt-m6-build/host/hrt-m6-hword-qpa"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 231,
+        "line": 257,
         "text": "/tmp/hrt-m6-build/host/hrt-m6-hword-qpa"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 233,
+        "line": 259,
         "text": "- name: Run exact HWord until its QPA creates an AppKit window"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 240,
+        "line": 266,
         "text": "/usr/bin/arch -x86_64 /tmp/hrt-m6-build/host/hrt-m6-hword-qpa \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 273,
+        "line": 299,
         "text": "grep -E 'libqhrtappkit|HRT M6 QPA|host-call opcode=25[6-9]|fatal signal|Qt platform plugin|Linux syscall ENOSYS|directory stream' \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 285,
+        "line": 311,
         "text": "grep -F 'Found metadata in lib /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 287,
+        "line": 313,
         "text": "grep -F 'loaded library \"/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so\"' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 288,
+        "line": 314,
         "text": "grep -F 'HRT M6 QPA: integration constructed' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 289,
+        "line": 315,
         "text": "grep -F 'HRT M6 QPA: QPlatformWindow constructed' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 322,
+        "line": 348,
         "text": "'qpa_plugin': '/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so',"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 323,
+        "line": 349,
         "text": "'qpa_key': 'hrtappkit',"
       },
       {
@@ -7426,6 +7887,16 @@
         "text": "label: QPlatformIntegrationFactory create"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 1,
+        "text": "name: HOffice runtime M6 republish locked prebuilt QPA xz"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 146,
+        "text": "git commit -m 'runtime: republish the locked hrtappkit QPA as valid xz'"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m7-hostcall-inventory.yml",
         "line": 1,
         "text": "name: HOffice runtime M7 custom QPA host-call inventory"
@@ -7499,6 +7970,31 @@
         "path": ".github/workflows/hoffice-runtime-m7-hostcall-inventory.yml",
         "line": 143,
         "text": "diagnostics/hostcall-qpa-inventory.md"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 180,
+        "text": "'diagnostics/hostcall-qpa-inventory.json'),"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 21,
+        "text": "PLUGIN: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 50,
+        "text": "./opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 58,
+        "text": "plugin_path = '/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 156,
+        "text": "'QPlatformWindow construction',"
       },
       {
         "path": ".github/workflows/hoffice-runtime-qt-abi-lock.yml",
@@ -8014,17 +8510,17 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 192,
+        "line": 218,
         "text": "- name: Compile and sign the exact-HWord AppKit host"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 222,
+        "line": 248,
         "text": "-framework AppKit -framework CoreGraphics -framework ImageIO \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 233,
+        "line": 259,
         "text": "- name: Run exact HWord until its QPA creates an AppKit window"
       },
       {
@@ -8096,6 +8592,11 @@
         "path": ".github/workflows/hoffice-runtime-m7-hostcall-inventory.yml",
         "line": 53,
         "text": "'appkit':re.compile(r'NSWindow|NSView|AppKit|CALayer|CGContext'),"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 158,
+        "text": "'AppKit window creation',"
       }
     ],
     "rendering": [
@@ -8253,6 +8754,16 @@
         "path": ".github/workflows/hoffice-runtime-augmentors-static.yml",
         "line": 198,
         "text": "'flush|QOffscreenBackingStore.*flush'; do"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 58,
+        "text": "\"          test -s proofs/rtti-v3/m6-flush.json\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 62,
+        "text": "\"          proof = json.loads(Path('proofs/rtti-v3/m6-flush.json').read_text())\\n\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-chain-m6-backing-store-constructor.yml",
@@ -8585,6 +9096,96 @@
         "text": "proof: proofs/m6-hword-offscreen-flush-matrix.json"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 104,
+        "text": "- id: create-backing-store"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 112,
+        "text": "label: Qt offscreen createPlatformBackingStore"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 113,
+        "text": "milestone: M6-v3-offscreen-create-backing-store"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 114,
+        "text": "diagnostic: diagnostics/rtti-v3/m6-create-backing-store.json"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 115,
+        "text": "proof: proofs/rtti-v3/m6-create-backing-store.json"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 119,
+        "text": "- id: backing-store-constructor"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 127,
+        "text": "label: Qt offscreen backing store constructor"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 128,
+        "text": "milestone: M6-v3-offscreen-backing-store-constructor"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 129,
+        "text": "diagnostic: diagnostics/rtti-v3/m6-backing-store-constructor.json"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 130,
+        "text": "proof: proofs/rtti-v3/m6-backing-store-constructor.json"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 137,
+        "text": "class_name: QOffscreenBackingStore"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 142,
+        "text": "label: Qt offscreen backing store paintDevice"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 149,
+        "text": "- id: flush"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 152,
+        "text": "class_name: QOffscreenBackingStore"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 157,
+        "text": "label: Qt offscreen backing store flush"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 158,
+        "text": "milestone: M6-v3-offscreen-backing-store-flush"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 159,
+        "text": "diagnostic: diagnostics/rtti-v3/m6-flush.json"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 160,
+        "text": "proof: proofs/rtti-v3/m6-flush.json"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m5-qoffscreen-symbol-inventory.yml",
         "line": 125,
         "text": "'create_backing_store': [r for r in records"
@@ -8810,6 +9411,16 @@
         "text": "label: Qt offscreen backing store paintDevice"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
+        "line": 48,
+        "text": "test -s proofs/rtti-v3/m6-flush.json"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
+        "line": 52,
+        "text": "proof = json.loads(Path('proofs/rtti-v3/m6-flush.json').read_text())"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m6-qt-gui-probe-matrix-v3.yml",
         "line": 88,
         "text": "- id: qbackingstore-begin-paint"
@@ -9023,6 +9634,56 @@
         "path": ".github/workflows/hoffice-runtime-progress-snapshot.yml",
         "line": 196,
         "text": "'proofs/m6-hword-offscreen-flush.json',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 149,
+        "text": "'m6-window-constructor','m6-create-backing-store',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 150,
+        "text": "'m6-backing-store-constructor','m6-paint-device','m6-flush',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 163,
+        "text": "'qwindow-set-visible','qbackingstore-begin-paint',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 164,
+        "text": "'qbackingstore-end-paint','qbackingstore-flush',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 100,
+        "text": "resolve create-backing-store \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 103,
+        "text": "resolve backing-store-constructor \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 108,
+        "text": "--class-name QOffscreenBackingStore --vtable-slot 2 \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 110,
+        "text": "resolve flush \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 111,
+        "text": "--class-name QOffscreenBackingStore --vtable-slot 3 \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 157,
+        "text": "'backing-store paint or flush',"
       }
     ],
     "input_ime": [
@@ -9537,6 +10198,196 @@
         "text": "diagnostics/runtime-augmentors-static.json"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 20,
+        "text": "timeout-minutes: 10"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 38,
+        "text": "path = Path('.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 43,
+        "text": "\"      - 'runtime/m6/prebuilt/**'\\n\","
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 44,
+        "text": "\"      - 'runtime/m6/prebuilt/**'\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 45,
+        "text": "\"      - '.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml'\\n\","
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 52,
+        "text": "\"          test -s runtime/m6/prebuilt/libqhrtappkit.so\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 53,
+        "text": "\"          test -s runtime/m6/prebuilt/libqhrtappkit.lock.json\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 65,
+        "text": "\"          test -s runtime/m6/prebuilt/libqhrtappkit.so.xz\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 66,
+        "text": "\"          test -s runtime/m6/prebuilt/libqhrtappkit.lock.json\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 72,
+        "text": "\"          cp /tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.so \\\\\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 78,
+        "text": "\"          prebuilt=/tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.so.xz\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 79,
+        "text": "\"          lock=/tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.lock.json\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 105,
+        "text": "git diff -- .github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 113,
+        "text": "git add .github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 119,
+        "text": "git pull --rebase origin codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
+        "line": 120,
+        "text": "git push origin HEAD:codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 8,
+        "text": "- '.github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 19,
+        "text": "BRANCH: codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 25,
+        "text": "timeout-minutes: 10"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 55,
+        "text": "build/unpacked/hoffice-runtime-guest-rtti-probe-v3.yml \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 57,
+        "text": "build/unpacked/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 59,
+        "text": "build/unpacked/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 63,
+        "text": "runtime/m3/patch_elf_int3_qt_vtable.py"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 64,
+        "text": "install -m 0644 build/unpacked/hoffice-runtime-guest-rtti-probe-v3.yml \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 65,
+        "text": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 66,
+        "text": "install -m 0644 build/unpacked/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 67,
+        "text": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 68,
+        "text": "install -m 0644 build/unpacked/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 69,
+        "text": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 74,
+        "text": "path = Path('.github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 84,
+        "text": "python3 -m py_compile runtime/m3/patch_elf_int3_qt_vtable.py"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 95,
+        "text": "runtime/m3/patch_elf_int3_qt_vtable.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 96,
+        "text": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 97,
+        "text": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml",
+        "line": 98,
+        "text": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-chain-m5-integration-constructor.yml",
         "line": 5,
         "text": "branches: [codex/hoffice-runtime-from-scratch]"
@@ -9630,6 +10481,106 @@
         "path": ".github/workflows/hoffice-runtime-chain-m6-window-constructor.yml",
         "line": 16,
         "text": "uses: ./.github/workflows/hoffice-runtime-guest-symbol-probe-chain.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 67,
+        "text": "timeout-minutes: 45"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 88,
+        "text": "BRANCH: codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 209,
+        "text": "python3 runtime/m3/patch_elf_int3_qt_vtable.py \"${args[@]}\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 235,
+        "text": "python3 runtime/m3/augment_syscalls.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 236,
+        "text": "runtime/m3/syscall_bridge.c build/generated/1.c"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 237,
+        "text": "python3 runtime/m3/augment_directory_syscalls.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 239,
+        "text": "python3 runtime/m3/augment_directory_stream.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 241,
+        "text": "python3 runtime/m3/augment_directory_stream_hosttrace.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 243,
+        "text": "python3 runtime/m3/augment_pipe2.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 245,
+        "text": "python3 runtime/m3/augment_polling.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 247,
+        "text": "python3 runtime/m3/augment_epoll.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 249,
+        "text": "python3 runtime/m3/augment_tgkill.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 251,
+        "text": "python3 runtime/m3/augment_crash_signals.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 253,
+        "text": "python3 runtime/m3/augment_int3_probe.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 291,
+        "text": "-Iruntime/m3 -Iruntime/m1 \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 292,
+        "text": "runtime/m3/main.c runtime/m1/common.c runtime/m3/elf_map.c \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 293,
+        "text": "runtime/m3/stack.c runtime/m3/patch.c \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 294,
+        "text": "build/generated/syscall_bridge.c runtime/m1/enter_guest.S \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 300,
+        "text": "codesign --force --sign - --timestamp=none \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml",
+        "line": 328,
+        "text": "ps -o pid,ppid,state,%cpu,%mem,etime,command -p \"$pid\" \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-guest-symbol-probe-chain.yml",
@@ -13027,6 +13978,46 @@
         "text": "uses: ./.github/workflows/hoffice-runtime-guest-symbol-probe.yml"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 1,
+        "text": "name: HOffice runtime M5-M6 QOffscreen RTTI matrix v3"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 8,
+        "text": "- '.github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 9,
+        "text": "- 'runtime/m3/patch_elf_int3_qt_vtable.py'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 10,
+        "text": "- 'runtime/m3/augment_int3_probe.py'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 11,
+        "text": "- 'runtime/m3/augment_directory_stream_hosttrace.py'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml",
+        "line": 165,
+        "text": "uses: ./.github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m5-qoffscreen-symbol-inventory.yml",
         "line": 1,
         "text": "name: HOffice runtime M5 QOffscreen symbol inventory"
@@ -14303,157 +15294,167 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 29,
+        "line": 8,
+        "text": "- '.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
+        "line": 30,
         "text": "timeout-minutes: 45"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 47,
-        "text": "test -s runtime/m6/prebuilt/libqhrtappkit.so"
+        "line": 55,
+        "text": "test -s runtime/m6/prebuilt/libqhrtappkit.so.xz"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 48,
+        "line": 56,
         "text": "test -s runtime/m6/prebuilt/libqhrtappkit.lock.json"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 93,
-        "text": "cp /tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.so \\"
+        "line": 101,
+        "text": "prebuilt=/tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.so.xz"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 115,
-        "text": "'/tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.lock.json'"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 129,
-        "text": "- name: Generate the mature runtime and select hrtappkit"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 140,
-        "text": "python3 runtime/m6/augment_stack_hrtappkit.py \\"
+        "line": 102,
+        "text": "lock=/tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.lock.json"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
         "line": 141,
+        "text": "'/tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.lock.json'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
+        "line": 155,
+        "text": "- name: Generate the mature runtime and select hrtappkit"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
+        "line": 166,
+        "text": "python3 runtime/m6/augment_stack_hrtappkit.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
+        "line": 167,
         "text": "runtime/m3/stack.c /tmp/hrt-m6-build/generated/stack.c"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 145,
+        "line": 171,
         "text": "python3 runtime/m3/augment_syscalls.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 146,
+        "line": 172,
         "text": "runtime/m3/syscall_bridge.c /tmp/hrt-m6-build/generated/stage1.c"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 147,
+        "line": 173,
         "text": "python3 runtime/m3/augment_directory_syscalls.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 150,
+        "line": 176,
         "text": "python3 runtime/m3/augment_directory_stream.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 153,
+        "line": 179,
         "text": "python3 runtime/m3/augment_pipe2.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 156,
+        "line": 182,
         "text": "python3 runtime/m3/augment_eventfd2.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 159,
+        "line": 185,
         "text": "python3 runtime/m3/augment_crash_signals.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 162,
+        "line": 188,
         "text": "python3 runtime/m3/augment_poll.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 165,
+        "line": 191,
         "text": "python3 runtime/m3/augment_posix_basics.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 168,
+        "line": 194,
         "text": "python3 runtime/m3/augment_connect.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 171,
+        "line": 197,
         "text": "python3 runtime/m6/augment_appkit_hostcall_deferred.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 174,
+        "line": 200,
         "text": "python3 runtime/m3/augment_darwin_syscall_abi.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 200,
+        "line": 226,
         "text": "-Iruntime/m6 -Iruntime/m3 -Iruntime/m1"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 204,
+        "line": 230,
         "text": "runtime/m6/main.c runtime/m6/hostcall_trampoline.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 205,
+        "line": 231,
         "text": "runtime/m1/common.c runtime/m3/elf_map.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 206,
+        "line": 232,
         "text": "/tmp/hrt-m6-build/generated/stack.c runtime/m3/patch.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 213,
+        "line": 239,
         "text": "-Wall -Wextra -Werror -Wpedantic -Iruntime/m6 \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 214,
+        "line": 240,
         "text": "-c runtime/m6/appkit_adapter.m \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 216,
+        "line": 242,
         "text": "clang -arch x86_64 -g -c runtime/m1/enter_guest.S \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 218,
+        "line": 244,
         "text": "clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 228,
+        "line": 254,
         "text": "codesign --force --sign - --timestamp=none \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 256,
+        "line": 282,
         "text": "ps -o pid,ppid,state,%cpu,%mem,etime,command -p \"$pid\" \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 329,
+        "line": 355,
         "text": "'HWord pixel transport', 'native input', 'Korean IME',"
       },
       {
@@ -15137,6 +16138,76 @@
         "text": "uses: ./.github/workflows/hoffice-runtime-guest-target-symbol-probe-v3.yml"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 1,
+        "text": "name: HOffice runtime M6 republish locked prebuilt QPA xz"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 21,
+        "text": "timeout-minutes: 15"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 24,
+        "text": "BRANCH: codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 39,
+        "text": "test -s runtime/m6/prebuilt/libqhrtappkit.lock.json"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 50,
+        "text": "lock = json.loads(Path('runtime/m6/prebuilt/libqhrtappkit.lock.json').read_text())"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 85,
+        "text": "lock_path = Path('runtime/m6/prebuilt/libqhrtappkit.lock.json')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 92,
+        "text": "output=runtime/m6/prebuilt/libqhrtappkit.so.xz"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 102,
+        "text": "lock_path = Path('runtime/m6/prebuilt/libqhrtappkit.lock.json')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 103,
+        "text": "payload_path = Path('runtime/m6/prebuilt/libqhrtappkit.so.xz')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 144,
+        "text": "runtime/m6/prebuilt/libqhrtappkit.so.xz \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 145,
+        "text": "runtime/m6/prebuilt/libqhrtappkit.lock.json"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
+        "line": 146,
+        "text": "git commit -m 'runtime: republish the locked hrtappkit QPA as valid xz'"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m7-hostcall-inventory.yml",
         "line": 1,
         "text": "name: HOffice runtime M7 custom QPA host-call inventory"
@@ -15410,6 +16481,186 @@
         "path": ".github/workflows/hoffice-runtime-progress-snapshot.yml",
         "line": 338,
         "text": "diagnostics/runtime-progress-latest.md"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 1,
+        "text": "name: HOffice runtime complete proof frontier v3"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-proof-frontier-v3.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 19,
+        "text": "BRANCH: codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 24,
+        "text": "timeout-minutes: 170"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 28,
+        "text": "ref: codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 41,
+        "text": "import time"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 45,
+        "text": "'hoffice-runtime-augmentors-static.yml',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 46,
+        "text": "'hoffice-runtime-m5-qoffscreen-symbol-inventory.yml',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 47,
+        "text": "'hoffice-runtime-m5-qt-symbol-inventory.yml',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 48,
+        "text": "'hoffice-runtime-m6-hword-symbol-inventory.yml',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 49,
+        "text": "'hoffice-runtime-m5-m6-qoffscreen-probe-matrix-v2.yml',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 50,
+        "text": "'hoffice-runtime-m6-qt-gui-probe-matrix-v3.yml',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 51,
+        "text": "'hoffice-runtime-m6-hword-candidate-probes-v3.yml',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 52,
+        "text": "'hoffice-runtime-m7-hostcall-inventory.yml',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 56,
+        "text": "deadline = time.monotonic() + 155 * 60"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 85,
+        "text": "if not unfinished or time.monotonic() >= deadline:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 87,
+        "text": "time.sleep(30)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 177,
+        "text": "'qt':read_json('diagnostics/qt-runtime-symbol-inventory.json'),"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 182,
+        "text": "'diagnostics/runtime-augmentors-static.json'),"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 192,
+        "text": "'branch':'codex/hoffice-runtime-from-scratch',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 209,
+        "text": "Path('diagnostics/runtime-proof-frontier-v3.json').write_text("
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 213,
+        "text": "'# HOffice runtime complete proof frontier v3','',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 249,
+        "text": "Path('diagnostics/runtime-proof-frontier-v3.md').write_text("
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 263,
+        "text": "git add diagnostics/runtime-proof-frontier-v3.json \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 264,
+        "text": "diagnostics/runtime-proof-frontier-v3.md"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 266,
+        "text": "git commit -m 'diagnostic: consolidate complete HWord runtime frontier [skip ci]'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 275,
+        "text": "diagnostics/runtime-proof-frontier-v3.json"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
+        "line": 276,
+        "text": "diagnostics/runtime-proof-frontier-v3.md"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 1,
+        "text": "name: HOffice runtime QOffscreen RTTI resolver v3"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 8,
+        "text": "- 'runtime/m3/patch_elf_int3_qt_vtable.py'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 22,
+        "text": "BRANCH: codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 27,
+        "text": "timeout-minutes: 20"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
+        "line": 78,
+        "text": "python3 runtime/m3/patch_elf_int3_qt_vtable.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-qt-abi-lock.yml",
