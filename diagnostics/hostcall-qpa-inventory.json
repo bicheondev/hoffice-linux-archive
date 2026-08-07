@@ -1,16 +1,16 @@
 {
   "schema": 1,
-  "commit": "b43d17e59afaabcbab703e3a83a952c55a26baeb",
-  "workflow_run": "31147549407",
-  "file_count": 110,
+  "commit": "50fe9cc4482f7667f41af3b689bd1f145b212309",
+  "workflow_run": "31149319549",
+  "file_count": 113,
   "match_counts": {
-    "opcode_256": 504,
+    "opcode_256": 502,
     "create_operation": 41,
-    "host_call": 354,
-    "custom_qpa": 476,
-    "appkit": 116,
-    "rendering": 217,
-    "input_ime": 1420
+    "host_call": 361,
+    "custom_qpa": 489,
+    "appkit": 128,
+    "rendering": 254,
+    "input_ime": 1434
   },
   "files": [
     {
@@ -25,8 +25,8 @@
     },
     {
       "path": "runtime/m6/appkit_adapter.h",
-      "sha256": "2f187492de7ec095f855b328c1b57461291e6687c9470ff6dd509723db2f98fa",
-      "size": 1197,
+      "sha256": "b5bfb69918024a34248dfd44cd9172289a1f7c099a22ccd2dbd8bf96053f4a24",
+      "size": 1243,
       "groups": [
         "host_call",
         "opcode_256"
@@ -34,8 +34,8 @@
     },
     {
       "path": "runtime/m6/appkit_adapter.m",
-      "sha256": "7d668973ec58fe74bc6621168214ff24b8c75bd1d7ee549c057a6faca217ebe1",
-      "size": 16237,
+      "sha256": "7ec4fdb167135c946feab3aacaf67555904374a1577d806dc093bc3ae74b4573",
+      "size": 20298,
       "groups": [
         "appkit",
         "host_call",
@@ -163,29 +163,51 @@
       ]
     },
     {
+      "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+      "sha256": "16b214a5acb68a0e9646ac4d2edfc2bc8cc697dbb4871c36a0e2f6df971c877d",
+      "size": 3603,
+      "groups": [
+        "appkit",
+        "custom_qpa",
+        "host_call",
+        "rendering"
+      ]
+    },
+    {
+      "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
+      "sha256": "8f619a2752962f62c4e788cb53b46312fade415d1b2c9c484c966a8628adedb3",
+      "size": 491,
+      "groups": [
+        "appkit",
+        "rendering"
+      ]
+    },
+    {
       "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
-      "sha256": "acf95ceba19aea456df8231950317d3b2ee6c5e0d449cd1ddb3dcb3fbeb90683",
-      "size": 495,
+      "sha256": "8c54ba2badd3d5d31271c61ad4d2175ae3b68fad52672870459284730f44aa15",
+      "size": 680,
       "groups": [
         "appkit",
         "create_operation",
-        "custom_qpa"
+        "custom_qpa",
+        "rendering"
       ]
     },
     {
       "path": "runtime/m6/qpa/qhrtappkitintegration.h",
-      "sha256": "83051d74950c052d06fb8784bdec50b9625b65b1d1ea4e7cccab98e237d8b319",
-      "size": 323,
+      "sha256": "248dac3cf36030161b05ea054c3704e0eb05eb92b9f3f8f50fdb342a04511b25",
+      "size": 415,
       "groups": [
         "appkit",
         "create_operation",
-        "custom_qpa"
+        "custom_qpa",
+        "rendering"
       ]
     },
     {
       "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-      "sha256": "0a6e723ef9fb9624d63eecaca9f322b3b468804015000521b8ba35edfff4494e",
-      "size": 3672,
+      "sha256": "7eaf4e8987d22997af260bce06bef19abbf8833f53a2ee4abefb4ab5c5d0d5cc",
+      "size": 3958,
       "groups": [
         "appkit",
         "create_operation",
@@ -195,8 +217,8 @@
     },
     {
       "path": "runtime/m6/qpa/qhrtappkitwindow.h",
-      "sha256": "4bd2accd1fa7c73d527929c491c08e4a44f12eb22bff0c027092f770c0bc601b",
-      "size": 627,
+      "sha256": "5a6142d4153d33c225147f199f7e7d15f836e2cd7536ee5251a90914216eced0",
+      "size": 713,
       "groups": [
         "appkit"
       ]
@@ -246,6 +268,16 @@
       "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
       "sha256": "cd829c4df3b07d01ace499500a659fdc5b51fb6b59280d44fb080ddc11e205b6",
       "size": 6210,
+      "groups": [
+        "custom_qpa",
+        "host_call",
+        "input_ime"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
+      "sha256": "93641f81333e79e0c56af1ce14fac5113feba96e5d0bbbaba2c47ccc0005e1d0",
+      "size": 2724,
       "groups": [
         "custom_qpa",
         "host_call",
@@ -962,8 +994,8 @@
     },
     {
       "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-      "sha256": "d31ae2900884d7cd5848b0affeb0637c80903583a355ab2d9a69519c6db91d48",
-      "size": 17874,
+      "sha256": "5a3fe35a9594318714f97771d9af265ecdddfe145579d5bce2de46da6af32faa",
+      "size": 17928,
       "groups": [
         "appkit",
         "create_operation",
@@ -1052,13 +1084,14 @@
     },
     {
       "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-      "sha256": "5b2d30a46b049f48eac04b6b4fede19cfb201b899d1e96545e8d81e4f4599d63",
-      "size": 8861,
+      "sha256": "fd716cc66941dc59f23d6ab98b984da252e6f41a6f1b5fcb1ea4adc3e1246779",
+      "size": 10185,
       "groups": [
         "custom_qpa",
         "host_call",
         "input_ime",
-        "opcode_256"
+        "opcode_256",
+        "rendering"
       ]
     },
     {
@@ -1192,12 +1225,12 @@
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 172,
+        "line": 197,
         "text": "const size_t title_length = strnlen(guest_title, 256u);"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 173,
+        "line": 198,
         "text": "if (title_length == 0u || title_length == 256u) return -1003;"
       },
       {
@@ -3207,17 +3240,17 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 316,
+        "line": 317,
         "text": "grep -E 'hrt-m6: host-call opcode=256 result=[1-9][0-9]*' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 336,
+        "line": 337,
         "text": "creates = [item for item in calls if item['opcode'] == 256 and item['result'] > 0]"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 347,
+        "line": 348,
         "text": "'program_sha256_before_prepatch': '55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb',"
       },
       {
@@ -3477,58 +3510,48 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 78,
-        "text": "printf '%s  %s\\n' \"$QTBASE_ARCHIVE_SHA256\" \\"
+        "line": 77,
+        "text": "printf '%s  %s\\n' \"$QTBASE_ARCHIVE_SHA256\" /work/build/source/qtbase.tar.xz | sha256sum --check -"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 79,
-        "text": "/work/build/source/qtbase.tar.xz | sha256sum --check -"
+        "line": 114,
+        "text": "sha256sum \"/work/plugin-root$PLUGIN_GUEST\" | tee /work/report/sha256-before-prepatch.txt"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 126,
-        "text": "sha256sum \"/work/plugin-root$PLUGIN_GUEST\" \\"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 127,
-        "text": "| tee /work/report/sha256-before-prepatch.txt"
+        "line": 123,
+        "text": "sha256sum \"/work/plugin-root$PLUGIN_GUEST\" | tee /work/report/sha256-after-prepatch.txt"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
         "line": 136,
-        "text": "sha256sum \"/work/plugin-root$PLUGIN_GUEST\" \\"
+        "text": "actual = hashlib.sha256(plugin_bytes).hexdigest()"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
         "line": 137,
-        "text": "| tee /work/report/sha256-after-prepatch.txt"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 149,
-        "text": "actual = hashlib.sha256((root / guest.lstrip('/')).read_bytes()).hexdigest()"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 150,
         "text": "assert actual == record['sha256_after'], (actual, record)"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 158,
+        "line": 153,
         "text": "'qtbase_archive_sha256': os.environ['QTBASE_ARCHIVE_SHA256'],"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 160,
+        "line": 158,
         "text": "'sha256_before_prepatch': record['sha256_before'],"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 161,
+        "line": 159,
         "text": "'sha256_after_prepatch': record['sha256_after'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
+        "line": 160,
+        "text": "'xz_sha256': hashlib.sha256(compressed).hexdigest(),"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml",
@@ -3689,12 +3712,12 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
-        "line": 14,
+        "line": 15,
         "text": "QPlatformWindow *QHrtAppKitIntegration::createPlatformWindow(QWindow *window) const"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
-        "line": 16,
+        "line": 17,
         "text": "QPlatformWindow *platformWindow = new QHrtAppKitWindow(window);"
       },
       {
@@ -3709,12 +3732,12 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 55,
+        "line": 65,
         "text": "qWarning(\"HRT M6 QPA: CREATE failed type=%d result=%lld title=%s\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 68,
+        "line": 78,
         "text": "qWarning(\"HRT M6 QPA: CREATE type=%d geometry=%dx%d title=%s handle=%lld pump=%lld flags=0x%llx capture=%lld\","
       },
       {
@@ -3834,7 +3857,7 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 315,
+        "line": 316,
         "text": "grep -F 'HRT M6 QPA: QPlatformWindow constructed' \"$stderr\""
       },
       {
@@ -3896,7 +3919,7 @@
       },
       {
         "path": "runtime/m6/appkit_adapter.h",
-        "line": 30,
+        "line": 31,
         "text": "int64_t hrt_m6_appkit_hostcall(uint64_t opcode,"
       },
       {
@@ -3906,87 +3929,87 @@
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 28,
+        "line": 54,
         "text": "static dispatch_source_t g_request_source;"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 222,
-        "text": "@\"Created by a trapped Linux x86-64 guest host call\"];"
+        "line": 234,
+        "text": "NSTextField *detail = [NSTextField labelWithString:@\"Created by a trapped Linux x86-64 guest host call\"];"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 259,
+        "line": 300,
+        "text": "\"hrt-m7-hostcall: presented BGRA frame=%llu size=%llux%llu stride=%llu bytes=%llu window=%ld\\n\","
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 324,
         "text": "static int64_t perform_hostcall(uint64_t opcode,"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 304,
+        "line": 365,
         "text": "fputs(\"hrt-m6-hostcall: request pipe read failed\\n\", stderr);"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 310,
-        "text": "fputs(\"hrt-m6-hostcall: request arrived in invalid mailbox state\\n\","
+        "line": 370,
+        "text": "fputs(\"hrt-m6-hostcall: request arrived in invalid mailbox state\\n\", stderr);"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 316,
-        "text": "int64_t result = perform_hostcall("
+        "line": 374,
+        "text": "int64_t result = perform_hostcall(g_mailbox.opcode,"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 326,
+        "line": 383,
         "text": "fputs(\"hrt-m6-hostcall: completion pipe write failed\\n\", stderr);"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 358,
-        "text": "g_request_source = dispatch_source_create("
+        "line": 411,
+        "text": "g_request_source = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ,"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 359,
-        "text": "DISPATCH_SOURCE_TYPE_READ,"
+        "line": 412,
+        "text": "(uintptr_t)g_request_pipe[0], 0u, dispatch_get_main_queue());"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 361,
-        "text": "dispatch_get_main_queue());"
+        "line": 414,
+        "text": "dispatch_source_set_event_handler(g_request_source, ^{ service_mailbox(); });"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 363,
-        "text": "dispatch_source_set_event_handler(g_request_source, ^{"
-      },
-      {
-        "path": "runtime/m6/appkit_adapter.m",
-        "line": 366,
+        "line": 415,
         "text": "dispatch_activate(g_request_source);"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 370,
-        "text": "\"hrt-m6-hostcall: AppKit initialized on pid=%d main-thread=1 \""
+        "line": 418,
+        "text": "\"hrt-m6-hostcall: AppKit initialized on pid=%d main-thread=1 request-fd=%d completion-fd=%d\\n\","
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 381,
-        "text": "fputs(\"hrt-m6-hostcall: AppKit run loop requested off thread\\n\","
+        "line": 428,
+        "text": "fputs(\"hrt-m6-hostcall: AppKit run loop requested off thread\\n\", stderr);"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 387,
+        "line": 433,
         "text": "fputs(\"hrt-m6-hostcall: AppKit run loop returned\\n\", stderr);"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 392,
+        "line": 438,
         "text": "int64_t hrt_m6_appkit_hostcall(uint64_t opcode,"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 399,
+        "line": 445,
         "text": "\"hrt-m6-hostcall: guest request queued through signal-safe mailbox\\n\";"
       },
       {
@@ -4375,33 +4398,58 @@
         "text": ": \"0\"(HRT_M6_HOSTCALL_SYSCALL),"
       },
       {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 3,
+        "text": "#include \"hrt_hostcall.h\""
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 46,
+        "text": "const qint64 result = hrtM6HostCall("
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 66,
+        "text": "const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 50);"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 67,
+        "text": "const qint64 flags = hrtM6HostCall("
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 69,
+        "text": "const qint64 capture = hrtM6HostCall("
+      },
+      {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
         "line": 2,
         "text": "#include \"hrt_hostcall.h\""
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 49,
+        "line": 59,
         "text": "const qint64 handle = hrtM6HostCall("
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 63,
+        "line": 73,
         "text": "const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 250);"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 64,
+        "line": 74,
         "text": "const qint64 flags = hrtM6HostCall("
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 66,
+        "line": 76,
         "text": "const qint64 capture = hrtM6HostCall("
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 82,
+        "line": 92,
         "text": "const qint64 result = hrtM6HostCall("
       },
       {
@@ -4421,6 +4469,11 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 8,
+        "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
         "line": 8,
         "text": "workflow_dispatch:"
       },
@@ -5291,57 +5344,57 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 230,
+        "line": 231,
         "text": "runtime/m6/main.c runtime/m6/hostcall_trampoline.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 244,
+        "line": 245,
         "text": "clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 245,
+        "line": 246,
         "text": "-o /tmp/hrt-m6-build/objects/hostcall-trampoline.o"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 273,
+        "line": 274,
         "text": "if grep -q 'hrt-m6: host-call opcode=259 result=1' \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 299,
+        "line": 300,
         "text": "grep -E 'libqhrtappkit|HRT M6 QPA|host-call opcode=25[6-9]|fatal signal|Qt platform plugin|Linux syscall ENOSYS|directory stream' \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 316,
+        "line": 317,
         "text": "grep -E 'hrt-m6: host-call opcode=256 result=[1-9][0-9]*' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 317,
+        "line": 318,
         "text": "grep -E 'hrt-m6: host-call opcode=258 result=1[0-9][0-9]' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 318,
+        "line": 319,
         "text": "grep -F 'hrt-m6: host-call opcode=259 result=1' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 332,
+        "line": 333,
         "text": "match = re.fullmatch(r'hrt-m6: host-call opcode=(\\d+) result=(-?\\d+)', line)"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 350,
+        "line": 351,
         "text": "'host_calls': calls,"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 355,
+        "line": 356,
         "text": "'HWord pixel transport', 'native input', 'Korean IME',"
       },
       {
@@ -5513,6 +5566,11 @@
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
         "line": 10,
         "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
+        "line": 164,
+        "text": "'m7_bgra_transport': True,"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qt-gui-probe-matrix-v3.yml",
@@ -5912,18 +5970,48 @@
         "text": "QPlatformIntegration *QHrtAppKitIntegrationPlugin::create("
       },
       {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 7,
+        "text": "#include <QtGui/qpainter.h>"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 17,
+        "text": "qWarning(\"HRT M7 QPA: backing store constructed\");"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 31,
+        "text": "QPaintDevice *device = paintDevice();"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 56,
+        "text": "qWarning(\"HRT M7 QPA: PRESENT_BGRA failed sequence=%llu result=%lld size=%dx%d stride=%d host=%lld\","
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 80,
+        "text": "qWarning(\"HRT M7 QPA: BGRA frame accepted sequence=%llu size=%dx%d stride=%d host=%lld pump=%lld flags=0x%llx capture=%lld\","
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 88,
+        "text": "qWarning(\"HRT M7 QPA: BGRA frame gate incomplete sequence=%llu result=%lld flags=0x%llx capture=%lld\","
+      },
+      {
         "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
-        "line": 11,
+        "line": 12,
         "text": "qWarning(\"HRT M6 QPA: integration constructed\");"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
-        "line": 14,
+        "line": 15,
         "text": "QPlatformWindow *QHrtAppKitIntegration::createPlatformWindow(QWindow *window) const"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
-        "line": 16,
+        "line": 17,
         "text": "QPlatformWindow *platformWindow = new QHrtAppKitWindow(window);"
       },
       {
@@ -5938,27 +6026,27 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 55,
+        "line": 65,
         "text": "qWarning(\"HRT M6 QPA: CREATE failed type=%d result=%lld title=%s\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 68,
+        "line": 78,
         "text": "qWarning(\"HRT M6 QPA: CREATE type=%d geometry=%dx%d title=%s handle=%lld pump=%lld flags=0x%llx capture=%lld\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 84,
+        "line": 94,
         "text": "qWarning(\"HRT M6 QPA: DESTROY handle=%lld result=%lld\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 106,
+        "line": 116,
         "text": "qWarning(\"HRT M6 QPA: GEOMETRY handle=%lld rect=%d,%d %dx%d\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 117,
+        "line": 127,
         "text": "qWarning(\"HRT M6 QPA: TITLE handle=%lld title=%s\","
       },
       {
@@ -6000,6 +6088,26 @@
         "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
         "line": 1,
         "text": "name: Bootstrap mature event-loop fallback for prebuilt QPA replay"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
+        "line": 1,
+        "text": "name: Bootstrap prebuilt QPA generated-helper compile flags"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
+        "line": 47,
+        "text": "path = Path('.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
+        "line": 63,
+        "text": "git diff -- .github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
+        "line": 72,
+        "text": "git add .github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml"
       },
       {
         "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
@@ -7143,72 +7251,72 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 249,
+        "line": 250,
         "text": "-o /tmp/hrt-m6-build/host/hrt-m6-hword-qpa"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 250,
+        "line": 251,
         "text": "file /tmp/hrt-m6-build/host/hrt-m6-hword-qpa \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 252,
+        "line": 253,
         "text": "lipo -info /tmp/hrt-m6-build/host/hrt-m6-hword-qpa \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 255,
+        "line": 256,
         "text": "/tmp/hrt-m6-build/host/hrt-m6-hword-qpa"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 257,
+        "line": 258,
         "text": "/tmp/hrt-m6-build/host/hrt-m6-hword-qpa"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 259,
+        "line": 260,
         "text": "- name: Run exact HWord until its QPA creates an AppKit window"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 266,
+        "line": 267,
         "text": "/usr/bin/arch -x86_64 /tmp/hrt-m6-build/host/hrt-m6-hword-qpa \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 299,
+        "line": 300,
         "text": "grep -E 'libqhrtappkit|HRT M6 QPA|host-call opcode=25[6-9]|fatal signal|Qt platform plugin|Linux syscall ENOSYS|directory stream' \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 311,
+        "line": 312,
         "text": "grep -F 'Found metadata in lib /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 313,
+        "line": 314,
         "text": "grep -F 'loaded library \"/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so\"' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 314,
+        "line": 315,
         "text": "grep -F 'HRT M6 QPA: integration constructed' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 315,
+        "line": 316,
         "text": "grep -F 'HRT M6 QPA: QPlatformWindow constructed' \"$stderr\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 348,
+        "line": 349,
         "text": "'qpa_plugin': '/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so',"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 349,
+        "line": 350,
         "text": "'qpa_key': 'hrtappkit',"
       },
       {
@@ -7784,7 +7892,7 @@
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
         "line": 1,
-        "text": "name: HOffice runtime M6 QPA publish"
+        "text": "name: HOffice runtime M7 QPA publish"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
@@ -7799,7 +7907,7 @@
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
         "line": 16,
-        "text": "group: hrt-m6-qpa-publish-${{ github.ref }}"
+        "text": "group: hrt-m7-qpa-publish-${{ github.ref }}"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
@@ -7808,98 +7916,113 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 65,
+        "line": 62,
         "text": "git rev-parse HEAD:runtime/m6/qpa | tee /work/qpa-tree.txt"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 66,
-        "text": "test -f runtime/m6/qpa/hrtappkit.pro"
+        "line": 63,
+        "text": "test -f runtime/m6/qpa/qhrtappkitbackingstore.cpp"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 67,
+        "line": 64,
         "text": "test -f runtime/m6/qpa/qplatform_vulkan_compat.cpp"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 73,
+        "line": 65,
+        "text": "grep -F 'HRT M7 QPA: BGRA frame accepted' runtime/m6/qpa/qhrtappkitbackingstore.cpp"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
+        "line": 72,
         "text": "mkdir -p /work/build/source /work/build/qpa \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 85,
+        "line": 82,
         "text": "test -f \"$qtbase/src/plugins/platforms/offscreen/qoffscreenintegration.cpp\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 88,
-        "text": "- name: Build and audit the HOffice-compatible QPA"
+        "line": 85,
+        "text": "- name: Build and audit the HOffice-compatible M7 QPA"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 94,
+        "line": 91,
         "text": "cd /work/build/qpa"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 95,
+        "line": 92,
         "text": "qmake -qt=5 /work/repository/runtime/m6/qpa/hrtappkit.pro \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 96,
+        "line": 93,
         "text": "\"QTOFFSCREEN_DIR=$qtbase/src/plugins/platforms/offscreen\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
+        "line": 105,
+        "text": "| grep -E 'hrtappkit|HRT M6 QPA|HRT M7 QPA' | tee /work/report/markers.txt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
         "line": 113,
-        "text": "| grep -E 'hrtappkit|HRT M6 QPA' \\"
+        "text": "grep -aF 'HRT M7 QPA: BGRA frame accepted' \"/work/plugin-root$PLUGIN_GUEST\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 152,
-        "text": "qpa_tree = Path('/work/qpa-tree.txt').read_text().strip()"
+        "line": 147,
+        "text": "'qpa_source_tree': Path('/work/qpa-tree.txt').read_text().strip(),"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 156,
-        "text": "'qpa_source_tree': qpa_tree,"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 165,
+        "line": 157,
         "text": "'qpa_key': 'hrtappkit',"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 170,
-        "text": "print('HRT M6 QPA PUBLISH: exact Qt 5.11.3 plugin passed ABI and prepatch gates')"
+        "line": 172,
+        "text": "print('HRT M7 QPA PUBLISH: exact Qt 5.11.3 BGRA plugin passed')"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 173,
+        "line": 175,
         "text": "- name: Publish only if the QPA source tree is still current"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 179,
+        "line": 181,
         "text": "built_tree=$(cat /work/qpa-tree.txt)"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 180,
+        "line": 182,
         "text": "remote_tree=$(git rev-parse FETCH_HEAD:runtime/m6/qpa)"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 199,
-        "text": "echo 'Published QPA is already current.'"
+        "line": 195,
+        "text": "echo 'Published M7 QPA is already current.'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 202,
-        "text": "git commit -m 'runtime: publish verified Qt 5.11.3 hrtappkit QPA [skip ci]'"
+        "line": 198,
+        "text": "git commit -m 'runtime: publish verified Qt 5.11.3 M7 BGRA QPA'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
+        "line": 204,
+        "text": "name: hrt-m7-qpa-build-evidence"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
+        "line": 208,
+        "text": "/work/qpa-tree.txt"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qt-gui-probe-matrix-v3.yml",
@@ -8050,57 +8173,77 @@
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 25,
+        "line": 28,
+        "text": "@interface HrtM7SurfaceView : NSView"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 49,
         "text": "static NSWindow *g_window;"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 193,
+        "line": 210,
         "text": "NSWindowStyleMask style = NSWindowStyleMaskTitled |"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 194,
+        "line": 211,
         "text": "NSWindowStyleMaskClosable |"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 195,
+        "line": 212,
         "text": "NSWindowStyleMaskResizable |"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 196,
+        "line": 213,
         "text": "NSWindowStyleMaskMiniaturizable;"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 197,
-        "text": "g_window = [[NSWindow alloc]"
+        "line": 214,
+        "text": "g_window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0.0, 0.0, width, height)"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 206,
+        "line": 221,
         "text": "g_window.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces |"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 207,
+        "line": 222,
         "text": "NSWindowCollectionBehaviorFullScreenAuxiliary;"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 370,
-        "text": "\"hrt-m6-hostcall: AppKit initialized on pid=%d main-thread=1 \""
+        "line": 226,
+        "text": "g_surface_view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 381,
-        "text": "fputs(\"hrt-m6-hostcall: AppKit run loop requested off thread\\n\","
+        "line": 290,
+        "text": "NSArray<NSView *> *placeholder_views = [g_surface_view.subviews copy];"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 387,
+        "line": 291,
+        "text": "for (NSView *view in placeholder_views) [view removeFromSuperview];"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 418,
+        "text": "\"hrt-m6-hostcall: AppKit initialized on pid=%d main-thread=1 request-fd=%d completion-fd=%d\\n\","
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 428,
+        "text": "fputs(\"hrt-m6-hostcall: AppKit run loop requested off thread\\n\", stderr);"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 433,
         "text": "fputs(\"hrt-m6-hostcall: AppKit run loop returned\\n\", stderr);"
       },
       {
@@ -8244,19 +8387,54 @@
         "text": "return new QHrtAppKitIntegration;"
       },
       {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 12,
+        "text": "QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 20,
+        "text": "void QHrtAppKitBackingStore::flush(QWindow *target,"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 27,
+        "text": "const qint64 hostWindow = QHrtAppKitWindow::hostWindowFor(topLevel);"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
+        "line": 10,
+        "text": "class QHrtAppKitBackingStore : public QOffscreenBackingStore"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
+        "line": 13,
+        "text": "explicit QHrtAppKitBackingStore(QWindow *window);"
+      },
+      {
         "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
-        "line": 8,
+        "line": 9,
         "text": "QHrtAppKitIntegration::QHrtAppKitIntegration()"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
-        "line": 14,
+        "line": 15,
         "text": "QPlatformWindow *QHrtAppKitIntegration::createPlatformWindow(QWindow *window) const"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
-        "line": 16,
+        "line": 17,
         "text": "QPlatformWindow *platformWindow = new QHrtAppKitWindow(window);"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
+        "line": 23,
+        "text": "QHrtAppKitIntegration::createPlatformBackingStore(QWindow *window) const"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
+        "line": 25,
+        "text": "return new QHrtAppKitBackingStore(window);"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitintegration.h",
@@ -8286,51 +8464,56 @@
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
         "line": 27,
+        "text": "qint64 QHrtAppKitWindow::hostWindowFor(const QWindow *candidate)"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
+        "line": 37,
         "text": "bool QHrtAppKitWindow::isNativeCandidate() const"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 35,
+        "line": 45,
         "text": "void QHrtAppKitWindow::createNativeWindow()"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 76,
+        "line": 86,
         "text": "void QHrtAppKitWindow::destroyNativeWindow()"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 92,
+        "line": 102,
         "text": "void QHrtAppKitWindow::setVisible(bool visible)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 102,
+        "line": 112,
         "text": "void QHrtAppKitWindow::setGeometry(const QRect &rect)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 112,
+        "line": 122,
         "text": "void QHrtAppKitWindow::setWindowTitle(const QString &title)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.h",
-        "line": 8,
+        "line": 10,
         "text": "class QHrtAppKitWindow : public QOffscreenWindow"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.h",
-        "line": 11,
+        "line": 13,
         "text": "explicit QHrtAppKitWindow(QWindow *window);"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.h",
-        "line": 12,
+        "line": 14,
         "text": "~QHrtAppKitWindow() override;"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.h",
-        "line": 26,
+        "line": 30,
         "text": "static QHrtAppKitWindow *s_nativeOwner;"
       },
       {
@@ -8540,12 +8723,12 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 248,
+        "line": 249,
         "text": "-framework AppKit -framework CoreGraphics -framework ImageIO \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 259,
+        "line": 260,
         "text": "- name: Run exact HWord until its QPA creates an AppKit window"
       },
       {
@@ -8627,8 +8810,83 @@
     "rendering": [
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 200,
+        "line": 28,
+        "text": "@interface HrtM7SurfaceView : NSView"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 32,
+        "text": "@implementation HrtM7SurfaceView"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 50,
+        "text": "static HrtM7SurfaceView *g_surface_view;"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 188,
+        "text": "g_surface_view = nil;"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 216,
         "text": "backing:NSBackingStoreBuffered"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 224,
+        "text": "g_surface_view = [[HrtM7SurfaceView alloc] initWithFrame:NSMakeRect(0.0, 0.0, width, height)];"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 225,
+        "text": "if (g_surface_view == nil) { reset_window(); return -1007; }"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 226,
+        "text": "g_surface_view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 227,
+        "text": "g_window.contentView = g_surface_view;"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 233,
+        "text": "[g_surface_view addSubview:heading];"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 239,
+        "text": "[g_surface_view addSubview:detail];"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 256,
+        "text": "if (g_window == nil || g_surface_view == nil) return -1021;"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 290,
+        "text": "NSArray<NSView *> *placeholder_views = [g_surface_view.subviews copy];"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 293,
+        "text": "g_surface_view.frameImage = frame;"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 295,
+        "text": "[g_surface_view setNeedsDisplay:YES];"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 296,
+        "text": "[g_surface_view displayIfNeeded];"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
@@ -8637,27 +8895,37 @@
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 312,
+        "line": 320,
+        "text": "if (g_presented_frames > 0u && g_surface_view.frameImage != nil) flags |= HRT_M7_FRAME_PRESENTED;"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 366,
         "text": "fflush(stderr);"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 327,
+        "line": 371,
         "text": "fflush(stderr);"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 373,
+        "line": 384,
         "text": "fflush(stderr);"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 383,
+        "line": 420,
         "text": "fflush(stderr);"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 388,
+        "line": 429,
+        "text": "fflush(stderr);"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 434,
         "text": "fflush(stderr);"
       },
       {
@@ -8684,6 +8952,96 @@
         "path": "runtime/m6/main.c",
         "line": 123,
         "text": "fflush(stderr);"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 1,
+        "text": "#include \"qhrtappkitbackingstore.h\""
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 12,
+        "text": "QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 13,
+        "text": ": QOffscreenBackingStore(window)"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 17,
+        "text": "qWarning(\"HRT M7 QPA: backing store constructed\");"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 20,
+        "text": "void QHrtAppKitBackingStore::flush(QWindow *target,"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 24,
+        "text": "QOffscreenBackingStore::flush(target, region, offset);"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 31,
+        "text": "QPaintDevice *device = paintDevice();"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
+        "line": 1,
+        "text": "#ifndef QHRTAPPKITBACKINGSTORE_H"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
+        "line": 2,
+        "text": "#define QHRTAPPKITBACKINGSTORE_H"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
+        "line": 10,
+        "text": "class QHrtAppKitBackingStore : public QOffscreenBackingStore"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
+        "line": 13,
+        "text": "explicit QHrtAppKitBackingStore(QWindow *window);"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
+        "line": 15,
+        "text": "void flush(QWindow *window,"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
+        "line": 2,
+        "text": "#include \"qhrtappkitbackingstore.h\""
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
+        "line": 22,
+        "text": "QPlatformBackingStore *"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
+        "line": 23,
+        "text": "QHrtAppKitIntegration::createPlatformBackingStore(QWindow *window) const"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitintegration.cpp",
+        "line": 25,
+        "text": "return new QHrtAppKitBackingStore(window);"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitintegration.h",
+        "line": 13,
+        "text": "QPlatformBackingStore *"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitintegration.h",
+        "line": 14,
+        "text": "createPlatformBackingStore(QWindow *window) const override;"
       },
       {
         "path": ".github/workflows/hoffice-runtime-augmentors-static.yml",
@@ -9446,6 +9804,16 @@
         "text": "proof = json.loads(Path('proofs/rtti-v3/m6-flush.json').read_text())"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
+        "line": 63,
+        "text": "test -f runtime/m6/qpa/qhrtappkitbackingstore.cpp"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
+        "line": 65,
+        "text": "grep -F 'HRT M7 QPA: BGRA frame accepted' runtime/m6/qpa/qhrtappkitbackingstore.cpp"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m6-qt-gui-probe-matrix-v3.yml",
         "line": 88,
         "text": "- id: qbackingstore-begin-paint"
@@ -9794,32 +10162,47 @@
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 100,
+        "line": 22,
+        "text": "#define HRT_M7_MAX_DIMENSION UINT64_C(8192)"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 125,
         "text": "static void pump_events(NSTimeInterval seconds) {"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 101,
+        "line": 126,
         "text": "NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:seconds];"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 102,
+        "line": 127,
         "text": "while ([deadline timeIntervalSinceNow] > 0.0) {"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 105,
+        "line": 130,
         "text": "untilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 111,
+        "line": 136,
         "text": "beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.005]];"
       },
       {
         "path": "runtime/m6/appkit_adapter.m",
-        "line": 277,
+        "line": 260,
+        "text": "if (width == 0u || height == 0u || width > HRT_M7_MAX_DIMENSION ||"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 261,
+        "text": "height > HRT_M7_MAX_DIMENSION) return -1024;"
+      },
+      {
+        "path": "runtime/m6/appkit_adapter.m",
+        "line": 338,
         "text": "pump_events((NSTimeInterval)milliseconds / 1000.0);"
       },
       {
@@ -10281,6 +10664,51 @@
         "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
         "line": 144,
         "text": "git commit -m 'runtime: route directory-stream replays through the mature event loop'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
+        "line": 20,
+        "text": "timeout-minutes: 10"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
+        "line": 22,
+        "text": "BRANCH: codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
+        "line": 47,
+        "text": "path = Path('.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
+        "line": 51,
+        "text": "'            -Iruntime/m6 -Iruntime/m3 -Iruntime/m1\\n'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
+        "line": 56,
+        "text": "'            -Iruntime/m6 -Iruntime/m3 -Iruntime/m1\\n'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
+        "line": 63,
+        "text": "git diff -- .github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-compile-flags.yml",
+        "line": 72,
+        "text": "git add .github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml"
       },
       {
         "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
@@ -15489,57 +15917,57 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 226,
+        "line": 227,
         "text": "-Iruntime/m6 -Iruntime/m3 -Iruntime/m1"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 230,
+        "line": 231,
         "text": "runtime/m6/main.c runtime/m6/hostcall_trampoline.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 231,
+        "line": 232,
         "text": "runtime/m1/common.c runtime/m3/elf_map.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 232,
+        "line": 233,
         "text": "/tmp/hrt-m6-build/generated/stack.c runtime/m3/patch.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 239,
+        "line": 240,
         "text": "-Wall -Wextra -Werror -Wpedantic -Iruntime/m6 \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 240,
+        "line": 241,
         "text": "-c runtime/m6/appkit_adapter.m \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 242,
+        "line": 243,
         "text": "clang -arch x86_64 -g -c runtime/m1/enter_guest.S \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 244,
+        "line": 245,
         "text": "clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 254,
+        "line": 255,
         "text": "codesign --force --sign - --timestamp=none \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 282,
+        "line": 283,
         "text": "ps -o pid,ppid,state,%cpu,%mem,etime,command -p \"$pid\" \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml",
-        "line": 355,
+        "line": 356,
         "text": "'HWord pixel transport', 'native input', 'Korean IME',"
       },
       {
@@ -16090,7 +16518,7 @@
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
         "line": 1,
-        "text": "name: HOffice runtime M6 QPA publish"
+        "text": "name: HOffice runtime M7 QPA publish"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
@@ -16119,73 +16547,83 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 65,
+        "line": 62,
         "text": "git rev-parse HEAD:runtime/m6/qpa | tee /work/qpa-tree.txt"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 66,
-        "text": "test -f runtime/m6/qpa/hrtappkit.pro"
+        "line": 63,
+        "text": "test -f runtime/m6/qpa/qhrtappkitbackingstore.cpp"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 67,
+        "line": 64,
         "text": "test -f runtime/m6/qpa/qplatform_vulkan_compat.cpp"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 95,
+        "line": 65,
+        "text": "grep -F 'HRT M7 QPA: BGRA frame accepted' runtime/m6/qpa/qhrtappkitbackingstore.cpp"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
+        "line": 66,
+        "text": "grep -F 'HRT_M6_OP_PRESENT_BGRA' runtime/m6/appkit_adapter.m"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
+        "line": 92,
         "text": "qmake -qt=5 /work/repository/runtime/m6/qpa/hrtappkit.pro \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 133,
-        "text": "python3 /work/repository/runtime/m3/prepatch_elf.py \\"
+        "line": 120,
+        "text": "python3 /work/repository/runtime/m3/prepatch_elf.py /work/plugin-root \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 180,
+        "line": 182,
         "text": "remote_tree=$(git rev-parse FETCH_HEAD:runtime/m6/qpa)"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 184,
+        "line": 185,
         "text": "mkdir -p runtime/m6/prebuilt"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
         "line": 186,
-        "text": "runtime/m6/prebuilt/libqhrtappkit.so"
+        "text": "cp /work/report/libqhrtappkit.so.xz runtime/m6/prebuilt/libqhrtappkit.so.xz"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
+        "line": 187,
+        "text": "cp /work/report/libqhrtappkit.lock.json runtime/m6/prebuilt/libqhrtappkit.lock.json"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
         "line": 188,
-        "text": "runtime/m6/prebuilt/libqhrtappkit.lock.json"
+        "text": "cp /work/report/dynamic.txt runtime/m6/prebuilt/libqhrtappkit.dynamic.txt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
+        "line": 189,
+        "text": "cp /work/report/qtmetadata.txt runtime/m6/prebuilt/libqhrtappkit.qtmetadata.txt"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
         "line": 190,
-        "text": "runtime/m6/prebuilt/libqhrtappkit.dynamic.txt"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 192,
-        "text": "runtime/m6/prebuilt/libqhrtappkit.qtmetadata.txt"
+        "text": "rm -f runtime/m6/prebuilt/libqhrtappkit.so"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
         "line": 193,
-        "text": "chmod 0755 runtime/m6/prebuilt/libqhrtappkit.so"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 197,
         "text": "git add runtime/m6/prebuilt"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qpa-publish.yml",
-        "line": 202,
-        "text": "git commit -m 'runtime: publish verified Qt 5.11.3 hrtappkit QPA [skip ci]'"
+        "line": 198,
+        "text": "git commit -m 'runtime: publish verified Qt 5.11.3 M7 BGRA QPA'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m6-qt-gui-probe-matrix-v3.yml",
