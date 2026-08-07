@@ -58,64 +58,71 @@ jobs:
           text = text.replace(imports_old, imports_new, 1)
 
           anchor = '    text = args.source.read_text(encoding="utf-8")\n\n'
-          fallback = '''    text = args.source.read_text(encoding="utf-8")
-
-    # The deterministic directory-stream bridge owns close(2) interception,
-    # so the older pipe-backed eventfd transform cannot safely splice its
-    # cleanup into that function.  Exact HWord's proven Qt/GLib path instead
-    # uses poll/ppoll plus kqueue-backed epoll and tgkill.  When this legacy
-    # entrypoint is invoked after the directory-stream transform, delegate to
-    # that already-proven event-loop chain and leave crash-signal injection to
-    # the next explicit workflow stage.
-    if (
-        "host_getdents64_stream_bridge" in text
-        and "host_poll_bridge(" not in text
-        and "case LINUX_SYS_EVENTFD2:" not in text
-    ):
-        scripts = (
-            "augment_polling.py",
-            "augment_epoll.py",
-            "augment_tgkill.py",
-        )
-        script_directory = Path(__file__).resolve().parent
-        with tempfile.TemporaryDirectory(prefix="hrt-mature-loop-") as temp:
-            current = args.source
-            for index, script in enumerate(scripts, start=1):
-                output = Path(temp) / f"{index}.c"
-                subprocess.run(
-                    [
-                        sys.executable,
-                        str(script_directory / script),
-                        str(current),
-                        str(output),
-                    ],
-                    check=True,
-                )
-                current = output
-            args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_text(current.read_text(encoding="utf-8"),
-                                   encoding="utf-8")
-        return
-
-'''
+          fallback = "\n".join([
+              '    text = args.source.read_text(encoding="utf-8")',
+              '',
+              '    # The deterministic directory-stream bridge owns close(2)',
+              '    # interception, so the older pipe-backed eventfd transform',
+              '    # cannot safely splice its cleanup into that function.',
+              '    # Exact HWord\'s proven Qt/GLib path instead uses poll/ppoll',
+              '    # plus kqueue-backed epoll and tgkill. Delegate to that chain',
+              '    # and leave crash-signal injection to the next workflow stage.',
+              '    if (',
+              '        "host_getdents64_stream_bridge" in text',
+              '        and "host_poll_bridge(" not in text',
+              '        and "case LINUX_SYS_EVENTFD2:" not in text',
+              '    ):',
+              '        scripts = (',
+              '            "augment_polling.py",',
+              '            "augment_epoll.py",',
+              '            "augment_tgkill.py",',
+              '        )',
+              '        script_directory = Path(__file__).resolve().parent',
+              '        with tempfile.TemporaryDirectory(',
+              '            prefix="hrt-mature-loop-"',
+              '        ) as temp:',
+              '            current = args.source',
+              '            for index, script in enumerate(scripts, start=1):',
+              '                output = Path(temp) / f"{index}.c"',
+              '                subprocess.run(',
+              '                    [',
+              '                        sys.executable,',
+              '                        str(script_directory / script),',
+              '                        str(current),',
+              '                        str(output),',
+              '                    ],',
+              '                    check=True,',
+              '                )',
+              '                current = output',
+              '            args.output.parent.mkdir(parents=True, exist_ok=True)',
+              '            args.output.write_text(',
+              '                current.read_text(encoding="utf-8"),',
+              '                encoding="utf-8",',
+              '            )',
+              '        return',
+              '',
+          ]) + "\n"
           assert text.count(anchor) == 1
           eventfd.write_text(text.replace(anchor, fallback, 1))
 
           poll = Path('runtime/m3/augment_poll.py')
           text = poll.read_text()
           anchor = '    text = args.source.read_text(encoding="utf-8")\n\n'
-          passthrough = '''    text = args.source.read_text(encoding="utf-8")
-
-    # A preceding compatibility stage may already have installed the newer
-    # poll/ppoll bridge together with epoll and tgkill.  Preserve that mature
-    # translation rather than trying to inject the older poll-only variant a
-    # second time.
-    if "case LINUX_SYS_PPOLL:" in text and "host_poll_bridge(" in text:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(text, encoding="utf-8")
-        return
-
-'''
+          passthrough = "\n".join([
+              '    text = args.source.read_text(encoding="utf-8")',
+              '',
+              '    # Preserve a preceding mature poll/ppoll + epoll + tgkill',
+              '    # translation rather than injecting the older poll-only',
+              '    # variant a second time.',
+              '    if (',
+              '        "case LINUX_SYS_PPOLL:" in text',
+              '        and "host_poll_bridge(" in text',
+              '    ):',
+              '        args.output.parent.mkdir(parents=True, exist_ok=True)',
+              '        args.output.write_text(text, encoding="utf-8")',
+              '        return',
+              '',
+          ]) + "\n"
           assert text.count(anchor) == 1
           poll.write_text(text.replace(anchor, passthrough, 1))
           PY
