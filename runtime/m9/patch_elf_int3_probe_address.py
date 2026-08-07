@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import struct
 
@@ -49,7 +50,8 @@ def main() -> None:
         raise SystemExit("signature length must be in 4..128")
     if args.nearby_search < 0 or args.nearby_search > 4096:
         raise SystemExit("nearby search must be in 0..4096")
-    expected = bytes.fromhex(args.expected_prefix) if args.expected_prefix else b""
+    requested_expected = bytes.fromhex(args.expected_prefix) if args.expected_prefix else b""
+    expected = requested_expected
 
     blob = bytearray(args.elf.read_bytes())
     if len(blob) < ELF_HEADER.size:
@@ -90,10 +92,7 @@ def main() -> None:
         for candidate in executable_segments:
             start = candidate["virtual_address"]
             if start <= virtual_address < start + candidate["file_size"]:
-                return (
-                    candidate["file_offset"] + virtual_address - start,
-                    candidate,
-                )
+                return candidate["file_offset"] + virtual_address - start, candidate
         return None
 
     requested = locate(requested_target)
@@ -105,36 +104,66 @@ def main() -> None:
     file_offset = requested_file_offset
     segment = requested_segment
     relocation_delta = 0
+    correction = None
 
     if expected:
-        requested_bytes = bytes(
-            blob[file_offset:file_offset + len(expected)])
+        requested_bytes = bytes(blob[file_offset:file_offset + len(expected)])
         if requested_bytes != expected:
-            matches: list[tuple[int, int, dict[str, int]]] = []
-            for delta in range(-args.nearby_search, args.nearby_search + 1):
-                candidate_address = requested_target + delta
-                located = locate(candidate_address)
-                if located is None:
-                    continue
-                candidate_offset, candidate_segment = located
-                if bytes(blob[candidate_offset:candidate_offset + len(expected)]) == expected:
-                    matches.append((candidate_address, candidate_offset,
-                                    candidate_segment))
-            unique = {(address, offset) for address, offset, _segment in matches}
-            if len(unique) != 1:
-                rendered = [f"0x{address:x}" for address, _offset in sorted(unique)]
-                raise SystemExit(
-                    "expected prefix " + expected.hex() +
-                    f" not uniquely found near 0x{requested_target:x}; "
-                    f"requested bytes={requested_bytes.hex()} matches={rendered}")
-            target, file_offset = next(iter(unique))
-            segment = next(candidate_segment for address, offset, candidate_segment
-                           in matches if address == target and offset == file_offset)
-            relocation_delta = target - requested_target
+            # The first conversion workflow transcribed the post-call boundary
+            # as 0x411136/4889e8.  Exact disassembly of the locked HwordApp
+            # object shows 0x411136 is the three-byte `call *0x20(%rax)` and
+            # the first post-call instruction is 0x411139/48837d0800.  Apply
+            # only this fully locked correction; all other sites still use the
+            # generic unique nearby signature search below.
+            if (
+                args.label == "culture-conversion-after"
+                and os.environ.get("PROBE_MODE") == "after"
+                and requested_target == 0x411136
+                and requested_expected == bytes.fromhex("4889e8")
+                and bytes(blob[file_offset:file_offset + 3]) == bytes.fromhex("ff5020")
+            ):
+                corrected_target = requested_target + 3
+                corrected = locate(corrected_target)
+                corrected_expected = bytes.fromhex("48837d0800")
+                if corrected is None:
+                    raise SystemExit("corrected post-call target is not executable")
+                corrected_offset, corrected_segment = corrected
+                actual = bytes(blob[corrected_offset:corrected_offset + len(corrected_expected)])
+                if actual != corrected_expected:
+                    raise SystemExit(
+                        "locked post-call correction mismatch: expected "
+                        + corrected_expected.hex() + ", found " + actual.hex())
+                target = corrected_target
+                file_offset = corrected_offset
+                segment = corrected_segment
+                expected = corrected_expected
+                relocation_delta = 3
+                correction = "HwordApp 0x411136 indirect-call -> 0x411139 post-call cmp"
+            else:
+                matches: list[tuple[int, int, dict[str, int]]] = []
+                for delta in range(-args.nearby_search, args.nearby_search + 1):
+                    candidate_address = requested_target + delta
+                    located = locate(candidate_address)
+                    if located is None:
+                        continue
+                    candidate_offset, candidate_segment = located
+                    if bytes(blob[candidate_offset:candidate_offset + len(expected)]) == expected:
+                        matches.append((candidate_address, candidate_offset,
+                                        candidate_segment))
+                unique = {(address, offset) for address, offset, _segment in matches}
+                if len(unique) != 1:
+                    rendered = [f"0x{address:x}" for address, _offset in sorted(unique)]
+                    raise SystemExit(
+                        "expected prefix " + expected.hex() +
+                        f" not uniquely found near 0x{requested_target:x}; "
+                        f"requested bytes={requested_bytes.hex()} matches={rendered}")
+                target, file_offset = next(iter(unique))
+                segment = next(candidate_segment for address, offset, candidate_segment
+                               in matches if address == target and offset == file_offset)
+                relocation_delta = target - requested_target
 
     if file_offset + args.signature_length > len(blob):
         raise SystemExit("probe signature extends beyond the ELF file")
-
     original = bytes(blob[file_offset:file_offset + args.signature_length])
     if original[0] == 0xCC:
         raise SystemExit("target is already an INT3 instruction")
@@ -148,7 +177,7 @@ def main() -> None:
     args.elf.write_bytes(blob)
 
     manifest = {
-        "schema": 2,
+        "schema": 3,
         "kind": "signature-locked-address-int3",
         "label": args.label,
         "path": str(args.elf),
@@ -157,7 +186,9 @@ def main() -> None:
         "requested_virtual_address": requested_target,
         "virtual_address": target,
         "relocation_delta": relocation_delta,
+        "correction": correction,
         "nearby_search": args.nearby_search,
+        "requested_expected_prefix_hex": requested_expected.hex(),
         "expected_prefix_hex": expected.hex(),
         "file_offset": file_offset,
         "segment": segment,
