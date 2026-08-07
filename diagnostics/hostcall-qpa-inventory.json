@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "commit": "df4583eca0cc2bf6c5676e6a32872135b4dd728d",
-  "workflow_run": "31165970775",
+  "commit": "30d4629f963db4d185caf70073d061867763417b",
+  "workflow_run": "31165999247",
   "file_count": 120,
   "match_counts": {
     "opcode_256": 544,
     "create_operation": 41,
     "host_call": 403,
-    "custom_qpa": 593,
-    "appkit": 140,
+    "custom_qpa": 595,
+    "appkit": 141,
     "rendering": 259,
     "input_ime": 1559
   },
@@ -209,8 +209,8 @@
     },
     {
       "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-      "sha256": "7eaf4e8987d22997af260bce06bef19abbf8833f53a2ee4abefb4ab5c5d0d5cc",
-      "size": 3958,
+      "sha256": "b7656845457993db3fb75abe6b78176e0ec34d6f1cc9f528ae5e0cf68dfc30aa",
+      "size": 4476,
       "groups": [
         "appkit",
         "create_operation",
@@ -4019,17 +4019,17 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 18,
+        "line": 19,
         "text": "qWarning(\"HRT M6 QPA: QPlatformWindow constructed type=%d title=%s\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 65,
+        "line": 66,
         "text": "qWarning(\"HRT M6 QPA: CREATE failed type=%d result=%lld title=%s\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 78,
+        "line": 80,
         "text": "qWarning(\"HRT M6 QPA: CREATE type=%d geometry=%dx%d title=%s handle=%lld pump=%lld flags=0x%llx capture=%lld\","
       },
       {
@@ -4731,27 +4731,27 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 59,
+        "line": 60,
         "text": "const qint64 handle = hrtM6HostCall("
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 73,
+        "line": 75,
         "text": "const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 250);"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 74,
+        "line": 76,
         "text": "const qint64 flags = hrtM6HostCall("
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 76,
+        "line": 78,
         "text": "const qint64 capture = hrtM6HostCall("
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 92,
+        "line": 94,
         "text": "const qint64 result = hrtM6HostCall("
       },
       {
@@ -6558,33 +6558,43 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 18,
+        "line": 7,
+        "text": "#include <qpa/qwindowsysteminterface.h>"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
+        "line": 19,
         "text": "qWarning(\"HRT M6 QPA: QPlatformWindow constructed type=%d title=%s\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 65,
+        "line": 66,
         "text": "qWarning(\"HRT M6 QPA: CREATE failed type=%d result=%lld title=%s\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 78,
+        "line": 80,
         "text": "qWarning(\"HRT M6 QPA: CREATE type=%d geometry=%dx%d title=%s handle=%lld pump=%lld flags=0x%llx capture=%lld\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 94,
+        "line": 96,
         "text": "qWarning(\"HRT M6 QPA: DESTROY handle=%lld result=%lld\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 116,
+        "line": 118,
         "text": "qWarning(\"HRT M6 QPA: GEOMETRY handle=%lld rect=%d,%d %dx%d\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 127,
+        "line": 129,
         "text": "qWarning(\"HRT M6 QPA: TITLE handle=%lld title=%s\","
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
+        "line": 140,
+        "text": "qWarning(\"HRT M8B QPA: Qt window activated type=%d title=%s host=%lld\","
       },
       {
         "path": "runtime/m6/qpa/qplatform_vulkan_compat.cpp",
@@ -9475,53 +9485,58 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 10,
+        "line": 11,
         "text": "QHrtAppKitWindow *QHrtAppKitWindow::s_nativeOwner = nullptr;"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 12,
+        "line": 13,
         "text": "QHrtAppKitWindow::QHrtAppKitWindow(QWindow *window)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 22,
+        "line": 23,
         "text": "QHrtAppKitWindow::~QHrtAppKitWindow()"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 27,
+        "line": 28,
         "text": "qint64 QHrtAppKitWindow::hostWindowFor(const QWindow *candidate)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 37,
+        "line": 38,
         "text": "bool QHrtAppKitWindow::isNativeCandidate() const"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 45,
+        "line": 46,
         "text": "void QHrtAppKitWindow::createNativeWindow()"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 86,
+        "line": 88,
         "text": "void QHrtAppKitWindow::destroyNativeWindow()"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 102,
+        "line": 104,
         "text": "void QHrtAppKitWindow::setVisible(bool visible)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 112,
+        "line": 114,
         "text": "void QHrtAppKitWindow::setGeometry(const QRect &rect)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
-        "line": 122,
+        "line": 124,
         "text": "void QHrtAppKitWindow::setWindowTitle(const QString &title)"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitwindow.cpp",
+        "line": 134,
+        "text": "void QHrtAppKitWindow::requestActivateWindow()"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.h",
