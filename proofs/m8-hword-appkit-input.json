@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "milestone": "M8",
+  "status": "PASS",
+  "workflow_run": "31165569221",
+  "commit": "fd7a759cee033791e3fca318a1a5bce2d9006e63",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "rootfs_artifact_id": "8968324706",
+  "qpa_sha256": "a4ffc8fffdadbafcd27c7fdab9099ea54f5d13a2f7bb61fd6885ed451f601730",
+  "input_abi_size": 88,
+  "input_poll_opcode": 262,
+  "key_events_delivered": 2,
+  "mouse_events_delivered": 3,
+  "poll_results": [
+    {
+      "result": 1
+    },
+    {
+      "result": 1
+    },
+    {
+      "result": 1
+    },
+    {
+      "result": 1
+    },
+    {
+      "result": 1
+    },
+    {
+      "result": 0
+    },
+    {
+      "result": 0
+    }
+  ],
+  "capture_sha256": "a30d0dea3b2971079e5e1ec35fc2b6e5797ed4dacf80bad85c345abe7eff4a45",
+  "proof": "AppKit NSEvents traversed the M8 queue and QWindowSystemInterface into exact HWord Qt"
+}
