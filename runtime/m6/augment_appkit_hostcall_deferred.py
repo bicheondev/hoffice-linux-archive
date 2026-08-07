@@ -96,15 +96,16 @@ static void schedule_m6_appkit_hostcall(x86_thread_state64_t *state,
         "M6 deferred scheduler",
     )
 
+    # Older bridges placed poll first in the syscall switch.  The mature
+    # event-loop bridge may prepend epoll/tgkill cases, so anchor only on the
+    # unique dispatcher switch instead of depending on case ordering.
     text = replace_once(
         text,
-        "    switch (state->__rax) {\n"
-        "        case LINUX_SYS_POLL:\n",
+        "    switch (state->__rax) {\n",
         "    switch (state->__rax) {\n"
         "        case HRT_M6_HOSTCALL_SYSCALL:\n"
         "            schedule_m6_appkit_hostcall(state, rip);\n"
-        "            return;\n"
-        "        case LINUX_SYS_POLL:\n",
+        "            return;\n",
         "M6 deferred dispatch",
     )
 
