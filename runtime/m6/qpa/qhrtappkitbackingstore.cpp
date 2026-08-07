@@ -16,6 +16,43 @@
 
 QT_BEGIN_NAMESPACE
 
+namespace {
+
+/*
+ * Mouse delivery can synchronously repaint HWord.  That repaint re-enters
+ * flush(), which used to drain the host queue recursively before the outer
+ * mouse-up had completed.  The resulting order was down → nested key → up,
+ * so the text reached Qt before the click could establish focus.  All Qt GUI
+ * work here is single-threaded; a process-local RAII guard therefore defers a
+ * nested drain while preserving the already-enqueued FIFO order for the outer
+ * loop.
+ */
+static bool g_m10InputDrainActive = false;
+
+class M10InputDrainGuard
+{
+public:
+    M10InputDrainGuard()
+        : m_acquired(!g_m10InputDrainActive)
+    {
+        if (m_acquired)
+            g_m10InputDrainActive = true;
+    }
+
+    ~M10InputDrainGuard()
+    {
+        if (m_acquired)
+            g_m10InputDrainActive = false;
+    }
+
+    bool acquired() const { return m_acquired; }
+
+private:
+    bool m_acquired;
+};
+
+} // namespace
+
 static Qt::KeyboardModifiers m8Modifiers(quint32 value)
 {
     Qt::KeyboardModifiers result = Qt::NoModifier;
@@ -123,6 +160,12 @@ void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)
 {
     if (deliveryWindow == nullptr)
         return;
+
+    M10InputDrainGuard drainGuard;
+    if (!drainGuard.acquired()) {
+        qWarning("HRT M10 QPA: nested input drain deferred");
+        return;
+    }
 
     m10ActivateDeliveryWindow(deliveryWindow, "drain-begin");
 
