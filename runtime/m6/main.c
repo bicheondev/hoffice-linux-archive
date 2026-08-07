@@ -19,6 +19,28 @@ static void usage(const char *program) {
             program);
 }
 
+static void enter_guest_program_directory(const char *root,
+                                          const char *guest_program) {
+    char host_program[HRT_MAX_PATH];
+    resolve_guest_path(root, guest_program,
+                       host_program, sizeof(host_program));
+
+    char *separator = strrchr(host_program, '/');
+    if (separator == NULL || separator == host_program) {
+        errno = EINVAL;
+        fatal("M6 guest program has no usable parent directory");
+    }
+    *separator = '\0';
+
+    if (chdir(host_program) != 0)
+        fatal("M6 chdir to guest program directory");
+
+    fprintf(stderr,
+            "hrt-m6: guest current directory=%s\n",
+            host_program);
+    fflush(stderr);
+}
+
 static void *guest_thread_main(void *opaque) {
     const GuestThreadContext *context =
         (const GuestThreadContext *)opaque;
@@ -93,6 +115,14 @@ int main(int argc, char **argv) {
         usage(argv[0]);
         return 64;
     }
+
+    /*
+     * Linux desktop launchers run HOffice with Bin as its working directory.
+     * Several HncBaseDraw bootstrap paths are relative (FontMap.dat and
+     * fontinfo.dat).  Without this process-wide CWD, AT_FDCWD opens escape the
+     * guest tree and resolve against the macOS runner or app bundle directory.
+     */
+    enter_guest_program_directory(argv[2], argv[4]);
 
     int appkit_result = hrt_m6_appkit_initialize();
     if (appkit_result != 0) {
