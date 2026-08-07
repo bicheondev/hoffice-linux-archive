@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "milestone": "M7 exact HWord first BGRA frame",
+  "status": "PASS",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256_before_prepatch": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "qpa_plugin": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so",
+  "qpa_plugin_sha256": "833ebeb1168d83678d4d710cf12f1086c1da198bc31922e825e94cb79614d860",
+  "qpa_key": "hrtappkit",
+  "frame": {
+    "sequence": 1,
+    "width": 390,
+    "height": 128,
+    "bytes_per_line": 1560,
+    "host_window": 24,
+    "query_flags": 255
+  },
+  "host_calls": [
+    {
+      "opcode": 256,
+      "result": 24
+    },
+    {
+      "opcode": 257,
+      "result": 0
+    },
+    {
+      "opcode": 258,
+      "result": 127
+    },
+    {
+      "opcode": 259,
+      "result": 1
+    },
+    {
+      "opcode": 261,
+      "result": 1
+    },
+    {
+      "opcode": 257,
+      "result": 0
+    },
+    {
+      "opcode": 258,
+      "result": 255
+    },
+    {
+      "opcode": 259,
+      "result": 1
+    },
+    {
+      "opcode": 261,
+      "result": 1
+    }
+  ],
+  "pre_frame_screenshot_sha256": "6ed1f66a71f8a5b059d2fc81f84f8b5c6bb5f0cd540579477f809e97ec68f3bf",
+  "presented_frame_screenshot_sha256": "a30d0dea3b2971079e5e1ec35fc2b6e5797ed4dacf80bad85c345abe7eff4a45",
+  "screenshots_differ": true,
+  "window_server_listed": true,
+  "guest_bgra_copied_to_appkit_view": true,
+  "process_was_terminated_by_supervisor": true,
+  "not_credited": [
+    "continuous animation quality",
+    "native input",
+    "Korean IME",
+    "clipboard",
+    "document operations",
+    "clean shutdown"
+  ]
+}
