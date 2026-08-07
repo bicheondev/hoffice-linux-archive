@@ -154,7 +154,7 @@ static NSEvent *synthetic_mouse(NSEventType type, NSWindow *window,
         "g_m10_synthetic_stage": 6,
         "HRT M10 APPKIT: staged Ctrl+N": 1,
         "HRT M10 APPKIT: staged document click and text input": 1,
-        "NSEventModifierFlagControl": 2,
+        "NSEventModifierFlagControl": 3,
         "m10_synthetic_key": 3,
     }
     for marker, expected in required.items():
