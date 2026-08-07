@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "milestone": "M9-font-payload",
+  "status": "PASS",
+  "classification": "HWORD_PAST_FONT_INITIALIZATION",
+  "workflow_run": "31168344271",
+  "commit": "a438fff527826fd6dc9fc7a013c03e399ba1ec42",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "package_sha256": "23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46",
+  "compatibility_alias": "/opt/hnc/hoffice1 -> hoffice11",
+  "window_titles": [
+    "Exception"
+  ],
+  "window_geometries": [
+    [
+      400,
+      168
+    ]
+  ],
+  "initialization_error_observed": false,
+  "frame_present": true,
+  "frame_sha256": "4cbb09dbaa2b9658f5789cc96a0038ed20c5289ff7b65bb1edff449cadd8d552",
+  "hft_file_count": 403,
+  "ttf_file_count": 222,
+  "raw_exit_status": 143
+}
