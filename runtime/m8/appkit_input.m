@@ -178,10 +178,10 @@ static NSEvent *monitor_event(NSEvent *event) {
 
     switch (event.type) {
         case NSEventTypeKeyDown:
-            capture_key_event(event, HRT_M8_KEY_DOWN);
+            capture_key_event(event, HRT_M8_KEY_ACTION_DOWN);
             break;
         case NSEventTypeKeyUp:
-            capture_key_event(event, HRT_M8_KEY_UP);
+            capture_key_event(event, HRT_M8_KEY_ACTION_UP);
             break;
         case NSEventTypeMouseMoved:
             capture_mouse_event(event, HRT_M8_MOUSE_MOVE);
