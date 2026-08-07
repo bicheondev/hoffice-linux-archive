@@ -2,8 +2,8 @@
   "schema": 2,
   "artifact": {
     "kind": "repository-published-xz",
-    "workflow_run": "31152348241",
-    "source_commit": "205b96998bbaf800d08f12e6541d503875a0f845",
+    "workflow_run": "31152764192",
+    "source_commit": "ff3f2f4223ca5033795b92471507ebe06e3c6dff",
     "qpa_source_tree": "176e331fe060611e1694489399100b6bc2251c68"
   },
   "toolchain": {
