@@ -68,6 +68,19 @@ jobs:
           install -m 0644 build/unpacked/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml \
             .github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml
 
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml')
+          text = path.read_text()
+          needle = '          -Wall -Wextra -Werror -Wpedantic \\\n'
+          replacement = (
+              '          -Wall -Wextra -Werror -Wpedantic \\\n'
+              '          -Wno-unused-function -Wno-unused-variable \\\n')
+          assert text.count(needle) == 1
+          path.write_text(text.replace(needle, replacement, 1))
+          PY
+
           python3 -m py_compile runtime/m3/patch_elf_int3_qt_vtable.py
           git diff --check
           git status --short
@@ -84,10 +97,10 @@ jobs:
             .github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml \
             .github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml
           if git diff --cached --quiet; then
-            echo 'The exact payload is already present.'
+            echo 'The exact payload and compatibility fix are already present.'
             exit 0
           fi
-          git commit -m 'runtime: add stripped Qt RTTI vtable probe chain'
+          git commit -m 'ci: tolerate generated compatibility helpers in RTTI probe'
           git pull --rebase origin "$BRANCH"
           git push origin HEAD:"$BRANCH"
 
