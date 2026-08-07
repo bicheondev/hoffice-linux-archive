@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "milestone": "M10-recursive-drain-replay",
+  "status": "DIAGNOSTIC",
+  "classification": "ORDER_FIXED_KEY_NOT_ACCEPTED",
+  "workflow_run": "31227300088",
+  "commit": "98e74bca815b6df1cf2a565a6c922e7f62500f8f",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "package_sha256": "23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46",
+  "source_m10_host_run": "31226851841",
+  "recursive_qpa_run": "31227077027",
+  "window_titles": [
+    "HWord Qt Window",
+    "Word"
+  ],
+  "window_geometries": [
+    [
+      200,
+      100
+    ],
+    [
+      800,
+      600
+    ]
+  ],
+  "word_window_observed": true,
+  "nested_drains_deferred": 4,
+  "delivered_sequences": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "strictly_ordered_unique_sequences": true,
+  "key_events": 2,
+  "accepted_key_events": 0,
+  "directly_accepted_key_events": 0,
+  "mouse_events": 6,
+  "queue_drained": true,
+  "presented_frames": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "before_capture": {
+    "path": "build/proof/hword-before-input.png",
+    "width": 800,
+    "height": 628,
+    "size": 42854,
+    "sha256": "744c68901d11a14656fab1307a662cb86a5037d436140ad59b6682149716471e"
+  },
+  "after_capture": {
+    "path": "build/proof/hword-after-input.png",
+    "width": 800,
+    "height": 628,
+    "size": 42505,
+    "sha256": "c0e8be61d9db811df33024e4369bbf38e98d2f8575ca5e693c979c54500bc58c"
+  },
+  "visual_change": true,
+  "post_capture_completed": true,
+  "fatal_signal": false,
+  "alive_at_observation": true,
+  "raw_exit_status": 143
+}
