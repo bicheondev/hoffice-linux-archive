@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
-"""Generate the M10 adapter, then split focus and text across real frames.
+"""Generate a frame-separated HWord toolbar, focus, and text sequence.
 
-The locked M10 generator at commit 058b66e4 already proved that AppKit mouse
-and key events traverse opcode 262 into the exact HWord QPA.  That run also
-showed why the text was ignored: the focus click and ``a`` key were drained in
-the same Qt flush, before the widget hierarchy could process the mouse event.
+The real culture-repaired HWord window starts with no open document.  A
+Ctrl+N event reaches the exact Qt window but is not accepted by this Linux
+build's shortcut path.  The toolbar's enabled blank-document button is part of
+the rendered HWord UI, so this generator drives that real control instead:
 
-This compatibility layer runs the locked generator unchanged, then makes the
-minimum fail-closed edits required for a three-frame sequence:
-
-1. frame 1: Ctrl+N;
-2. frame 2: document-area click only;
+1. frame 1: click the blank-document toolbar button;
+2. frame 2: click inside the document canvas;
 3. frame 3: capture the focused baseline, then type ``a``;
 4. frame 5: capture after two repaint opportunities.
 
-The old deterministic-input marker is emitted after the final key stage so the
-existing classifier remains compatible.
+The toolbar point is expressed in AppKit's bottom-left window coordinates.  It
+maps to approximately ``(27, 163)`` in the 800x600 Qt content surface, matching
+the blank-document icon observed in the durable M9 HWord frame.  All source
+rewrites remain exact-anchor and fail closed.
 """
 from __future__ import annotations
 
@@ -56,8 +55,58 @@ def run_locked_generator() -> None:
         module.main()
 
 
+def replace_new_document_shortcut(text: str) -> str:
+    old = r'''        if (g_m10_synthetic_stage == 0u) {
+            NSArray<NSEvent *> *new_document = @[
+                m10_synthetic_key(NSEventTypeKeyDown, window, @"n",
+                    NSEventModifierFlagControl, 45),
+                m10_synthetic_key(NSEventTypeKeyUp, window, @"n",
+                    NSEventModifierFlagControl, 45),
+            ];
+            for (NSEvent *event in new_document)
+                [NSApp postEvent:event atStart:NO];
+            g_m10_synthetic_stage = 1u;
+            fprintf(stderr,
+                    "HRT M10 APPKIT: staged Ctrl+N new-document input window=%ld\n",
+                    (long)window.windowNumber);
+            fflush(stderr);
+            return;
+        }
+'''
+    new = r'''        if (g_m10_synthetic_stage == 0u) {
+            const NSRect bounds = window.contentView != nil
+                ? window.contentView.bounds
+                : NSMakeRect(0.0, 0.0, 800.0, 600.0);
+            /*
+             * The durable 800x600 HWord frame places the enabled blank-page
+             * toolbar icon at Qt-local x=27, y=163.  NSEvent window positions
+             * use a bottom-left origin, so invert only the Y coordinate here.
+             */
+            const NSPoint point = NSMakePoint(
+                NSMinX(bounds) + 27.0,
+                NSMaxY(bounds) - 163.0);
+            NSArray<NSEvent *> *new_document = @[
+                synthetic_mouse(NSEventTypeMouseMoved, window, point, 8091),
+                synthetic_mouse(NSEventTypeLeftMouseDown, window, point, 8092),
+                synthetic_mouse(NSEventTypeLeftMouseUp, window, point, 8093),
+            ];
+            for (NSEvent *event in new_document)
+                [NSApp postEvent:event atStart:NO];
+            g_m10_synthetic_stage = 1u;
+            fprintf(stderr,
+                    "HRT M10 APPKIT: staged toolbar new-document click window=%ld point=%.0f,%.0f\n",
+                    (long)window.windowNumber, point.x, point.y);
+            fflush(stderr);
+            return;
+        }
+'''
+    return replace_once(text, old, new, "toolbar new-document stage")
+
+
 def split_input_stages(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
+    text = replace_new_document_shortcut(text)
+
     old = r'''        if (g_m10_synthetic_stage == 1u) {
             const NSRect bounds = window.contentView != nil
                 ? window.contentView.bounds
@@ -127,10 +176,12 @@ def split_input_stages(path: Path) -> None:
 '''
     text = replace_once(text, old, new, "three-frame HWord input sequence")
     required = {
+        "HRT M10 APPKIT: staged toolbar new-document click": 1,
         "HRT M10 APPKIT: staged document focus click": 1,
         "HRT M10 APPKIT: staged text input after focus": 1,
         "HRT M8 APPKIT: posted deterministic focus click, key and mouse events": 2,
         "g_m10_synthetic_stage = 3u": 1,
+        "NSMaxY(bounds) - 163.0": 1,
     }
     for marker, expected in required.items():
         actual = text.count(marker)
