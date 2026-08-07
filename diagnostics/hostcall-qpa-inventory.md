@@ -1,15 +1,15 @@
 # Custom QPA and host-call inventory
 
-- Commit: `35add633a92a2fb5234fdcceba7e3c40a4e74ed8`
-- Matching files: `109`
+- Commit: `74fced075bb74af9fac81171ca0fb8a8e4239e35`
+- Matching files: `110`
 
 - `opcode_256`: `504` matches
 - `create_operation`: `41` matches
-- `host_call`: `352` matches
-- `custom_qpa`: `475` matches
+- `host_call`: `353` matches
+- `custom_qpa`: `476` matches
 - `appkit`: `116` matches
 - `rendering`: `217` matches
-- `input_ime`: `1408` matches
+- `input_ime`: `1420` matches
 
 ## opcode_256
 
@@ -466,6 +466,7 @@
 - `.github/workflows/hoffice-legacy-openssl-audit.yml:8` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-abi-lock.yml:9` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-augmentors-static.yml:10` — `workflow_dispatch:`
+- `.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml:8` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml:8` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-bootstrap-rtti-v3.yml:9` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-chain-m5-integration-constructor.yml:8` — `workflow_dispatch:`
@@ -660,8 +661,7 @@
 - `.github/workflows/hoffice-runtime-m6-hword-qpa-appkit.yml:413` — `grep -F 'hrt-m6: host-call opcode=259 result=1' \`
 - `.github/workflows/hoffice-runtime-m6-hword-qpa-appkit.yml:438` — `r'hrt-m6: host-call opcode=(\d+) result=(-?\d+)', line)`
 - `.github/workflows/hoffice-runtime-m6-hword-qpa-appkit.yml:458` — `'host_calls': operations,`
-- `.github/workflows/hoffice-runtime-m6-hword-qpa-build-v2.yml:9` — `workflow_dispatch:`
-- … 52 more matches in JSON
+- … 53 more matches in JSON
 
 ## custom_qpa
 
@@ -732,6 +732,7 @@
 - `.github/workflows/hoffice-runtime-augmentors-static.yml:100` — `struct QPlatformWindow { virtual ~QPlatformWindow() = default; };`
 - `.github/workflows/hoffice-runtime-augmentors-static.yml:105` — `struct QOffscreenWindow final : QPlatformWindow {`
 - `.github/workflows/hoffice-runtime-augmentors-static.yml:123` — `QPlatformWindow *createPlatformWindow(QWindow *window) {`
+- `.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml:1` — `name: Bootstrap mature event-loop fallback for prebuilt QPA replay`
 - `.github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml:1` — `name: Bootstrap exact HWord prebuilt QPA replay v3`
 - `.github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml:7` — `- '.github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml'`
 - `.github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml:14` — `group: hrt-bootstrap-prebuilt-qpa-v3-${{ github.ref }}`
@@ -964,8 +965,7 @@
 - `.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml:250` — `file /tmp/hrt-m6-build/host/hrt-m6-hword-qpa \`
 - `.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml:252` — `lipo -info /tmp/hrt-m6-build/host/hrt-m6-hword-qpa \`
 - `.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml:255` — `/tmp/hrt-m6-build/host/hrt-m6-hword-qpa`
-- `.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml:257` — `/tmp/hrt-m6-build/host/hrt-m6-hword-qpa`
-- … 175 more matches in JSON
+- … 176 more matches in JSON
 
 ## appkit
 
@@ -1410,6 +1410,18 @@
 - `.github/workflows/hoffice-runtime-augmentors-static.yml:291` — `git push origin HEAD:codex/hoffice-runtime-from-scratch`
 - `.github/workflows/hoffice-runtime-augmentors-static.yml:296` — `name: hrt-runtime-augmentors-static`
 - `.github/workflows/hoffice-runtime-augmentors-static.yml:298` — `diagnostics/runtime-augmentors-static.json`
+- `.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml:5` — `branches: [codex/hoffice-runtime-from-scratch]`
+- `.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml:7` — `- '.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml'`
+- `.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml:20` — `timeout-minutes: 10`
+- `.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml:22` — `BRANCH: codex/hoffice-runtime-from-scratch`
+- `.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml:47` — `eventfd = Path('runtime/m3/augment_eventfd2.py')`
+- `.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml:108` — `poll = Path('runtime/m3/augment_poll.py')`
+- `.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml:116` — `'    # variant a second time.',`
+- `.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml:131` — `runtime/m3/augment_eventfd2.py \`
+- `.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml:132` — `runtime/m3/augment_poll.py`
+- `.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml:134` — `git diff -- runtime/m3/augment_eventfd2.py runtime/m3/augment_poll.py`
+- `.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml:143` — `git add runtime/m3/augment_eventfd2.py runtime/m3/augment_poll.py`
+- `.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml:144` — `git commit -m 'runtime: route directory-stream replays through the mature event loop'`
 - `.github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml:5` — `branches: [codex/hoffice-runtime-from-scratch]`
 - `.github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml:7` — `- '.github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml'`
 - `.github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml:20` — `timeout-minutes: 10`
@@ -1596,16 +1608,4 @@
 - `.github/workflows/hoffice-runtime-m2-tls-v2.yml:8` — `- 'runtime/m2/tls_syscall_bridge_v2.c'`
 - `.github/workflows/hoffice-runtime-m2-tls-v2.yml:9` — `- 'runtime/m2/fs_trampoline.S'`
 - `.github/workflows/hoffice-runtime-m2-tls-v2.yml:10` — `- '.github/workflows/hoffice-runtime-m2-tls-v2.yml'`
-- `.github/workflows/hoffice-runtime-m2-tls-v2.yml:25` — `clang -c -nostdlib -fPIC runtime/m2/test_tls_interp.S \`
-- `.github/workflows/hoffice-runtime-m2-tls-v2.yml:30` — `clang -c -nostdlib -fPIE runtime/m1/test_main.S \`
-- `.github/workflows/hoffice-runtime-m2-tls-v2.yml:67` — `runtime/m2/main.c runtime/m2/common.c runtime/m2/elf_map.c \`
-- `.github/workflows/hoffice-runtime-m2-tls-v2.yml:68` — `runtime/m2/stack.c runtime/m2/tls_syscall_bridge_v2.c \`
-- `.github/workflows/hoffice-runtime-m2-tls-v2.yml:69` — `runtime/m2/fs_trampoline.S runtime/m2/enter_guest.S \`
-- `.github/workflows/hoffice-runtime-m2-tls-v2.yml:72` — `codesign --force --sign - --timestamp=none build/host/hrt-m2-tls-v2`
-- `.github/workflows/hoffice-runtime-m2-tls.yml:1` — `name: HOffice runtime M2 TLS`
-- `.github/workflows/hoffice-runtime-m2-tls.yml:5` — `branches: [codex/hoffice-runtime-from-scratch]`
-- `.github/workflows/hoffice-runtime-m2-tls.yml:7` — `- 'runtime/m2/test_tls_interp.S'`
-- `.github/workflows/hoffice-runtime-m2-tls.yml:8` — `- 'runtime/m2/tls_syscall_bridge.c'`
-- `.github/workflows/hoffice-runtime-m2-tls.yml:9` — `- 'runtime/m2/**'`
-- `.github/workflows/hoffice-runtime-m2-tls.yml:10` — `- '.github/workflows/hoffice-runtime-m2-tls.yml'`
-- … 1108 more matches in JSON
+- … 1120 more matches in JSON

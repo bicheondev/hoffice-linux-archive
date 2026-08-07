@@ -1,16 +1,16 @@
 {
   "schema": 1,
-  "commit": "35add633a92a2fb5234fdcceba7e3c40a4e74ed8",
-  "workflow_run": "31147007374",
-  "file_count": 109,
+  "commit": "74fced075bb74af9fac81171ca0fb8a8e4239e35",
+  "workflow_run": "31147438865",
+  "file_count": 110,
   "match_counts": {
     "opcode_256": 504,
     "create_operation": 41,
-    "host_call": 352,
-    "custom_qpa": 475,
+    "host_call": 353,
+    "custom_qpa": 476,
     "appkit": 116,
     "rendering": 217,
-    "input_ime": 1408
+    "input_ime": 1420
   },
   "files": [
     {
@@ -240,6 +240,16 @@
         "input_ime",
         "opcode_256",
         "rendering"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+      "sha256": "cd829c4df3b07d01ace499500a659fdc5b51fb6b59280d44fb080ddc11e205b6",
+      "size": 6210,
+      "groups": [
+        "custom_qpa",
+        "host_call",
+        "input_ime"
       ]
     },
     {
@@ -4405,6 +4415,11 @@
         "text": "workflow_dispatch:"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 8,
+        "text": "workflow_dispatch:"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
         "line": 8,
         "text": "workflow_dispatch:"
@@ -5975,6 +5990,11 @@
         "path": ".github/workflows/hoffice-runtime-augmentors-static.yml",
         "line": 123,
         "text": "QPlatformWindow *createPlatformWindow(QWindow *window) {"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 1,
+        "text": "name: Bootstrap mature event-loop fallback for prebuilt QPA replay"
       },
       {
         "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
@@ -10196,6 +10216,66 @@
         "path": ".github/workflows/hoffice-runtime-augmentors-static.yml",
         "line": 298,
         "text": "diagnostics/runtime-augmentors-static.json"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 20,
+        "text": "timeout-minutes: 10"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 22,
+        "text": "BRANCH: codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 47,
+        "text": "eventfd = Path('runtime/m3/augment_eventfd2.py')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 108,
+        "text": "poll = Path('runtime/m3/augment_poll.py')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 116,
+        "text": "'    # variant a second time.',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 131,
+        "text": "runtime/m3/augment_eventfd2.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 132,
+        "text": "runtime/m3/augment_poll.py"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 134,
+        "text": "git diff -- runtime/m3/augment_eventfd2.py runtime/m3/augment_poll.py"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 143,
+        "text": "git add runtime/m3/augment_eventfd2.py runtime/m3/augment_poll.py"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml",
+        "line": 144,
+        "text": "git commit -m 'runtime: route directory-stream replays through the mature event loop'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml",
