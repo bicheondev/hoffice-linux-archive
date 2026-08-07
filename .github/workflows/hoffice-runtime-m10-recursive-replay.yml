@@ -1,0 +1,381 @@
+name: HOffice runtime M10 recursive-drain replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-recursive-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m10-recursive-replay-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ROOTFS_ARTIFACT_ID: '8968324706'
+  ROOTFS_ARTIFACT_SHA256: 3e301d3c6269926c62804bff18671136fcf8c0b0b22b3952072e427a8fa9918a
+  ROOTFS_ARCHIVE_SHA256: 322fcf228092b296a34edbfa7ee43f9a7b237d5bcedaee50109ac4bb44d9ca28
+  M10_HOST_RUN_ID: '31226851841'
+  M10_HOST_ARTIFACT_DIGEST: 7d8f8b8528f9998ee38a6b862e9a8ee619fbd080eba443a9c6b5c44bb4450e41
+  QPA_RUN_ID: '31227077027'
+  QPA_ARTIFACT_DIGEST: efec8d29ae98a8c759eeef17c23857b6d1b726cd3a92e17187843a6245a5f5d1
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  replay-exact-hword:
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the real HWord editor-window proof
+        run: |
+          set -euxo pipefail
+          test -s proofs/m9-hword-culture-redirect.json
+          grep -F '"status": "PASS"' proofs/m9-hword-culture-redirect.json
+          grep -F '"classification": "HWORD_WINDOW_AFTER_CULTURE_REDIRECT"' \
+            proofs/m9-hword-culture-redirect.json
+
+      - name: Download the proven M10 host transport
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m10-hword-main-window-input-proof
+          path: build/input/m10-host
+          repository: ${{ github.repository }}
+          run-id: ${{ env.M10_HOST_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download the recursive-drain Qt 5.11.3 QPA
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m8-qt5113-hrtappkit-input-qpa
+          path: build/input/qpa
+          repository: ${{ github.repository }}
+          run-id: ${{ env.QPA_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download and verify the exact guest inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/hword build/input/deb build/host build/proof
+          curl --fail --location --retry 5 --retry-delay 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ROOTFS_ARTIFACT_ID/zip" \
+            -o build/input/hword-artifact.zip
+          printf '%s  %s\n' "$ROOTFS_ARTIFACT_SHA256" \
+            build/input/hword-artifact.zip | shasum -a 256 -c -
+          ditto -x -k build/input/hword-artifact.zip build/input/hword
+          printf '%s  %s\n' "$ROOTFS_ARCHIVE_SHA256" \
+            build/input/hword/hword-rootfs.tar.gz | shasum -a 256 -c -
+
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" \
+            --dir build/input/deb
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/input/deb/$ASSET_NAME" | shasum -a 256 -c -
+
+          host=$(find build/input/m10-host -type f \
+            -name hrt-m10-hword-main-input -print -quit)
+          test -n "$host"
+          cp "$host" build/host/hrt-m10-recursive-replay
+          chmod 0755 build/host/hrt-m10-recursive-replay
+          codesign --force --sign - --timestamp=none \
+            build/host/hrt-m10-recursive-replay
+          codesign --verify --strict build/host/hrt-m10-recursive-replay
+          file build/host/hrt-m10-recursive-replay \
+            | tee build/proof/host-file.txt
+          shasum -a 256 build/host/hrt-m10-recursive-replay \
+            | tee build/proof/host-sha256.txt
+
+      - name: Reconstruct the exact full-font culture-repaired guest
+        run: |
+          set -euxo pipefail
+          image="$RUNNER_TEMP/hrt-m10-recursive.sparsebundle"
+          root="/tmp/h10r-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"; mkdir -p "$root"
+          if ! hdiutil create -quiet -size 12g -fs APFSX \
+               -volname HRTM10R -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 12g -fs HFSX \
+              -volname HRTM10R -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >>"$GITHUB_ENV"
+          echo "HRT_IMAGE=$image" >>"$GITHUB_ENV"
+          tar -xzf build/input/hword/hword-rootfs.tar.gz -C "$root"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+          test -f "$root$HWORD_APP_GUEST"
+
+          deb="build/input/deb/$ASSET_NAME"
+          data_member=$(ar t "$deb" | awk '/^data\.tar/{print; exit}')
+          test -n "$data_member"
+          ar p "$deb" "$data_member" >"build/input/deb/$data_member"
+          tar -xf "build/input/deb/$data_member" -C "$root" \
+            ./opt/hnc/hoffice11/Shared/Fonts \
+            ./opt/hnc/hoffice11/Shared/TTF
+          rm -f "$root/opt/hnc/hoffice1"
+          ln -s hoffice11 "$root/opt/hnc/hoffice1"
+          test -f "$root/opt/hnc/hoffice1/Shared/Fonts/HGSMJ.HFT"
+          test -f "$root/opt/hnc/hoffice11/Shared/TTF/Install/HanSantteutDotum-Regular.ttf"
+
+          mkdir -p "$root$(dirname "$PLUGIN_GUEST")"
+          python3 - build/input/qpa/libqhrtappkit.so.xz \
+            build/input/qpa/lock.json "$root$PLUGIN_GUEST" <<'PY'
+          import hashlib, json, lzma, pathlib, sys
+          compressed = pathlib.Path(sys.argv[1]).read_bytes()
+          lock = json.loads(pathlib.Path(sys.argv[2]).read_text())
+          assert lock['toolchain']['qt_version'] == '5.11.3', lock
+          assert lock['plugin']['m8_input_poll_transport'] is True, lock
+          assert lock['plugin']['input_poll_opcode'] == 262, lock
+          assert hashlib.sha256(compressed).hexdigest() == lock['plugin']['xz_sha256']
+          plugin = lzma.decompress(compressed)
+          assert hashlib.sha256(plugin).hexdigest() == lock['plugin']['sha256_after_prepatch']
+          pathlib.Path(sys.argv[3]).write_bytes(plugin)
+          pathlib.Path('build/proof/qpa-lock.json').write_text(
+              json.dumps(lock, indent=2) + '\n')
+          PY
+          chmod 0755 "$root$PLUGIN_GUEST"
+
+          python3 - "$root" "$PROGRAM" "$PROGRAM_SHA256" \
+                    "$HWORD_APP_GUEST" "$HWORD_APP_SHA256" <<'PY'
+          import hashlib, json, pathlib, sys
+          root = pathlib.Path(sys.argv[1]); program = sys.argv[2]
+          marker = json.loads((root / '.hrt-prepatched-v1').read_text())
+          records = {item['path']: item for item in marker['objects']}
+          program_record = records[program]
+          assert program_record['sha256_before'] == sys.argv[3]
+          actual = hashlib.sha256((root / program.lstrip('/')).read_bytes()).hexdigest()
+          assert actual == program_record['sha256_after'], (actual, program_record)
+          hword_app = sys.argv[4]
+          record = records[hword_app]
+          assert record['sha256_after'] == sys.argv[5], record
+          assert hashlib.sha256((root / hword_app.lstrip('/')).read_bytes()).hexdigest() == sys.argv[5]
+          PY
+
+          python3 runtime/m9/patch_hword_utility_culture_redirect.py \
+            "$root$HWORD_APP_GUEST" \
+            --expected-sha256 "$HWORD_APP_SHA256" \
+            --expected-output-sha256 "$HWORD_APP_PATCHED_SHA256" \
+            --manifest build/proof/culture-redirect-patch.json
+          printf '%s  %s\n' "$HWORD_APP_PATCHED_SHA256" \
+            "$root$HWORD_APP_GUEST" | shasum -a 256 -c -
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+          grep -F 'Case-sensitive' build/proof/guest-volume.txt
+
+      - name: Run exact HWord with recursive-drain input ordering
+        run: |
+          set -uxo pipefail
+          export HRT_M6_CAPTURE_PATH="$PWD/build/proof/pre-frame-window.png"
+          export HRT_M7_CAPTURE_PATH="$PWD/build/proof/hword-recursive-gate.png"
+          export HRT_M10_PRE_INPUT_CAPTURE_PATH="$PWD/build/proof/hword-before-input.png"
+          export HRT_M10_POST_INPUT_CAPTURE_PATH="$PWD/build/proof/hword-after-input.png"
+          export HRT_M8_SYNTHETIC_INPUT=1
+          : >build/proof/stdout.txt; : >build/proof/stderr.txt
+          /usr/bin/arch -x86_64 build/host/hrt-m10-recursive-replay \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          for _ in $(jot 1400); do
+            if grep -q 'HRT M10 APPKIT: post-input capture result=1' \
+                 build/proof/stderr.txt 2>/dev/null; then
+              sleep 2
+              break
+            fi
+            if grep -q 'fatal signal' build/proof/stderr.txt 2>/dev/null; then
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 0.05
+          done
+          alive=0
+          if kill -0 "$pid" 2>/dev/null; then
+            alive=1
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+              >build/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$pid" 2 1 -file build/proof/sample.txt \
+              >/dev/null 2>&1 || true
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.3
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e; wait "$pid"; raw_status=$?; set -e
+          printf '%s\n' "$raw_status" >build/proof/raw-exit-status.txt
+          printf '%s\n' "$alive" >build/proof/alive-at-observation.txt
+          grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|HRT M8 APPKIT|HRT M8 QPA|HRT M10 QPA|HRT M10 APPKIT|host-call opcode=262|fatal signal|basic_string::substr|Caught exception' \
+            build/proof/stderr.txt | tail -n 30000 \
+            | tee build/proof/key-lines.txt || true
+          tail -n 6000 build/proof/stderr.txt >build/proof/stderr-tail.txt
+          cat build/proof/key-lines.txt
+
+      - name: Classify recursive-drain delivery and repaint
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, re, struct
+          from pathlib import Path
+
+          stderr = Path('build/proof/stderr.txt').read_text(errors='replace')
+          titles = []
+          geometries = []
+          for line in re.findall(r'HRT M6 QPA: CREATE .*', stderr):
+              title = re.search(r' title=(.*?) handle=', line)
+              geometry = re.search(r' geometry=(\d+)x(\d+)', line)
+              if title: titles.append(title.group(1))
+              if geometry: geometries.append([int(geometry.group(1)), int(geometry.group(2))])
+
+          key_lines = re.findall(r'HRT M8 QPA: key event delivered .*', stderr)
+          mouse_lines = re.findall(r'HRT M8 QPA: mouse event delivered .*', stderr)
+          accepted = [line for line in key_lines if re.search(r'accepted=1(?:\s|$)', line)]
+          direct = [line for line in key_lines if re.search(r'direct-accepted=1(?:\s|$)', line)]
+          nested_deferred = stderr.count('HRT M10 QPA: nested input drain deferred')
+          sequences = [int(value) for value in re.findall(
+              r'HRT M8 QPA: (?:key|mouse) event delivered sequence=(\d+)', stderr)]
+          ordered = sequences == sorted(sequences) and len(sequences) == len(set(sequences))
+          frame_numbers = [int(value) for value in re.findall(
+              r'hrt-m7-hostcall: presented BGRA frame=(\d+)', stderr)]
+
+          def png(path):
+              path = Path(path)
+              if not path.is_file() or path.stat().st_size == 0: return None
+              data = path.read_bytes()
+              assert data[:8] == b'\x89PNG\r\n\x1a\n'
+              width, height = struct.unpack('>II', data[16:24])
+              return {'path': str(path), 'width': width, 'height': height,
+                      'size': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+
+          before = png('build/proof/hword-before-input.png')
+          after = png('build/proof/hword-after-input.png')
+          visual_change = bool(before and after and before['sha256'] != after['sha256'])
+          word_window = any(t == 'Word' and g == [800, 600]
+                            for t, g in zip(titles, geometries))
+          no_error = not any(t in {'Exception', 'Initialization Error'} for t in titles)
+          fatal = 'fatal signal' in stderr
+          queue_drained = 'HRT M8 QPA: input queue drained' in stderr
+          post_capture = 'HRT M10 APPKIT: post-input capture result=1' in stderr
+
+          if fatal:
+              classification = 'RECURSIVE_DRAIN_FATAL'
+          elif not ordered:
+              classification = 'INPUT_SEQUENCE_STILL_REORDERED'
+          elif not accepted:
+              classification = 'ORDER_FIXED_KEY_NOT_ACCEPTED'
+          elif before and after and visual_change:
+              classification = 'RECURSIVE_DRAIN_INPUT_VISIBLE'
+          elif accepted and after:
+              classification = 'RECURSIVE_DRAIN_INPUT_ACCEPTED_REPAINTED'
+          else:
+              classification = 'RECURSIVE_DRAIN_INPUT_ACCEPTED_NO_CAPTURE'
+
+          status = 'PASS' if classification in {
+              'RECURSIVE_DRAIN_INPUT_VISIBLE',
+              'RECURSIVE_DRAIN_INPUT_ACCEPTED_REPAINTED',
+          } and word_window and no_error and queue_drained and post_capture else 'DIAGNOSTIC'
+
+          result = {
+              'schema': 1,
+              'milestone': 'M10-recursive-drain-replay',
+              'status': status,
+              'classification': classification,
+              'workflow_run': os.environ['GITHUB_RUN_ID'],
+              'commit': os.environ['GITHUB_SHA'],
+              'program': os.environ['PROGRAM'],
+              'program_sha256': os.environ['PROGRAM_SHA256'],
+              'package_sha256': os.environ['PACKAGE_SHA256'],
+              'source_m10_host_run': os.environ['M10_HOST_RUN_ID'],
+              'recursive_qpa_run': os.environ['QPA_RUN_ID'],
+              'window_titles': titles,
+              'window_geometries': geometries,
+              'word_window_observed': word_window,
+              'nested_drains_deferred': nested_deferred,
+              'delivered_sequences': sequences,
+              'strictly_ordered_unique_sequences': ordered,
+              'key_events': len(key_lines),
+              'accepted_key_events': len(accepted),
+              'directly_accepted_key_events': len(direct),
+              'mouse_events': len(mouse_lines),
+              'queue_drained': queue_drained,
+              'presented_frames': frame_numbers,
+              'before_capture': before,
+              'after_capture': after,
+              'visual_change': visual_change,
+              'post_capture_completed': post_capture,
+              'fatal_signal': fatal,
+              'alive_at_observation': bool(int(Path(
+                  'build/proof/alive-at-observation.txt').read_text())),
+              'raw_exit_status': int(Path(
+                  'build/proof/raw-exit-status.txt').read_text()),
+          }
+          Path('diagnostics').mkdir(exist_ok=True)
+          payload = json.dumps(result, indent=2) + '\n'
+          Path(f"diagnostics/m10-recursive-drain-{os.environ['GITHUB_RUN_ID']}.json").write_text(payload)
+          Path('diagnostics/m10-recursive-drain-latest.json').write_text(payload)
+          Path('diagnostics/m10-recursive-drain-latest.md').write_text(
+              '# HWord M10 recursive-drain replay\n\n'
+              f"- Classification: `{classification}`\n"
+              f"- Deferred nested drains: `{nested_deferred}`\n"
+              f"- Delivered sequences: `{sequences}`\n"
+              f"- Accepted key events: `{len(accepted)}`\n"
+              f"- Directly accepted key events: `{len(direct)}`\n"
+              f"- Visual change: `{visual_change}`\n"
+          )
+          Path('build/proof/summary.json').write_text(payload)
+          if status == 'PASS':
+              Path('proofs').mkdir(exist_ok=True)
+              Path('proofs/m10-hword-main-input.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Commit the durable replay result
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git add diagnostics/m10-recursive-drain-*.json \
+                  diagnostics/m10-recursive-drain-latest.md
+          if test -f proofs/m10-hword-main-input.json; then
+            git add proofs/m10-hword-main-input.json
+          fi
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: classify recursive-drain HWord input replay'
+          for _ in $(seq 1 12); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m10-recursive-drain-replay-proof
+          path: |
+            build/host/hrt-m10-recursive-replay
+            build/proof
+            diagnostics/m10-recursive-drain-*.json
+            diagnostics/m10-recursive-drain-latest.md
+            proofs/m10-hword-main-input.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach the exact HWord guest
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true
