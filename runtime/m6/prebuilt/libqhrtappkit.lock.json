@@ -2,9 +2,9 @@
   "schema": 2,
   "artifact": {
     "kind": "repository-published-xz",
-    "workflow_run": "31149319524",
-    "source_commit": "cbda1477f4872e7da53f19ef1ad6568e14d4b9b2",
-    "qpa_source_tree": "feb0776084c0c015618aaff9df1eecc2014cb5fa"
+    "workflow_run": "31152348241",
+    "source_commit": "205b96998bbaf800d08f12e6541d503875a0f845",
+    "qpa_source_tree": "176e331fe060611e1694489399100b6bc2251c68"
   },
   "toolchain": {
     "distribution": "Debian Buster",
