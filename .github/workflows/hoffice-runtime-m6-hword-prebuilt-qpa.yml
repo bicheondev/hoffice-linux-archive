@@ -223,6 +223,7 @@ jobs:
             -arch x86_64 -std=c17 -O2 -g
             -fno-stack-protector -fno-omit-frame-pointer
             -Wall -Wextra -Werror -Wpedantic
+            -Wno-unused-function -Wno-unused-variable
             -Iruntime/m6 -Iruntime/m3 -Iruntime/m1
           )
           index=0
