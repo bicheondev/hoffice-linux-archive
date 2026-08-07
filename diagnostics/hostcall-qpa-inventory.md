@@ -1,14 +1,14 @@
 # Custom QPA and host-call inventory
 
-- Commit: `be1bf3d500b337e712343050369c4b7997b0f634`
+- Commit: `dccad15b354b08eaa2aa12a1e2aeb31cf364eca3`
 - Matching files: `138`
 
 - `opcode_256`: `879` matches
 - `create_operation`: `61` matches
 - `host_call`: `491` matches
-- `custom_qpa`: `765` matches
+- `custom_qpa`: `766` matches
 - `appkit`: `163` matches
-- `rendering`: `260` matches
+- `rendering`: `261` matches
 - `input_ime`: `2177` matches
 
 ## opcode_256
@@ -22,9 +22,9 @@
 - `runtime/m6/appkit_adapter.m:197` — `const size_t title_length = strnlen(guest_title, 256u);`
 - `runtime/m6/appkit_adapter.m:198` — `if (title_length == 0u || title_length == 256u) return -1003;`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:13` — `"qtbase_archive_sha256": "c6bf887732b83ce072eb72eddb7497bedcdf9ca794e7ed91261a93f063623e1c"`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:18` — `"sha256_before_prepatch": "9f1f5f4a2c09ff1a03e75ed17fba10f484917b28e4869c43dc873fef8fc70f84",`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:19` — `"sha256_after_prepatch": "d8df74427e24823494f1f0991c95305f8617cb628f549a87407820c785a9085a",`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:20` — `"xz_sha256": "49cb5c05a4b9635e51e70943486d3484d860310a7e98b57d751b6bfa08d4659f",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:18` — `"sha256_before_prepatch": "7f4fb7f06e6344015ec2c608d58fba4dfa0b402e20562cd49f779f95286eb12a",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:19` — `"sha256_after_prepatch": "d41981c15e8cf6e835ed4302ceb3d15003b51f222cc68ba8b14179376042d66c",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:20` — `"xz_sha256": "f0c3304057c60a1ffcd6e78aa2dce682061bfe1605362190d7979161ccf7bdf0",`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:5` — `: "${PROGRAM_SHA256:?PROGRAM_SHA256 is required}"`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:11` — `expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:12` — `actual=$(sha256sum build/input/hword-rootfs.tar.gz | awk '{print $1}')`
@@ -480,11 +480,11 @@
 - `runtime/m6/qpa/hrt_hostcall.h:8` — `static inline qint64 hrtM6HostCall(quint64 opcode,`
 - `runtime/m6/qpa/hrt_hostcall.h:23` — `: "0"(HRT_M6_HOSTCALL_SYSCALL),`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:3` — `#include "hrt_hostcall.h"`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:132` — `const qint64 poll = hrtM6HostCall(`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:269` — `const qint64 result = hrtM6HostCall(`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:291` — `const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 50);`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:292` — `const qint64 flags = hrtM6HostCall(`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:294` — `const qint64 capture = hrtM6HostCall(`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:175` — `const qint64 poll = hrtM6HostCall(`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:312` — `const qint64 result = hrtM6HostCall(`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:334` — `const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 50);`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:335` — `const qint64 flags = hrtM6HostCall(`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:337` — `const qint64 capture = hrtM6HostCall(`
 - `runtime/m6/qpa/qhrtappkitwindow.cpp:2` — `#include "hrt_hostcall.h"`
 - `runtime/m6/qpa/qhrtappkitwindow.cpp:60` — `const qint64 handle = hrtM6HostCall(`
 - `runtime/m6/qpa/qhrtappkitwindow.cpp:75` — `const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 250);`
@@ -688,7 +688,7 @@
 - `runtime/m4/build_closure.py:10` — `QPA plugins that do not appear in DT_NEEDED. Guest paths are normalized with`
 - `runtime/m6/augment_stack_hrtappkit.py:30` — `'static const char qt_platform[] = "QT_QPA_PLATFORM=offscreen";',`
 - `runtime/m6/augment_stack_hrtappkit.py:31` — `'static const char qt_platform[] = "QT_QPA_PLATFORM=hrtappkit";',`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:7` — `"qpa_source_tree": "f4c12d5c3e0c1e9101a89b8d3b7a87b0cf36137e"`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:7` — `"qpa_source_tree": "5412540a2feafdcf1e8dc9d2420e463e921bde38"`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:16` — `"guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so",`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:17` — `"qpa_key": "hrtappkit",`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:7` — `: "${QPA_GUEST:?QPA_GUEST is required}"`
@@ -737,20 +737,21 @@
 - `runtime/m6/qpa/main.cpp:16` — `QPlatformIntegration *QHrtAppKitIntegrationPlugin::create(`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:13` — `#include <QtGui/qpainter.h>`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:15` — `#include <qpa/qwindowsysteminterface.h>`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:69` — `qWarning("HRT M10 QPA: activation phase=%s target=%p before=%p after=%p focus-object=%p focus-class=%s focus-name=%s active=%d visible=%d title=%s",`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:89` — `qWarning("HRT M10 QPA: direct key fallback skipped: no focus object");`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:100` — `qWarning("HRT M10 QPA: direct key fallback receiver=%p class=%s name=%s notified=%d accepted=%d type=%d key=0x%x text=%s",`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:119` — `qWarning("HRT M7 QPA: backing store constructed");`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:138` — `qWarning("HRT M8 QPA: input queue drained key=%llu mouse=%llu",`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:145` — `qWarning("HRT M8 QPA: input poll failed result=%lld iteration=%u",`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:150` — `qWarning("HRT M8 QPA: rejected input ABI size=%u expected=%u",`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:186` — `qWarning("HRT M8 QPA: key event delivered sequence=%llu action=%u key=0x%x native=%u text=%s accepted=%d window-accepted=%d direct-accepted=%d focus-window=%p focus-object=%p focus-class=%s",`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:229` — `qWarning("HRT M8 QPA: mouse event delivered sequence=%llu action=%u button=0x%x buttons=0x%x local=%d,%d global=%d,%d focus-window=%p focus-object=%p focus-class=%s",`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:238` — `qWarning("HRT M8 QPA: input drain iteration limit reached key=%llu mouse=%llu",`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:254` — `QPaintDevice *device = paintDevice();`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:279` — `qWarning("HRT M7 QPA: PRESENT_BGRA failed sequence=%llu result=%lld size=%dx%d stride=%d host=%lld",`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:305` — `qWarning("HRT M7 QPA: BGRA frame accepted sequence=%llu size=%dx%d stride=%d host=%lld pump=%lld flags=0x%llx capture=%lld",`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:313` — `qWarning("HRT M7 QPA: BGRA frame gate incomplete sequence=%llu result=%lld flags=0x%llx capture=%lld",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:106` — `qWarning("HRT M10 QPA: activation phase=%s target=%p before=%p after=%p focus-object=%p focus-class=%s focus-name=%s active=%d visible=%d title=%s",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:126` — `qWarning("HRT M10 QPA: direct key fallback skipped: no focus object");`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:137` — `qWarning("HRT M10 QPA: direct key fallback receiver=%p class=%s name=%s notified=%d accepted=%d type=%d key=0x%x text=%s",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:156` — `qWarning("HRT M7 QPA: backing store constructed");`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:166` — `qWarning("HRT M10 QPA: nested input drain deferred");`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:181` — `qWarning("HRT M8 QPA: input queue drained key=%llu mouse=%llu",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:188` — `qWarning("HRT M8 QPA: input poll failed result=%lld iteration=%u",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:193` — `qWarning("HRT M8 QPA: rejected input ABI size=%u expected=%u",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:229` — `qWarning("HRT M8 QPA: key event delivered sequence=%llu action=%u key=0x%x native=%u text=%s accepted=%d window-accepted=%d direct-accepted=%d focus-window=%p focus-object=%p focus-class=%s",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:272` — `qWarning("HRT M8 QPA: mouse event delivered sequence=%llu action=%u button=0x%x buttons=0x%x local=%d,%d global=%d,%d focus-window=%p focus-object=%p focus-class=%s",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:281` — `qWarning("HRT M8 QPA: input drain iteration limit reached key=%llu mouse=%llu",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:297` — `QPaintDevice *device = paintDevice();`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:322` — `qWarning("HRT M7 QPA: PRESENT_BGRA failed sequence=%llu result=%lld size=%dx%d stride=%d host=%lld",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:348` — `qWarning("HRT M7 QPA: BGRA frame accepted sequence=%llu size=%dx%d stride=%d host=%lld pump=%lld flags=0x%llx capture=%lld",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:356` — `qWarning("HRT M7 QPA: BGRA frame gate incomplete sequence=%llu result=%lld flags=0x%llx capture=%lld",`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:12` — `qWarning("HRT M6 QPA: integration constructed");`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:15` — `QPlatformWindow *QHrtAppKitIntegration::createPlatformWindow(QWindow *window) const`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:17` — `QPlatformWindow *platformWindow = new QHrtAppKitWindow(window);`
@@ -984,8 +985,7 @@
 - `.github/workflows/hoffice-runtime-m6-hword-hrtappkit-run-v2.yml:60` — `path: build/input/qpa`
 - `.github/workflows/hoffice-runtime-m6-hword-hrtappkit-run-v2.yml:62` — `run-id: ${{ env.QPA_BUILD_RUN_ID }}`
 - `.github/workflows/hoffice-runtime-m6-hword-hrtappkit-run-v2.yml:76` — `qpa_root=build/input/qpa/build/plugin-root`
-- `.github/workflows/hoffice-runtime-m6-hword-hrtappkit-run-v2.yml:77` — `qpa_report=build/input/qpa/build/report`
-- … 465 more matches in JSON
+- … 466 more matches in JSON
 
 ## appkit
 
@@ -1033,10 +1033,10 @@
 - `runtime/m6/qpa/main.cpp:7` — `class QHrtAppKitIntegrationPlugin : public QPlatformIntegrationPlugin`
 - `runtime/m6/qpa/main.cpp:16` — `QPlatformIntegration *QHrtAppKitIntegrationPlugin::create(`
 - `runtime/m6/qpa/main.cpp:21` — `return new QHrtAppKitIntegration;`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:112` — `QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:122` — `void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:243` — `void QHrtAppKitBackingStore::flush(QWindow *target,`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:250` — `const qint64 hostWindow = QHrtAppKitWindow::hostWindowFor(topLevel);`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:149` — `QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:159` — `void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:286` — `void QHrtAppKitBackingStore::flush(QWindow *target,`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:293` — `const qint64 hostWindow = QHrtAppKitWindow::hostWindowFor(topLevel);`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:10` — `class QHrtAppKitBackingStore : public QOffscreenBackingStore`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:13` — `explicit QHrtAppKitBackingStore(QWindow *window);`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:9` — `QHrtAppKitIntegration::QHrtAppKitIntegration()`
@@ -1186,13 +1186,14 @@
 - `runtime/m6/main.c:41` — `fflush(stderr);`
 - `runtime/m6/main.c:153` — `fflush(stderr);`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:1` — `#include "qhrtappkitbackingstore.h"`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:112` — `QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:113` — `: QOffscreenBackingStore(window)`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:119` — `qWarning("HRT M7 QPA: backing store constructed");`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:122` — `void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:243` — `void QHrtAppKitBackingStore::flush(QWindow *target,`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:247` — `QOffscreenBackingStore::flush(target, region, offset);`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:254` — `QPaintDevice *device = paintDevice();`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:23` — `* flush(), which used to drain the host queue recursively before the outer`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:149` — `QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:150` — `: QOffscreenBackingStore(window)`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:156` — `qWarning("HRT M7 QPA: backing store constructed");`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:159` — `void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:286` — `void QHrtAppKitBackingStore::flush(QWindow *target,`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:290` — `QOffscreenBackingStore::flush(target, region, offset);`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:297` — `QPaintDevice *device = paintDevice();`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:1` — `#ifndef QHRTAPPKITBACKINGSTORE_H`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:2` — `#define QHRTAPPKITBACKINGSTORE_H`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:10` — `class QHrtAppKitBackingStore : public QOffscreenBackingStore`
@@ -1453,18 +1454,18 @@
 - `runtime/m6/qpa/build_hrtappkit_root.sh:97` — `python3 runtime/m3/prepatch_elf.py build/plugin-root \`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:118` — `python3 runtime/m3/collect_rootfs.py \`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:136` — `tar --sort=name --mtime='UTC 2026-01-01' \`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:93` — `QKeyEvent directEvent(type, key, modifiers, text, false, 1u);`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:115` — `, m_keyEventsDelivered(0)`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:116` — `, m_mouseEventsDelivered(0)`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:139` — `static_cast<unsigned long long>(m_keyEventsDelivered),`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:140` — `static_cast<unsigned long long>(m_mouseEventsDelivered));`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:171` — `QWindowSystemInterface::handleKeyEvent<`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:181` — `++m_keyEventsDelivered;`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:215` — `QWindowSystemInterface::handleMouseEvent<`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:219` — `Qt::MouseEventNotSynthesized);`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:224` — `++m_mouseEventsDelivered;`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:239` — `static_cast<unsigned long long>(m_keyEventsDelivered),`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:240` — `static_cast<unsigned long long>(m_mouseEventsDelivered));`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:130` — `QKeyEvent directEvent(type, key, modifiers, text, false, 1u);`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:152` — `, m_keyEventsDelivered(0)`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:153` — `, m_mouseEventsDelivered(0)`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:182` — `static_cast<unsigned long long>(m_keyEventsDelivered),`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:183` — `static_cast<unsigned long long>(m_mouseEventsDelivered));`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:214` — `QWindowSystemInterface::handleKeyEvent<`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:224` — `++m_keyEventsDelivered;`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:258` — `QWindowSystemInterface::handleMouseEvent<`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:262` — `Qt::MouseEventNotSynthesized);`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:267` — `++m_mouseEventsDelivered;`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:282` — `static_cast<unsigned long long>(m_keyEventsDelivered),`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:283` — `static_cast<unsigned long long>(m_mouseEventsDelivered));`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:23` — `quint64 m_keyEventsDelivered;`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:24` — `quint64 m_mouseEventsDelivered;`
 - `.github/workflows/hoffice-legacy-openssl-audit.yml:5` — `branches: [codex/hoffice-runtime-from-scratch]`

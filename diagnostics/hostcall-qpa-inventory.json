@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "commit": "be1bf3d500b337e712343050369c4b7997b0f634",
-  "workflow_run": "31226381290",
+  "commit": "dccad15b354b08eaa2aa12a1e2aeb31cf364eca3",
+  "workflow_run": "31227077065",
   "file_count": 138,
   "match_counts": {
     "opcode_256": 879,
     "create_operation": 61,
     "host_call": 491,
-    "custom_qpa": 765,
+    "custom_qpa": 766,
     "appkit": 163,
-    "rendering": 260,
+    "rendering": 261,
     "input_ime": 2177
   },
   "files": [
@@ -127,7 +127,7 @@
     },
     {
       "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
-      "sha256": "6f954e24437421a1dd88431eeb5ce84223ef7065dc8147af94c8e344f215c66a",
+      "sha256": "4cde85d9080ad23a2b02673b233e31fb20e5194d8a7fa44ae48389b2ad7ba567",
       "size": 1472,
       "groups": [
         "custom_qpa",
@@ -165,8 +165,8 @@
     },
     {
       "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-      "sha256": "3b69afaece144675d5e0ff3b70a6bbd321cd8d518d7c1ac73acf57c2cd0dd3ab",
-      "size": 13813,
+      "sha256": "8eee24e862973f46c6746bdea19bb134db0945534fdda1cdbe99f9f750413c43",
+      "size": 14897,
       "groups": [
         "appkit",
         "custom_qpa",
@@ -1537,17 +1537,17 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 18,
-        "text": "\"sha256_before_prepatch\": \"9f1f5f4a2c09ff1a03e75ed17fba10f484917b28e4869c43dc873fef8fc70f84\","
+        "text": "\"sha256_before_prepatch\": \"7f4fb7f06e6344015ec2c608d58fba4dfa0b402e20562cd49f779f95286eb12a\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 19,
-        "text": "\"sha256_after_prepatch\": \"d8df74427e24823494f1f0991c95305f8617cb628f549a87407820c785a9085a\","
+        "text": "\"sha256_after_prepatch\": \"d41981c15e8cf6e835ed4302ceb3d15003b51f222cc68ba8b14179376042d66c\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 20,
-        "text": "\"xz_sha256\": \"49cb5c05a4b9635e51e70943486d3484d860310a7e98b57d751b6bfa08d4659f\","
+        "text": "\"xz_sha256\": \"f0c3304057c60a1ffcd6e78aa2dce682061bfe1605362190d7979161ccf7bdf0\","
       },
       {
         "path": "runtime/m6/qpa/build_hrtappkit_root.sh",
@@ -6690,27 +6690,27 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 132,
+        "line": 175,
         "text": "const qint64 poll = hrtM6HostCall("
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 269,
+        "line": 312,
         "text": "const qint64 result = hrtM6HostCall("
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 291,
+        "line": 334,
         "text": "const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 50);"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 292,
+        "line": 335,
         "text": "const qint64 flags = hrtM6HostCall("
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 294,
+        "line": 337,
         "text": "const qint64 capture = hrtM6HostCall("
       },
       {
@@ -8668,7 +8668,7 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 7,
-        "text": "\"qpa_source_tree\": \"f4c12d5c3e0c1e9101a89b8d3b7a87b0cf36137e\""
+        "text": "\"qpa_source_tree\": \"5412540a2feafdcf1e8dc9d2420e463e921bde38\""
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
@@ -8912,72 +8912,77 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 69,
+        "line": 106,
         "text": "qWarning(\"HRT M10 QPA: activation phase=%s target=%p before=%p after=%p focus-object=%p focus-class=%s focus-name=%s active=%d visible=%d title=%s\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 89,
+        "line": 126,
         "text": "qWarning(\"HRT M10 QPA: direct key fallback skipped: no focus object\");"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 100,
+        "line": 137,
         "text": "qWarning(\"HRT M10 QPA: direct key fallback receiver=%p class=%s name=%s notified=%d accepted=%d type=%d key=0x%x text=%s\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 119,
+        "line": 156,
         "text": "qWarning(\"HRT M7 QPA: backing store constructed\");"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 138,
+        "line": 166,
+        "text": "qWarning(\"HRT M10 QPA: nested input drain deferred\");"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 181,
         "text": "qWarning(\"HRT M8 QPA: input queue drained key=%llu mouse=%llu\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 145,
+        "line": 188,
         "text": "qWarning(\"HRT M8 QPA: input poll failed result=%lld iteration=%u\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 150,
+        "line": 193,
         "text": "qWarning(\"HRT M8 QPA: rejected input ABI size=%u expected=%u\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 186,
+        "line": 229,
         "text": "qWarning(\"HRT M8 QPA: key event delivered sequence=%llu action=%u key=0x%x native=%u text=%s accepted=%d window-accepted=%d direct-accepted=%d focus-window=%p focus-object=%p focus-class=%s\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 229,
+        "line": 272,
         "text": "qWarning(\"HRT M8 QPA: mouse event delivered sequence=%llu action=%u button=0x%x buttons=0x%x local=%d,%d global=%d,%d focus-window=%p focus-object=%p focus-class=%s\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 238,
+        "line": 281,
         "text": "qWarning(\"HRT M8 QPA: input drain iteration limit reached key=%llu mouse=%llu\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 254,
+        "line": 297,
         "text": "QPaintDevice *device = paintDevice();"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 279,
+        "line": 322,
         "text": "qWarning(\"HRT M7 QPA: PRESENT_BGRA failed sequence=%llu result=%lld size=%dx%d stride=%d host=%lld\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 305,
+        "line": 348,
         "text": "qWarning(\"HRT M7 QPA: BGRA frame accepted sequence=%llu size=%dx%d stride=%d host=%lld pump=%lld flags=0x%llx capture=%lld\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 313,
+        "line": 356,
         "text": "qWarning(\"HRT M7 QPA: BGRA frame gate incomplete sequence=%llu result=%lld flags=0x%llx capture=%lld\","
       },
       {
@@ -12699,22 +12704,22 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 112,
+        "line": 149,
         "text": "QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 122,
+        "line": 159,
         "text": "void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 243,
+        "line": 286,
         "text": "void QHrtAppKitBackingStore::flush(QWindow *target,"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 250,
+        "line": 293,
         "text": "const qint64 hostWindow = QHrtAppKitWindow::hostWindowFor(topLevel);"
       },
       {
@@ -13451,37 +13456,42 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 112,
+        "line": 23,
+        "text": "* flush(), which used to drain the host queue recursively before the outer"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 149,
         "text": "QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 113,
+        "line": 150,
         "text": ": QOffscreenBackingStore(window)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 119,
+        "line": 156,
         "text": "qWarning(\"HRT M7 QPA: backing store constructed\");"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 122,
+        "line": 159,
         "text": "void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 243,
+        "line": 286,
         "text": "void QHrtAppKitBackingStore::flush(QWindow *target,"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 247,
+        "line": 290,
         "text": "QOffscreenBackingStore::flush(target, region, offset);"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 254,
+        "line": 297,
         "text": "QPaintDevice *device = paintDevice();"
       },
       {
@@ -14773,62 +14783,62 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 93,
+        "line": 130,
         "text": "QKeyEvent directEvent(type, key, modifiers, text, false, 1u);"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 115,
+        "line": 152,
         "text": ", m_keyEventsDelivered(0)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 116,
+        "line": 153,
         "text": ", m_mouseEventsDelivered(0)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 139,
+        "line": 182,
         "text": "static_cast<unsigned long long>(m_keyEventsDelivered),"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 140,
+        "line": 183,
         "text": "static_cast<unsigned long long>(m_mouseEventsDelivered));"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 171,
+        "line": 214,
         "text": "QWindowSystemInterface::handleKeyEvent<"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 181,
+        "line": 224,
         "text": "++m_keyEventsDelivered;"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 215,
+        "line": 258,
         "text": "QWindowSystemInterface::handleMouseEvent<"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 219,
+        "line": 262,
         "text": "Qt::MouseEventNotSynthesized);"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 224,
+        "line": 267,
         "text": "++m_mouseEventsDelivered;"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 239,
+        "line": 282,
         "text": "static_cast<unsigned long long>(m_keyEventsDelivered),"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 240,
+        "line": 283,
         "text": "static_cast<unsigned long long>(m_mouseEventsDelivered));"
       },
       {
