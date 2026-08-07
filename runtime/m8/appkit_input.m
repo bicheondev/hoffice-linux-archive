@@ -110,7 +110,10 @@ static void global_coordinates_for_event(NSEvent *event, NSWindow *window,
             break;
         }
     }
-    if (selected == nil) selected = window.screen ?: NSScreen.mainScreen;
+    if (selected == nil && window != nil)
+        selected = window.screen;
+    if (selected == nil)
+        selected = NSScreen.mainScreen;
     *x = clamp_coordinate(point.x);
     *y = selected != nil
         ? clamp_coordinate(NSMaxY(selected.frame) - point.y)
