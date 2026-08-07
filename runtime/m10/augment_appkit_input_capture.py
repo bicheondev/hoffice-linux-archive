@@ -129,7 +129,7 @@ def split_input_stages(path: Path) -> None:
     required = {
         "HRT M10 APPKIT: staged document focus click": 1,
         "HRT M10 APPKIT: staged text input after focus": 1,
-        "HRT M8 APPKIT: posted deterministic focus click, key and mouse events": 1,
+        "HRT M8 APPKIT: posted deterministic focus click, key and mouse events": 2,
         "g_m10_synthetic_stage = 3u": 1,
     }
     for marker, expected in required.items():
