@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""Add an opt-in QWidget-aware input fallback to the hrtappkit QPA.
+"""Add a QWidget-aware input fallback to the hrtappkit QPA.
 
-The ordinary QWindowSystemInterface path remains the production default.  When
-``HRT_M10_DIRECT_WIDGET_INPUT=1`` is set, M10 can additionally resolve the
-actual QWidget below a macOS event, deliver mouse events directly to that
-widget, and route rejected keys to ``QApplication::focusWidget()``.  This is
-needed to distinguish a platform-window transport problem from HWord's own
-widget-focus policy without changing the stable 88-byte input ABI.
+The ordinary QWindowSystemInterface path remains the production default unless
+the plugin is compiled with ``HRT_M10_DIRECT_WIDGET_INPUT_DEFAULT``.  The
+separate M10 diagnostic build enables that define so the guest does not depend
+on a host environment variable that is absent from the clean-room Linux initial
+stack.  Builds without the define still require
+``HRT_M10_DIRECT_WIDGET_INPUT=1``.
 
+When enabled, the transport resolves the actual QWidget below a macOS event,
+delivers mouse events directly to that widget, and routes rejected keys to
+``QApplication::focusWidget()``.  The stable 88-byte input ABI is unchanged.
 Every source rewrite is exact-anchor and fail closed.
 """
 from __future__ import annotations
@@ -51,8 +54,12 @@ def main() -> None:
 '''
     helpers = r'''static bool m10DirectWidgetInputEnabled()
 {
+#ifdef HRT_M10_DIRECT_WIDGET_INPUT_DEFAULT
+    static const bool enabled = true;
+#else
     static const bool enabled =
         qEnvironmentVariableIntValue("HRT_M10_DIRECT_WIDGET_INPUT") == 1;
+#endif
     return enabled;
 }
 
@@ -234,7 +241,8 @@ static void m10ActivateDeliveryWindow(QWindow *deliveryWindow,
         "QApplication::topLevelWidgets()": 1,
         "m10DeliverMouseToWidget(": 2,
         "widget-accepted=%d": 1,
-        "HRT_M10_DIRECT_WIDGET_INPUT": 1,
+        "HRT_M10_DIRECT_WIDGET_INPUT": 2,
+        "HRT_M10_DIRECT_WIDGET_INPUT_DEFAULT": 1,
     }
     for marker, expected in required.items():
         actual = text.count(marker)
