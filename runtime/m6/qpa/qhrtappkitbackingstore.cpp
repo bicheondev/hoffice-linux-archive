@@ -4,8 +4,8 @@
 #include "../../m8/input_protocol.h"
 
 #include <QtCore/qdebug.h>
-#include <QtCore/qevent.h>
 #include <QtCore/qstring.h>
+#include <QtGui/qevent.h>
 #include <QtGui/qimage.h>
 #include <QtGui/qpainter.h>
 #include <QtGui/qwindow.h>
@@ -88,9 +88,9 @@ void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)
         const Qt::KeyboardModifiers modifiers = m8Modifiers(event.modifiers);
         if (event.type == HRT_M8_EVENT_KEY) {
             QEvent::Type type;
-            if (event.action == HRT_M8_KEY_DOWN)
+            if (event.action == HRT_M8_KEY_ACTION_DOWN)
                 type = QEvent::KeyPress;
-            else if (event.action == HRT_M8_KEY_UP)
+            else if (event.action == HRT_M8_KEY_ACTION_UP)
                 type = QEvent::KeyRelease;
             else
                 continue;
