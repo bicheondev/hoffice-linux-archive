@@ -1,15 +1,15 @@
 # Custom QPA and host-call inventory
 
-- Commit: `50fe9cc4482f7667f41af3b689bd1f145b212309`
-- Matching files: `113`
+- Commit: `299edc68fb1cdcdabd34ee753256ccb3d856aa84`
+- Matching files: `114`
 
-- `opcode_256`: `502` matches
+- `opcode_256`: `517` matches
 - `create_operation`: `41` matches
-- `host_call`: `361` matches
-- `custom_qpa`: `489` matches
-- `appkit`: `128` matches
-- `rendering`: `254` matches
-- `input_ime`: `1434` matches
+- `host_call`: `374` matches
+- `custom_qpa`: `502` matches
+- `appkit`: `130` matches
+- `rendering`: `256` matches
+- `input_ime`: `1466` matches
 
 ## opcode_256
 
@@ -21,11 +21,10 @@
 - `runtime/m6/appkit_adapter.h:8` — `#define HRT_M6_OP_CREATE_WINDOW UINT64_C(0x100)`
 - `runtime/m6/appkit_adapter.m:197` — `const size_t title_length = strnlen(guest_title, 256u);`
 - `runtime/m6/appkit_adapter.m:198` — `if (title_length == 0u || title_length == 256u) return -1003;`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:8` — `"zip_sha256": "f97648ef6fe59e1b74d3155f2ad286d3dd5c6afa7c59d66314e57014281c7cd7"`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:14` — `"qtbase_archive_sha256": "c6bf887732b83ce072eb72eddb7497bedcdf9ca794e7ed91261a93f063623e1c"`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:19` — `"sha256_before_prepatch": "87d793180b18d7bc1fa3cfc1bb10774fe6ee08ff931844d2b011000f83d3e4ff",`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:20` — `"sha256_after_prepatch": "dafdd4fd8af86afe44ca2a6e2f845b0529ce08ff9e79581fc8df837574176ea9",`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:21` — `"xz_sha256": "296fdcb497c7a7d7a3a270f79794968558543cdb8ddd57aadf0284cd586bd140",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:13` — `"qtbase_archive_sha256": "c6bf887732b83ce072eb72eddb7497bedcdf9ca794e7ed91261a93f063623e1c"`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:18` — `"sha256_before_prepatch": "cae6ce0dbaa5bde02ded9f478be2b4e7aabc52a9d27fbb4fec93c0c385229867",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:19` — `"sha256_after_prepatch": "833ebeb1168d83678d4d710cf12f1086c1da198bc31922e825e94cb79614d860",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:20` — `"xz_sha256": "2cc7d7018d1520dfbcb68c0a397cd4dde958bbab0d3e98b235b448550543f3d6",`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:5` — `: "${PROGRAM_SHA256:?PROGRAM_SHA256 is required}"`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:11` — `expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:12` — `actual=$(sha256sum build/input/hword-rootfs.tar.gz | awk '{print $1}')`
@@ -313,7 +312,8 @@
 - `.github/workflows/hoffice-runtime-m5-qoffscreen-symbol-inventory.yml:110` — `'plugin_sha256': digest,`
 - `.github/workflows/hoffice-runtime-m5-qoffscreen-symbol-inventory.yml:140` — `f"sha256: {inventory['plugin_sha256']}",`
 - `.github/workflows/hoffice-runtime-m5-qt-symbol-inventory.yml:44` — `expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)`
-- … 202 more matches in JSON
+- `.github/workflows/hoffice-runtime-m5-qt-symbol-inventory.yml:45` — `actual=$(sha256sum build/input/hword-rootfs.tar.gz | awk '{print $1}')`
+- … 217 more matches in JSON
 
 ## create_operation
 
@@ -454,6 +454,7 @@
 - `runtime/m6/hostcall_trampoline.h:44` — `void hrt_m6_deferred_hostcall_entry(void) __attribute__((noreturn));`
 - `runtime/m6/hostcall_trampoline.h:45` — `void hrt_m6_execute_hostcall(HrtM6PendingHostcall *pending)`
 - `runtime/m6/hostcall_trampoline.h:47` — `void hrt_m6_resume_guest(HrtM6PendingHostcall *pending)`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:24` — `"m7_bgra_transport": true,`
 - `runtime/m6/qpa/hrt_hostcall.h:1` — `#ifndef HRT_M6_QPA_HOSTCALL_H`
 - `runtime/m6/qpa/hrt_hostcall.h:2` — `#define HRT_M6_QPA_HOSTCALL_H`
 - `runtime/m6/qpa/hrt_hostcall.h:8` — `static inline qint64 hrtM6HostCall(quint64 opcode,`
@@ -660,17 +661,16 @@
 - `.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml:356` — `'HWord pixel transport', 'native input', 'Korean IME',`
 - `.github/workflows/hoffice-runtime-m6-hword-qpa-appkit.yml:13` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-m6-hword-qpa-appkit.yml:270` — `python3 runtime/m6/augment_appkit_hostcall.py \`
-- `.github/workflows/hoffice-runtime-m6-hword-qpa-appkit.yml:283` — `grep -q 'case HRT_M6_HOSTCALL_SYSCALL' \`
-- … 61 more matches in JSON
+- … 74 more matches in JSON
 
 ## custom_qpa
 
 - `runtime/m4/build_closure.py:10` — `QPA plugins that do not appear in DT_NEEDED. Guest paths are normalized with`
 - `runtime/m6/augment_stack_hrtappkit.py:30` — `'static const char qt_platform[] = "QT_QPA_PLATFORM=offscreen";',`
 - `runtime/m6/augment_stack_hrtappkit.py:31` — `'static const char qt_platform[] = "QT_QPA_PLATFORM=hrtappkit";',`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:5` — `"name": "hrt-m6-qt5113-hrtappkit-qpa",`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:17` — `"guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so",`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:18` — `"qpa_key": "hrtappkit",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:7` — `"qpa_source_tree": "feb0776084c0c015618aaff9df1eecc2014cb5fa"`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:16` — `"guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:17` — `"qpa_key": "hrtappkit",`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:7` — `: "${QPA_GUEST:?QPA_GUEST is required}"`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:9` — `mkdir -p build/rootfs build/report build/qpa-build build/plugin-root`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:44` — `test -f build/qtbase/src/plugins/platforms/offscreen/qoffscreenwindow.cpp`
@@ -965,7 +965,7 @@
 - `.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml:8` — `- '.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml'`
 - `.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml:16` — `group: hrt-m6-hword-prebuilt-qpa-${{ github.ref }}`
 - `.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml:25` — `PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so`
-- … 189 more matches in JSON
+- … 202 more matches in JSON
 
 ## appkit
 
@@ -1096,6 +1096,8 @@
 - `.github/workflows/hoffice-runtime-m6-linux-guest-window.yml:281` — `grep -F 'hrt-m6-hostcall: AppKit initialized ' \`
 - `.github/workflows/hoffice-runtime-m6-linux-guest-window.yml:323` — `'host_architecture': 'x86_64 AppKit under Rosetta',`
 - `.github/workflows/hoffice-runtime-m7-hostcall-inventory.yml:53` — `'appkit':re.compile(r'NSWindow|NSView|AppKit|CALayer|CGContext'),`
+- `.github/workflows/hoffice-runtime-m7-hword-bgra-first-frame.yml:109` — `- name: Generate the mature Linux and AppKit bridge`
+- `.github/workflows/hoffice-runtime-m7-hword-bgra-first-frame.yml:157` — `-framework AppKit -framework CoreGraphics -framework ImageIO \`
 - `.github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml:158` — `'AppKit window creation',`
 
 ## rendering
@@ -1320,6 +1322,8 @@
 - `.github/workflows/hoffice-runtime-m6-qt-gui-probe-matrix-v3.yml:113` — `diagnostic: diagnostics/qt-v3/qbackingstore-flush.json`
 - `.github/workflows/hoffice-runtime-m6-qt-gui-probe-matrix-v3.yml:114` — `proof: proofs/qt-v3/qbackingstore-flush.json`
 - `.github/workflows/hoffice-runtime-m7-hostcall-inventory.yml:55` — `r'backing.?store|paintDevice|flush|raster|surface|framebuffer',`
+- `.github/workflows/hoffice-runtime-m7-hword-bgra-first-frame.yml:194` — `- name: Accept only a copied HWord backing-store frame`
+- `.github/workflows/hoffice-runtime-m7-hword-bgra-first-frame.yml:199` — `grep -F 'HRT M7 QPA: backing store constructed' "$stderr"`
 - `.github/workflows/hoffice-runtime-progress-snapshot-v2.yml:113` — `('m6-create-backing-store', 'createPlatformBackingStore',`
 - `.github/workflows/hoffice-runtime-progress-snapshot-v2.yml:114` — `'proofs/v2/m6-create-backing-store.json', 'symbol'),`
 - `.github/workflows/hoffice-runtime-progress-snapshot-v2.yml:115` — `('m6-backing-store-constructor',`
@@ -1657,4 +1661,4 @@
 - `.github/workflows/hoffice-runtime-m1.yml:81` — `codesign --force --sign - --timestamp=none build/host/hrt-m1`
 - `.github/workflows/hoffice-runtime-m2-probe.yml:1` — `name: HOffice runtime M2 TLS probe`
 - `.github/workflows/hoffice-runtime-m2-probe.yml:5` — `branches: [codex/hoffice-runtime-from-scratch]`
-- … 1134 more matches in JSON
+- … 1166 more matches in JSON
