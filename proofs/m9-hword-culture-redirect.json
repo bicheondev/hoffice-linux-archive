@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "milestone": "M9-culture-redirect",
+  "status": "PASS",
+  "classification": "HWORD_WINDOW_AFTER_CULTURE_REDIRECT",
+  "workflow_run": "31174126426",
+  "commit": "d27bc623a19ef622ba217a27f43031cf53383e3d",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "package_sha256": "23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46",
+  "culture_redirect_patch": {
+    "schema": 1,
+    "patch": "chwordutilityex-culture-slot-to-system-locale-slot",
+    "elf": "/tmp/h9r-31174126426/opt/hnc/hoffice11/Bin/libHwordApp.so",
+    "type_name": "15CHwordUtilityEx",
+    "type_name_virtual_address": 23503824,
+    "typeinfo_virtual_address": 27426120,
+    "vtable_address_point": 27220560,
+    "source_slot_byte_offset": 304,
+    "target_slot_byte_offset": 312,
+    "source_slot_virtual_address": 27220864,
+    "target_slot_virtual_address": 27220872,
+    "source_method_virtual_address": 4264192,
+    "target_method_virtual_address": 4268928,
+    "source_relocation_index": 804,
+    "source_relocation_file_offset": 192376,
+    "target_relocation_index": 805,
+    "target_relocation_file_offset": 192400,
+    "addend_file_offset": 192392,
+    "original_addend_bytes_hex": "0011410000000000",
+    "patched_addend_bytes_hex": "8023410000000000",
+    "sha256_before": "e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50",
+    "sha256_after": "ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8"
+  },
+  "window_titles": [
+    "HWord Qt Window",
+    "Word"
+  ],
+  "window_geometries": [
+    [
+      200,
+      100
+    ],
+    [
+      800,
+      600
+    ]
+  ],
+  "error_windows": [],
+  "old_substr_frame_observed": false,
+  "text_out_of_range_observed": false,
+  "fatal_lines": [],
+  "frame_present": true,
+  "frame_sha256": "744c68901d11a14656fab1307a662cb86a5037d436140ad59b6682149716471e",
+  "alive_at_observation": true,
+  "raw_exit_status": 143
+}
