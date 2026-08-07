@@ -1,0 +1,296 @@
+name: HOffice runtime M9 provider method semantics
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'diagnostics/m9-hword-provider-object-latest.json'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m9-provider-method-semantics-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ROOTFS_ARTIFACT_ID: '8968324706'
+  ROOTFS_ARTIFACT_SHA256: 3e301d3c6269926c62804bff18671136fcf8c0b0b22b3952072e427a8fa9918a
+  ROOTFS_ARCHIVE_SHA256: 322fcf228092b296a34edbfa7ee43f9a7b237d5bcedaee50109ac4bb44d9ca28
+
+jobs:
+  analyze-methods:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the exact provider-object diagnosis
+        run: |
+          set -euxo pipefail
+          test -s diagnostics/m9-hword-provider-object-latest.json
+          grep -F '"status": "PASS"' \
+            diagnostics/m9-hword-provider-object-latest.json
+
+      - name: Download and verify the exact prepatched HWord root
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input build/rootfs build/analysis/objects diagnostics
+          curl --fail --location --retry 5 --retry-delay 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ROOTFS_ARTIFACT_ID/zip" \
+            -o build/input/rootfs-artifact.zip
+          printf '%s  %s\n' "$ROOTFS_ARTIFACT_SHA256" \
+            build/input/rootfs-artifact.zip | sha256sum -c -
+          unzip -q build/input/rootfs-artifact.zip -d build/input/rootfs
+          archive=$(find build/input/rootfs -type f \
+            -name hword-rootfs.tar.gz -print -quit)
+          test -n "$archive"
+          printf '%s  %s\n' "$ROOTFS_ARCHIVE_SHA256" "$archive" \
+            | sha256sum -c -
+          tar -xzf "$archive" -C build/rootfs
+          test -s build/rootfs/.hrt-prepatched-v1
+
+      - name: Disassemble complete virtual methods and resolve referenced data
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import re
+          import shutil
+          import struct
+          import subprocess
+
+          source=json.loads(pathlib.Path(
+              'diagnostics/m9-hword-provider-object-latest.json').read_text())
+          root=pathlib.Path('build/rootfs')
+          analysis=pathlib.Path('build/analysis')
+          objects=analysis/'objects'
+          objects.mkdir(parents=True,exist_ok=True)
+
+          ELF_HEADER=struct.Struct('<16sHHIQQQIHHHHHH')
+          PROGRAM_HEADER=struct.Struct('<IIQQQQQQ')
+          SECTION_HEADER=struct.Struct('<IIQQQQIIQQ')
+          SYMBOL=struct.Struct('<IBBHQQ')
+          PT_LOAD=1
+          SHT_SYMTAB=2
+          SHT_DYNSYM=11
+
+          def c_string(data:bytes,offset:int,limit:int=512)->str|None:
+              if offset<0 or offset>=len(data): return None
+              end=data.find(b'\0',offset,min(len(data),offset+limit))
+              if end<0: return None
+              raw=data[offset:end]
+              if not raw: return ''
+              printable=sum(1 for byte in raw if 32<=byte<=126 or byte in (9,10,13))
+              if printable/len(raw)<0.85: return None
+              return raw.decode('utf-8',errors='replace')
+
+          def parse_elf(path:pathlib.Path):
+              blob=path.read_bytes()
+              header=ELF_HEADER.unpack_from(blob,0)
+              ident=header[0]
+              assert ident[:4]==b'\x7fELF' and ident[4]==2 and ident[5]==1
+              phoff,shoff=header[5],header[6]
+              phentsize,phnum=header[9],header[10]
+              shentsize,shnum=header[11],header[12]
+              programs=[PROGRAM_HEADER.unpack_from(
+                  blob,phoff+i*phentsize) for i in range(phnum)]
+              sections=[SECTION_HEADER.unpack_from(
+                  blob,shoff+i*shentsize) for i in range(shnum)]
+              symbols=[]
+              for section in sections:
+                  stype=section[1]; soff=section[4]; ssize=section[5]
+                  link=section[6]; entsize=section[9]
+                  if stype not in (SHT_SYMTAB,SHT_DYNSYM): continue
+                  if entsize!=SYMBOL.size or link>=len(sections): continue
+                  strings_section=sections[link]
+                  strings=blob[strings_section[4]:
+                               strings_section[4]+strings_section[5]]
+                  for index in range(ssize//entsize):
+                      values=SYMBOL.unpack_from(blob,soff+index*entsize)
+                      name_offset,info,other,shndx,value,size=values
+                      if name_offset>=len(strings): continue
+                      end=strings.find(b'\0',name_offset)
+                      if end<0: continue
+                      name=strings[name_offset:end].decode('utf-8',errors='replace')
+                      if value and name:
+                          symbols.append({
+                              'name':name,'value':value,'size':size,
+                              'type':info&0xf,'binding':info>>4,
+                              'visibility':other&3,'section_index':shndx,
+                          })
+              return blob,programs,symbols
+
+          def virtual_to_file(programs,address):
+              for values in programs:
+                  p_type,p_flags,p_offset,p_vaddr,_paddr,p_filesz,p_memsz,p_align=values
+                  if p_type==PT_LOAD and p_vaddr<=address<p_vaddr+p_filesz:
+                      return p_offset+address-p_vaddr
+              return None
+
+          def nearest_symbol(symbols,address):
+              containing=[item for item in symbols
+                          if item['value']<=address and item['size'] and
+                          address<item['value']+item['size']]
+              preceding=[item for item in symbols if item['value']<=address]
+              nearest=max(containing or preceding,
+                          key=lambda item:item['value'],default=None)
+              if nearest:
+                  nearest=dict(nearest)
+                  nearest['demangled']=subprocess.run(
+                      ['c++filt',nearest['name']],check=True,text=True,
+                      stdout=subprocess.PIPE).stdout.strip()
+                  nearest['offset']=address-nearest['value']
+              return nearest
+
+          def analyze(label,record):
+              guest_path=record['guest_path']
+              source_path=root/guest_path.lstrip('/')
+              assert source_path.is_file(),source_path
+              copy=objects/f'{label}-{source_path.name}'
+              shutil.copy2(source_path,copy)
+              blob,programs,symbols=parse_elf(copy)
+              address=int(record['virtual_address'])
+              nearest=nearest_symbol(symbols,address)
+              if nearest and nearest['size']:
+                  start=nearest['value']
+                  stop=start+nearest['size']
+              else:
+                  start=max(0,address-512)
+                  stop=address+1024
+              disassembly=subprocess.run(
+                  ['objdump','-drwC',f'--start-address={start}',
+                   f'--stop-address={stop}',str(copy)],
+                  check=True,text=True,stdout=subprocess.PIPE,
+                  stderr=subprocess.STDOUT).stdout
+              references=[]
+              seen=set()
+              for line in disassembly.splitlines():
+                  for matched in re.finditer(r'#\s*([0-9a-fA-F]+)',line):
+                      target=int(matched.group(1),16)
+                      if target in seen: continue
+                      seen.add(target)
+                      offset=virtual_to_file(programs,target)
+                      text=c_string(blob,offset) if offset is not None else None
+                      target_symbol=nearest_symbol(symbols,target)
+                      references.append({
+                          'virtual_address':target,
+                          'file_offset':offset,
+                          'string':text,
+                          'nearest_symbol':target_symbol,
+                          'source_line':line.strip(),
+                      })
+              calls=[]
+              for line in disassembly.splitlines():
+                  if '\tcall' not in line: continue
+                  symbol=re.search(r'<([^>]+)>',line)
+                  calls.append({
+                      'line':line.strip(),
+                      'symbol':symbol.group(1) if symbol else None,
+                  })
+              nearby_strings=[]
+              target_offset=virtual_to_file(programs,address)
+              if target_offset is not None:
+                  low=max(0,target_offset-8192)
+                  high=min(len(blob),target_offset+8192)
+                  region=blob[low:high]
+                  for match in re.finditer(rb'[ -~]{4,}\x00',region):
+                      raw=match.group()[:-1]
+                      nearby_strings.append({
+                          'file_offset':low+match.start(),
+                          'text':raw.decode('utf-8',errors='replace'),
+                      })
+              return {
+                  'label':label,
+                  'guest_path':guest_path,
+                  'sha256':hashlib.sha256(copy.read_bytes()).hexdigest(),
+                  'target_virtual_address':address,
+                  'nearest_symbol':nearest,
+                  'function_start':start,
+                  'function_stop':stop,
+                  'calls':calls,
+                  'data_references':references,
+                  'nearby_strings':nearby_strings[:300],
+                  'disassembly':disassembly,
+              }
+
+          method130=analyze('method130',source['method130'])
+          method138=analyze('method138',source['method138'])
+          provider_type=source['provider']['type_name']
+          demangled_type=subprocess.run(
+              ['c++filt',provider_type],check=True,text=True,
+              stdout=subprocess.PIPE).stdout.strip() if provider_type else ''
+          result={
+              'schema':1,
+              'milestone':'M9-provider-method-semantics',
+              'status':'PASS',
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'provider_type_name':provider_type,
+              'provider_type_demangled':demangled_type,
+              'first_runtime_string':source['provider']['first'],
+              'first_runtime_length':source['provider']['first_length'],
+              'second_runtime_string':source['provider']['second'],
+              'second_runtime_length':source['provider']['second_length'],
+              'method130':method130,
+              'method138':method138,
+              'source_provider_analysis':source,
+          }
+          payload=json.dumps(result,indent=2)+'\n'
+          pathlib.Path(
+              f"diagnostics/m9-hword-provider-method-semantics-{os.environ['GITHUB_RUN_ID']}.json"
+          ).write_text(payload)
+          pathlib.Path(
+              'diagnostics/m9-hword-provider-method-semantics-latest.json').write_text(payload)
+          pathlib.Path(
+              'diagnostics/m9-hword-provider-method-semantics-latest.md').write_text(
+              '# HWord provider method semantics\n\n'
+              f"- Provider type: `{demangled_type or provider_type}`\n"
+              f"- vtable+0x130: `{method130['nearest_symbol']}`\n"
+              f"- vtable+0x138: `{method138['nearest_symbol']}`\n"
+              f"- First runtime string: `{source['provider']['first']}`\n"
+              f"- Second runtime string: `{source['provider']['second']}`\n"
+              f"- vtable+0x130 referenced strings: "
+              f"`{[item['string'] for item in method130['data_references'] if item['string']]}`\n"
+              f"- vtable+0x138 referenced strings: "
+              f"`{[item['string'] for item in method138['data_references'] if item['string']]}`\n"
+          )
+          pathlib.Path('build/analysis/summary.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Commit the durable semantic analysis
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git add diagnostics/m9-hword-provider-method-semantics-*.json \
+                  diagnostics/m9-hword-provider-method-semantics-latest.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'diagnostic: resolve exact HWord provider method semantics'
+            git push origin HEAD:codex/hoffice-runtime-from-scratch
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m9-provider-method-semantics
+          path: |
+            build/analysis
+            diagnostics/m9-hword-provider-method-semantics-*.json
+            diagnostics/m9-hword-provider-method-semantics-latest.md
+          if-no-files-found: error
+          retention-days: 14
