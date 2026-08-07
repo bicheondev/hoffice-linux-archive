@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "commit": "fd7a759cee033791e3fca318a1a5bce2d9006e63",
-  "workflow_run": "31165569424",
+  "commit": "df4583eca0cc2bf6c5676e6a32872135b4dd728d",
+  "workflow_run": "31165970775",
   "file_count": 120,
   "match_counts": {
     "opcode_256": 544,
@@ -127,8 +127,8 @@
     },
     {
       "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
-      "sha256": "c8ca6c3d36c128d81d42470a820186d5ca777b1c3d9fc1e6ac5542dd1a8de7d1",
-      "size": 1471,
+      "sha256": "02351c2439ef8f13b9d30d30329db844b62473bc96a0cf49e25f5ef522db29c9",
+      "size": 1472,
       "groups": [
         "custom_qpa",
         "host_call",
@@ -220,8 +220,8 @@
     },
     {
       "path": "runtime/m6/qpa/qhrtappkitwindow.h",
-      "sha256": "5a6142d4153d33c225147f199f7e7d15f836e2cd7536ee5251a90914216eced0",
-      "size": 713,
+      "sha256": "e91383e44899d6db66464581840017bdb5baa11cf13e1f91146dd860a4e843c3",
+      "size": 756,
       "groups": [
         "appkit"
       ]
@@ -1323,17 +1323,17 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 18,
-        "text": "\"sha256_before_prepatch\": \"cae6ce0dbaa5bde02ded9f478be2b4e7aabc52a9d27fbb4fec93c0c385229867\","
+        "text": "\"sha256_before_prepatch\": \"b9ec731bba3b3bcb37c4a949cfede9041a8a5bd15b8dd802aa967fff5e501f13\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 19,
-        "text": "\"sha256_after_prepatch\": \"833ebeb1168d83678d4d710cf12f1086c1da198bc31922e825e94cb79614d860\","
+        "text": "\"sha256_after_prepatch\": \"a4ffc8fffdadbafcd27c7fdab9099ea54f5d13a2f7bb61fd6885ed451f601730\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 20,
-        "text": "\"xz_sha256\": \"2cc7d7018d1520dfbcb68c0a397cd4dde958bbab0d3e98b235b448550543f3d6\","
+        "text": "\"xz_sha256\": \"df1ae24b159360233ce6b8ab8e3c3b7312c4f68a763abc363080762ecb54a209\","
       },
       {
         "path": "runtime/m6/qpa/build_hrtappkit_root.sh",
@@ -6239,7 +6239,7 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 7,
-        "text": "\"qpa_source_tree\": \"176e331fe060611e1694489399100b6bc2251c68\""
+        "text": "\"qpa_source_tree\": \"841c2829de460781c085c0c9416e17ebe0f9a00d\""
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
@@ -9540,7 +9540,7 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.h",
-        "line": 30,
+        "line": 31,
         "text": "static QHrtAppKitWindow *s_nativeOwner;"
       },
       {

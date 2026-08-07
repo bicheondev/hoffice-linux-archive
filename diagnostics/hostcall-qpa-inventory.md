@@ -1,6 +1,6 @@
 # Custom QPA and host-call inventory
 
-- Commit: `fd7a759cee033791e3fca318a1a5bce2d9006e63`
+- Commit: `df4583eca0cc2bf6c5676e6a32872135b4dd728d`
 - Matching files: `120`
 
 - `opcode_256`: `544` matches
@@ -22,9 +22,9 @@
 - `runtime/m6/appkit_adapter.m:197` — `const size_t title_length = strnlen(guest_title, 256u);`
 - `runtime/m6/appkit_adapter.m:198` — `if (title_length == 0u || title_length == 256u) return -1003;`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:13` — `"qtbase_archive_sha256": "c6bf887732b83ce072eb72eddb7497bedcdf9ca794e7ed91261a93f063623e1c"`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:18` — `"sha256_before_prepatch": "cae6ce0dbaa5bde02ded9f478be2b4e7aabc52a9d27fbb4fec93c0c385229867",`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:19` — `"sha256_after_prepatch": "833ebeb1168d83678d4d710cf12f1086c1da198bc31922e825e94cb79614d860",`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:20` — `"xz_sha256": "2cc7d7018d1520dfbcb68c0a397cd4dde958bbab0d3e98b235b448550543f3d6",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:18` — `"sha256_before_prepatch": "b9ec731bba3b3bcb37c4a949cfede9041a8a5bd15b8dd802aa967fff5e501f13",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:19` — `"sha256_after_prepatch": "a4ffc8fffdadbafcd27c7fdab9099ea54f5d13a2f7bb61fd6885ed451f601730",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:20` — `"xz_sha256": "df1ae24b159360233ce6b8ab8e3c3b7312c4f68a763abc363080762ecb54a209",`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:5` — `: "${PROGRAM_SHA256:?PROGRAM_SHA256 is required}"`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:11` — `expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:12` — `actual=$(sha256sum build/input/hword-rootfs.tar.gz | awk '{print $1}')`
@@ -668,7 +668,7 @@
 - `runtime/m4/build_closure.py:10` — `QPA plugins that do not appear in DT_NEEDED. Guest paths are normalized with`
 - `runtime/m6/augment_stack_hrtappkit.py:30` — `'static const char qt_platform[] = "QT_QPA_PLATFORM=offscreen";',`
 - `runtime/m6/augment_stack_hrtappkit.py:31` — `'static const char qt_platform[] = "QT_QPA_PLATFORM=hrtappkit";',`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:7` — `"qpa_source_tree": "176e331fe060611e1694489399100b6bc2251c68"`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:7` — `"qpa_source_tree": "841c2829de460781c085c0c9416e17ebe0f9a00d"`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:16` — `"guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so",`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:17` — `"qpa_key": "hrtappkit",`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:7` — `: "${QPA_GUEST:?QPA_GUEST is required}"`
@@ -1039,7 +1039,7 @@
 - `runtime/m6/qpa/qhrtappkitwindow.h:10` — `class QHrtAppKitWindow : public QOffscreenWindow`
 - `runtime/m6/qpa/qhrtappkitwindow.h:13` — `explicit QHrtAppKitWindow(QWindow *window);`
 - `runtime/m6/qpa/qhrtappkitwindow.h:14` — `~QHrtAppKitWindow() override;`
-- `runtime/m6/qpa/qhrtappkitwindow.h:30` — `static QHrtAppKitWindow *s_nativeOwner;`
+- `runtime/m6/qpa/qhrtappkitwindow.h:31` — `static QHrtAppKitWindow *s_nativeOwner;`
 - `.github/workflows/hoffice-runtime-m6-appkit-host.yml:1` — `name: HOffice runtime M6 AppKit host capability`
 - `.github/workflows/hoffice-runtime-m6-appkit-host.yml:37` — `- name: Compile and sign the clean-room AppKit probe`
 - `.github/workflows/hoffice-runtime-m6-appkit-host.yml:43` — `-framework AppKit -framework CoreGraphics -framework ImageIO \`
