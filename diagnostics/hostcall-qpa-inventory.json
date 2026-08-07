@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "commit": "74fced075bb74af9fac81171ca0fb8a8e4239e35",
-  "workflow_run": "31147438865",
+  "commit": "eee33c6f026a7d9aad50b9d4b9d801192ca83d0f",
+  "workflow_run": "31147529001",
   "file_count": 110,
   "match_counts": {
     "opcode_256": 504,
     "create_operation": 41,
-    "host_call": 353,
+    "host_call": 354,
     "custom_qpa": 476,
     "appkit": 116,
     "rendering": 217,
@@ -66,8 +66,8 @@
     },
     {
       "path": "runtime/m6/augment_appkit_hostcall_deferred.py",
-      "sha256": "d156d8dc0c19159e714909970c3530f6ece4a9fbed629fc4ab2584c8db529021",
-      "size": 4490,
+      "sha256": "35e224f160a83c998b7fc3151069e39cbdff04329383dad4750ef3a1717019ae",
+      "size": 4629,
       "groups": [
         "appkit",
         "host_call"
@@ -4101,42 +4101,47 @@
       },
       {
         "path": "runtime/m6/augment_appkit_hostcall_deferred.py",
-        "line": 104,
+        "line": 101,
+        "text": "# unique dispatcher switch instead of depending on case ordering."
+      },
+      {
+        "path": "runtime/m6/augment_appkit_hostcall_deferred.py",
+        "line": 106,
         "text": "\"        case HRT_M6_HOSTCALL_SYSCALL:\\n\""
       },
       {
         "path": "runtime/m6/augment_appkit_hostcall_deferred.py",
-        "line": 105,
+        "line": 107,
         "text": "\"            schedule_m6_appkit_hostcall(state, rip);\\n\""
       },
       {
         "path": "runtime/m6/augment_appkit_hostcall_deferred.py",
-        "line": 108,
+        "line": 109,
         "text": "\"M6 deferred dispatch\","
       },
       {
         "path": "runtime/m6/augment_appkit_hostcall_deferred.py",
-        "line": 113,
+        "line": 114,
         "text": "'#include \"hostcall_trampoline.h\"': 1,"
       },
       {
         "path": "runtime/m6/augment_appkit_hostcall_deferred.py",
-        "line": 114,
+        "line": 115,
         "text": "\"case HRT_M6_HOSTCALL_SYSCALL:\": 1,"
       },
       {
         "path": "runtime/m6/augment_appkit_hostcall_deferred.py",
-        "line": 115,
+        "line": 116,
         "text": "\"schedule_m6_appkit_hostcall(\": 2,"
       },
       {
         "path": "runtime/m6/augment_appkit_hostcall_deferred.py",
-        "line": 116,
+        "line": 117,
         "text": "\"hrt_m6_deferred_hostcall_entry\": 1,"
       },
       {
         "path": "runtime/m6/augment_appkit_hostcall_deferred.py",
-        "line": 117,
+        "line": 118,
         "text": "\"g_hrt_m6_hostcall_stack\": 1,"
       },
       {

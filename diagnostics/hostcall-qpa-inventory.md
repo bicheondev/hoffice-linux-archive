@@ -1,11 +1,11 @@
 # Custom QPA and host-call inventory
 
-- Commit: `74fced075bb74af9fac81171ca0fb8a8e4239e35`
+- Commit: `eee33c6f026a7d9aad50b9d4b9d801192ca83d0f`
 - Matching files: `110`
 
 - `opcode_256`: `504` matches
 - `create_operation`: `41` matches
-- `host_call`: `353` matches
+- `host_call`: `354` matches
 - `custom_qpa`: `476` matches
 - `appkit`: `116` matches
 - `rendering`: `217` matches
@@ -403,14 +403,15 @@
 - `runtime/m6/augment_appkit_hostcall_deferred.py:47` — `"hrt-m6: nested deferred host call\n";`
 - `runtime/m6/augment_appkit_hostcall_deferred.py:80` — `(uintptr_t)g_hrt_m6_hostcall_stack + HRT_M6_HOSTCALL_STACK_SIZE;`
 - `runtime/m6/augment_appkit_hostcall_deferred.py:83` — `state->__rip = (uint64_t)(uintptr_t)hrt_m6_deferred_hostcall_entry;`
-- `runtime/m6/augment_appkit_hostcall_deferred.py:104` — `"        case HRT_M6_HOSTCALL_SYSCALL:\n"`
-- `runtime/m6/augment_appkit_hostcall_deferred.py:105` — `"            schedule_m6_appkit_hostcall(state, rip);\n"`
-- `runtime/m6/augment_appkit_hostcall_deferred.py:108` — `"M6 deferred dispatch",`
-- `runtime/m6/augment_appkit_hostcall_deferred.py:113` — `'#include "hostcall_trampoline.h"': 1,`
-- `runtime/m6/augment_appkit_hostcall_deferred.py:114` — `"case HRT_M6_HOSTCALL_SYSCALL:": 1,`
-- `runtime/m6/augment_appkit_hostcall_deferred.py:115` — `"schedule_m6_appkit_hostcall(": 2,`
-- `runtime/m6/augment_appkit_hostcall_deferred.py:116` — `"hrt_m6_deferred_hostcall_entry": 1,`
-- `runtime/m6/augment_appkit_hostcall_deferred.py:117` — `"g_hrt_m6_hostcall_stack": 1,`
+- `runtime/m6/augment_appkit_hostcall_deferred.py:101` — `# unique dispatcher switch instead of depending on case ordering.`
+- `runtime/m6/augment_appkit_hostcall_deferred.py:106` — `"        case HRT_M6_HOSTCALL_SYSCALL:\n"`
+- `runtime/m6/augment_appkit_hostcall_deferred.py:107` — `"            schedule_m6_appkit_hostcall(state, rip);\n"`
+- `runtime/m6/augment_appkit_hostcall_deferred.py:109` — `"M6 deferred dispatch",`
+- `runtime/m6/augment_appkit_hostcall_deferred.py:114` — `'#include "hostcall_trampoline.h"': 1,`
+- `runtime/m6/augment_appkit_hostcall_deferred.py:115` — `"case HRT_M6_HOSTCALL_SYSCALL:": 1,`
+- `runtime/m6/augment_appkit_hostcall_deferred.py:116` — `"schedule_m6_appkit_hostcall(": 2,`
+- `runtime/m6/augment_appkit_hostcall_deferred.py:117` — `"hrt_m6_deferred_hostcall_entry": 1,`
+- `runtime/m6/augment_appkit_hostcall_deferred.py:118` — `"g_hrt_m6_hostcall_stack": 1,`
 - `runtime/m6/guest_window.c:26` — `static int64_t host_call(uint64_t opcode,`
 - `runtime/m6/guest_window.c:40` — `: "0"(HRT_M6_HOSTCALL_SYSCALL),`
 - `runtime/m6/guest_window.c:103` — `"HRT M6 GUEST PASS: trapped Linux host call created a visible AppKit window\n";`
@@ -660,8 +661,7 @@
 - `.github/workflows/hoffice-runtime-m6-hword-qpa-appkit.yml:411` — `grep -E 'hrt-m6: host-call opcode=258 result=1[0-9][0-9]' \`
 - `.github/workflows/hoffice-runtime-m6-hword-qpa-appkit.yml:413` — `grep -F 'hrt-m6: host-call opcode=259 result=1' \`
 - `.github/workflows/hoffice-runtime-m6-hword-qpa-appkit.yml:438` — `r'hrt-m6: host-call opcode=(\d+) result=(-?\d+)', line)`
-- `.github/workflows/hoffice-runtime-m6-hword-qpa-appkit.yml:458` — `'host_calls': operations,`
-- … 53 more matches in JSON
+- … 54 more matches in JSON
 
 ## custom_qpa
 
