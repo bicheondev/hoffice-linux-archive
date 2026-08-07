@@ -4,7 +4,7 @@ CONFIG += plugin c++11
 CONFIG -= app_bundle
 
 QT += core-private gui-private widgets eventdispatcher_support-private fontdatabase_support-private
-DEFINES += QT_NO_FOREACH
+DEFINES += QT_NO_FOREACH HRT_M10_DIRECT_WIDGET_INPUT_DEFAULT=1
 INCLUDEPATH += $$QTOFFSCREEN_DIR
 
 # The archived Debian Buster runtime packages expose the versioned libraries
