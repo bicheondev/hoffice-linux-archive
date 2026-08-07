@@ -3,7 +3,8 @@
 
 The generator is deliberately fail-closed.  Every insertion anchor must occur
 exactly once so an upstream adapter change cannot silently produce a partially
-wired input transport.
+wired input transport.  M10's staged synthetic replay uses this same transport
+without changing the production path for real AppKit events.
 """
 from __future__ import annotations
 
