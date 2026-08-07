@@ -1,15 +1,15 @@
 # Custom QPA and host-call inventory
 
-- Commit: `299edc68fb1cdcdabd34ee753256ccb3d856aa84`
-- Matching files: `114`
+- Commit: `6924bba3227b927d567ecd9ee60629bb11b1c34c`
+- Matching files: `120`
 
-- `opcode_256`: `517` matches
+- `opcode_256`: `544` matches
 - `create_operation`: `41` matches
-- `host_call`: `374` matches
-- `custom_qpa`: `502` matches
-- `appkit`: `130` matches
-- `rendering`: `256` matches
-- `input_ime`: `1466` matches
+- `host_call`: `403` matches
+- `custom_qpa`: `593` matches
+- `appkit`: `140` matches
+- `rendering`: `259` matches
+- `input_ime`: `1559` matches
 
 ## opcode_256
 
@@ -313,7 +313,7 @@
 - `.github/workflows/hoffice-runtime-m5-qoffscreen-symbol-inventory.yml:140` — `f"sha256: {inventory['plugin_sha256']}",`
 - `.github/workflows/hoffice-runtime-m5-qt-symbol-inventory.yml:44` — `expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)`
 - `.github/workflows/hoffice-runtime-m5-qt-symbol-inventory.yml:45` — `actual=$(sha256sum build/input/hword-rootfs.tar.gz | awk '{print $1}')`
-- … 217 more matches in JSON
+- … 244 more matches in JSON
 
 ## create_operation
 
@@ -460,10 +460,11 @@
 - `runtime/m6/qpa/hrt_hostcall.h:8` — `static inline qint64 hrtM6HostCall(quint64 opcode,`
 - `runtime/m6/qpa/hrt_hostcall.h:23` — `: "0"(HRT_M6_HOSTCALL_SYSCALL),`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:3` — `#include "hrt_hostcall.h"`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:46` — `const qint64 result = hrtM6HostCall(`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:66` — `const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 50);`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:67` — `const qint64 flags = hrtM6HostCall(`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:69` — `const qint64 capture = hrtM6HostCall(`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:65` — `const qint64 poll = hrtM6HostCall(`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:179` — `const qint64 result = hrtM6HostCall(`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:201` — `const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 50);`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:202` — `const qint64 flags = hrtM6HostCall(`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:204` — `const qint64 capture = hrtM6HostCall(`
 - `runtime/m6/qpa/qhrtappkitwindow.cpp:2` — `#include "hrt_hostcall.h"`
 - `runtime/m6/qpa/qhrtappkitwindow.cpp:59` — `const qint64 handle = hrtM6HostCall(`
 - `runtime/m6/qpa/qhrtappkitwindow.cpp:73` — `const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 250);`
@@ -660,15 +661,14 @@
 - `.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml:351` — `'host_calls': calls,`
 - `.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml:356` — `'HWord pixel transport', 'native input', 'Korean IME',`
 - `.github/workflows/hoffice-runtime-m6-hword-qpa-appkit.yml:13` — `workflow_dispatch:`
-- `.github/workflows/hoffice-runtime-m6-hword-qpa-appkit.yml:270` — `python3 runtime/m6/augment_appkit_hostcall.py \`
-- … 74 more matches in JSON
+- … 103 more matches in JSON
 
 ## custom_qpa
 
 - `runtime/m4/build_closure.py:10` — `QPA plugins that do not appear in DT_NEEDED. Guest paths are normalized with`
 - `runtime/m6/augment_stack_hrtappkit.py:30` — `'static const char qt_platform[] = "QT_QPA_PLATFORM=offscreen";',`
 - `runtime/m6/augment_stack_hrtappkit.py:31` — `'static const char qt_platform[] = "QT_QPA_PLATFORM=hrtappkit";',`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:7` — `"qpa_source_tree": "feb0776084c0c015618aaff9df1eecc2014cb5fa"`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:7` — `"qpa_source_tree": "176e331fe060611e1694489399100b6bc2251c68"`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:16` — `"guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so",`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:17` — `"qpa_key": "hrtappkit",`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:7` — `: "${QPA_GUEST:?QPA_GUEST is required}"`
@@ -715,12 +715,19 @@
 - `runtime/m6/qpa/main.cpp:10` — `Q_PLUGIN_METADATA(IID QPlatformIntegrationFactoryInterface_iid FILE "hrtappkit.json")`
 - `runtime/m6/qpa/main.cpp:12` — `QPlatformIntegration *create(const QString &system,`
 - `runtime/m6/qpa/main.cpp:16` — `QPlatformIntegration *QHrtAppKitIntegrationPlugin::create(`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:7` — `#include <QtGui/qpainter.h>`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:17` — `qWarning("HRT M7 QPA: backing store constructed");`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:31` — `QPaintDevice *device = paintDevice();`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:56` — `qWarning("HRT M7 QPA: PRESENT_BGRA failed sequence=%llu result=%lld size=%dx%d stride=%d host=%lld",`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:80` — `qWarning("HRT M7 QPA: BGRA frame accepted sequence=%llu size=%dx%d stride=%d host=%lld pump=%lld flags=0x%llx capture=%lld",`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:88` — `qWarning("HRT M7 QPA: BGRA frame gate incomplete sequence=%llu result=%lld flags=0x%llx capture=%lld",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:10` — `#include <QtGui/qpainter.h>`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:12` — `#include <qpa/qwindowsysteminterface.h>`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:54` — `qWarning("HRT M7 QPA: backing store constructed");`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:71` — `qWarning("HRT M8 QPA: input queue drained key=%llu mouse=%llu",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:78` — `qWarning("HRT M8 QPA: input poll failed result=%lld iteration=%u",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:83` — `qWarning("HRT M8 QPA: rejected input ABI size=%u expected=%u",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:109` — `qWarning("HRT M8 QPA: key event delivered sequence=%llu action=%u key=0x%x native=%u text=%s accepted=%d",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:141` — `qWarning("HRT M8 QPA: mouse event delivered sequence=%llu action=%u button=0x%x buttons=0x%x local=%d,%d global=%d,%d",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:148` — `qWarning("HRT M8 QPA: input drain iteration limit reached key=%llu mouse=%llu",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:164` — `QPaintDevice *device = paintDevice();`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:189` — `qWarning("HRT M7 QPA: PRESENT_BGRA failed sequence=%llu result=%lld size=%dx%d stride=%d host=%lld",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:215` — `qWarning("HRT M7 QPA: BGRA frame accepted sequence=%llu size=%dx%d stride=%d host=%lld pump=%lld flags=0x%llx capture=%lld",`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:223` — `qWarning("HRT M7 QPA: BGRA frame gate incomplete sequence=%llu result=%lld flags=0x%llx capture=%lld",`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:12` — `qWarning("HRT M6 QPA: integration constructed");`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:15` — `QPlatformWindow *QHrtAppKitIntegration::createPlatformWindow(QWindow *window) const`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:17` — `QPlatformWindow *platformWindow = new QHrtAppKitWindow(window);`
@@ -958,14 +965,7 @@
 - `.github/workflows/hoffice-runtime-m6-hword-hrtappkit-run-v2.yml:305` — `'qpa_plugin_patched_sha256':'8d8cc3d45145b0836fd48d4084eab18a6c8c63bf0f827ceebb9ae1af1be55029',`
 - `.github/workflows/hoffice-runtime-m6-hword-hrtappkit-run-v2.yml:306` — `'qpa_key':'hrtappkit',`
 - `.github/workflows/hoffice-runtime-m6-hword-hrtappkit-run-v2.yml:333` — `"qpa_plugin": "$PLUGIN_GUEST",`
-- `.github/workflows/hoffice-runtime-m6-hword-hrtappkit-run-v2.yml:334` — `"qpa_plugin_patched_sha256": "$PLUGIN_PATCHED_SHA256",`
-- `.github/workflows/hoffice-runtime-m6-hword-hrtappkit-run-v2.yml:335` — `"boundary": "the exact HWord process loaded the Qt 5.11.3 hrtappkit QPA, whose QPlatformWindow lifecycle issued the deferred host calls and created a visible WindowServer-listed AppKit NSWindow",`
-- `.github/workflows/hoffice-runtime-m6-hword-hrtappkit-run-v2.yml:350` — `build/host/hrt-m6-hword-qpa-v2`
-- `.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml:1` — `name: HOffice runtime M6 exact HWord prebuilt QPA`
-- `.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml:8` — `- '.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml'`
-- `.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml:16` — `group: hrt-m6-hword-prebuilt-qpa-${{ github.ref }}`
-- `.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml:25` — `PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so`
-- … 202 more matches in JSON
+- … 293 more matches in JSON
 
 ## appkit
 
@@ -1013,9 +1013,10 @@
 - `runtime/m6/qpa/main.cpp:7` — `class QHrtAppKitIntegrationPlugin : public QPlatformIntegrationPlugin`
 - `runtime/m6/qpa/main.cpp:16` — `QPlatformIntegration *QHrtAppKitIntegrationPlugin::create(`
 - `runtime/m6/qpa/main.cpp:21` — `return new QHrtAppKitIntegration;`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:12` — `QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:20` — `void QHrtAppKitBackingStore::flush(QWindow *target,`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:27` — `const qint64 hostWindow = QHrtAppKitWindow::hostWindowFor(topLevel);`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:47` — `QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:57` — `void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:153` — `void QHrtAppKitBackingStore::flush(QWindow *target,`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:160` — `const qint64 hostWindow = QHrtAppKitWindow::hostWindowFor(topLevel);`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:10` — `class QHrtAppKitBackingStore : public QOffscreenBackingStore`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:13` — `explicit QHrtAppKitBackingStore(QWindow *window);`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:9` — `QHrtAppKitIntegration::QHrtAppKitIntegration()`
@@ -1098,6 +1099,15 @@
 - `.github/workflows/hoffice-runtime-m7-hostcall-inventory.yml:53` — `'appkit':re.compile(r'NSWindow|NSView|AppKit|CALayer|CGContext'),`
 - `.github/workflows/hoffice-runtime-m7-hword-bgra-first-frame.yml:109` — `- name: Generate the mature Linux and AppKit bridge`
 - `.github/workflows/hoffice-runtime-m7-hword-bgra-first-frame.yml:157` — `-framework AppKit -framework CoreGraphics -framework ImageIO \`
+- `.github/workflows/hoffice-runtime-m8-failure-harvester.yml:81` — `'(^|[^a-z])(error:|fatal:|undefined symbol|cannot load|could not load|failed|failure|assert|traceback|segmentation|fatal signal|enosys|HRT M8|HRT M7|HRT M6 QPA|host-call opcode=26[012]|qhrtappkit|QPA|AppKit|mouse delivered|key delivered|input pump|local input monitor)' \`
+- `.github/workflows/hoffice-runtime-m8-hword-appkit-input.yml:1` — `name: HOffice runtime M8 exact HWord AppKit input`
+- `.github/workflows/hoffice-runtime-m8-hword-appkit-input.yml:265` — `- name: Generate the mature Linux bridge and M8 AppKit adapter`
+- `.github/workflows/hoffice-runtime-m8-hword-appkit-input.yml:339` — `-framework AppKit -framework CoreGraphics -framework ImageIO \`
+- `.github/workflows/hoffice-runtime-m8-hword-appkit-input.yml:346` — `- name: Run exact HWord through AppKit key and mouse delivery`
+- `.github/workflows/hoffice-runtime-m8-hword-appkit-input.yml:386` — `- name: Accept only AppKit-originated events delivered into exact HWord Qt`
+- `.github/workflows/hoffice-runtime-m8-hword-appkit-input.yml:439` — `'proof': 'AppKit NSEvents traversed the M8 queue and QWindowSystemInterface into exact HWord Qt',`
+- `.github/workflows/hoffice-runtime-m8-hword-appkit-input.yml:456` — `git commit -m 'proof: verify M8 exact HWord AppKit key and mouse input'`
+- `.github/workflows/hoffice-runtime-m8-supervisor-v3.yml:167` — `'ci: trigger the exact-HWord M8 AppKit input replay'`
 - `.github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml:158` — `'AppKit window creation',`
 
 ## rendering
@@ -1132,12 +1142,13 @@
 - `runtime/m6/hostcall_trampoline.c:56` — `fflush(stderr);`
 - `runtime/m6/main.c:123` — `fflush(stderr);`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:1` — `#include "qhrtappkitbackingstore.h"`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:12` — `QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:13` — `: QOffscreenBackingStore(window)`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:17` — `qWarning("HRT M7 QPA: backing store constructed");`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:20` — `void QHrtAppKitBackingStore::flush(QWindow *target,`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:24` — `QOffscreenBackingStore::flush(target, region, offset);`
-- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:31` — `QPaintDevice *device = paintDevice();`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:47` — `QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:48` — `: QOffscreenBackingStore(window)`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:54` — `qWarning("HRT M7 QPA: backing store constructed");`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:57` — `void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:153` — `void QHrtAppKitBackingStore::flush(QWindow *target,`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:157` — `QOffscreenBackingStore::flush(target, region, offset);`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:164` — `QPaintDevice *device = paintDevice();`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:1` — `#ifndef QHRTAPPKITBACKINGSTORE_H`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:2` — `#define QHRTAPPKITBACKINGSTORE_H`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:10` — `class QHrtAppKitBackingStore : public QOffscreenBackingStore`
@@ -1324,6 +1335,8 @@
 - `.github/workflows/hoffice-runtime-m7-hostcall-inventory.yml:55` — `r'backing.?store|paintDevice|flush|raster|surface|framebuffer',`
 - `.github/workflows/hoffice-runtime-m7-hword-bgra-first-frame.yml:194` — `- name: Accept only a copied HWord backing-store frame`
 - `.github/workflows/hoffice-runtime-m7-hword-bgra-first-frame.yml:199` — `grep -F 'HRT M7 QPA: backing store constructed' "$stderr"`
+- `.github/workflows/hoffice-runtime-m8-hword-appkit-input.yml:8` — `- 'runtime/m6/qpa/qhrtappkitbackingstore.cpp'`
+- `.github/workflows/hoffice-runtime-m8-hword-appkit-input.yml:9` — `- 'runtime/m6/qpa/qhrtappkitbackingstore.h'`
 - `.github/workflows/hoffice-runtime-progress-snapshot-v2.yml:113` — `('m6-create-backing-store', 'createPlatformBackingStore',`
 - `.github/workflows/hoffice-runtime-progress-snapshot-v2.yml:114` — `'proofs/v2/m6-create-backing-store.json', 'symbol'),`
 - `.github/workflows/hoffice-runtime-progress-snapshot-v2.yml:115` — `('m6-backing-store-constructor',`
@@ -1396,6 +1409,19 @@
 - `runtime/m6/qpa/build_hrtappkit_root.sh:97` — `python3 runtime/m3/prepatch_elf.py build/plugin-root \`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:118` — `python3 runtime/m3/collect_rootfs.py \`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:136` — `tar --sort=name --mtime='UTC 2026-01-01' \`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:50` — `, m_keyEventsDelivered(0)`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:51` — `, m_mouseEventsDelivered(0)`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:72` — `static_cast<unsigned long long>(m_keyEventsDelivered),`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:73` — `static_cast<unsigned long long>(m_mouseEventsDelivered));`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:103` — `QWindowSystemInterface::handleKeyEvent<`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:107` — `++m_keyEventsDelivered;`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:134` — `QWindowSystemInterface::handleMouseEvent<`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:138` — `Qt::MouseEventNotSynthesized);`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:139` — `++m_mouseEventsDelivered;`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:149` — `static_cast<unsigned long long>(m_keyEventsDelivered),`
+- `runtime/m6/qpa/qhrtappkitbackingstore.cpp:150` — `static_cast<unsigned long long>(m_mouseEventsDelivered));`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:23` — `quint64 m_keyEventsDelivered;`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:24` — `quint64 m_mouseEventsDelivered;`
 - `.github/workflows/hoffice-legacy-openssl-audit.yml:5` — `branches: [codex/hoffice-runtime-from-scratch]`
 - `.github/workflows/hoffice-legacy-openssl-audit.yml:21` — `timeout-minutes: 10`
 - `.github/workflows/hoffice-runtime-abi-lock.yml:1` — `name: HOffice runtime ABI lock`
@@ -1648,17 +1674,4 @@
 - `.github/workflows/hoffice-runtime-m1-v2.yml:29` — `clang -c -nostdlib -fPIE runtime/m1/test_main.S \`
 - `.github/workflows/hoffice-runtime-m1-v2.yml:66` — `runtime/m1/main.c runtime/m1/common.c runtime/m1/elf_map.c \`
 - `.github/workflows/hoffice-runtime-m1-v2.yml:67` — `runtime/m1/stack.c runtime/m1/syscall_bridge.c \`
-- `.github/workflows/hoffice-runtime-m1-v2.yml:68` — `runtime/m1/enter_guest.S \`
-- `.github/workflows/hoffice-runtime-m1-v2.yml:70` — `codesign --force --sign - --timestamp=none build/host/hrt-m1`
-- `.github/workflows/hoffice-runtime-m1-v2.yml:110` — `git push origin HEAD:codex/hoffice-runtime-from-scratch`
-- `.github/workflows/hoffice-runtime-m1.yml:1` — `name: HOffice runtime M1`
-- `.github/workflows/hoffice-runtime-m1.yml:5` — `branches: [codex/hoffice-runtime-from-scratch]`
-- `.github/workflows/hoffice-runtime-m1.yml:21` — `runtime/m1/test_interp.S -o build/guest/objects/test_interp.o`
-- `.github/workflows/hoffice-runtime-m1.yml:23` — `runtime/m1/test_main.S -o build/guest/objects/test_main.o`
-- `.github/workflows/hoffice-runtime-m1.yml:75` — `runtime/m1/main.c runtime/m1/common.c runtime/m1/elf_map.c \`
-- `.github/workflows/hoffice-runtime-m1.yml:76` — `runtime/m1/stack.c runtime/m1/syscall_bridge.c \`
-- `.github/workflows/hoffice-runtime-m1.yml:77` — `runtime/m1/enter_guest.S \`
-- `.github/workflows/hoffice-runtime-m1.yml:81` — `codesign --force --sign - --timestamp=none build/host/hrt-m1`
-- `.github/workflows/hoffice-runtime-m2-probe.yml:1` — `name: HOffice runtime M2 TLS probe`
-- `.github/workflows/hoffice-runtime-m2-probe.yml:5` — `branches: [codex/hoffice-runtime-from-scratch]`
-- … 1166 more matches in JSON
+- … 1259 more matches in JSON

@@ -1,16 +1,16 @@
 {
   "schema": 1,
-  "commit": "299edc68fb1cdcdabd34ee753256ccb3d856aa84",
-  "workflow_run": "31152348222",
-  "file_count": 114,
+  "commit": "6924bba3227b927d567ecd9ee60629bb11b1c34c",
+  "workflow_run": "31155011775",
+  "file_count": 120,
   "match_counts": {
-    "opcode_256": 517,
+    "opcode_256": 544,
     "create_operation": 41,
-    "host_call": 374,
-    "custom_qpa": 502,
-    "appkit": 130,
-    "rendering": 256,
-    "input_ime": 1466
+    "host_call": 403,
+    "custom_qpa": 593,
+    "appkit": 140,
+    "rendering": 259,
+    "input_ime": 1559
   },
   "files": [
     {
@@ -127,7 +127,7 @@
     },
     {
       "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
-      "sha256": "133be1e86b4b0a13eec8bc7bf2ab98201914d44bca29261b9bdeb98ff31d119f",
+      "sha256": "c8ca6c3d36c128d81d42470a820186d5ca777b1c3d9fc1e6ac5542dd1a8de7d1",
       "size": 1471,
       "groups": [
         "custom_qpa",
@@ -165,21 +165,23 @@
     },
     {
       "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-      "sha256": "16b214a5acb68a0e9646ac4d2edfc2bc8cc697dbb4871c36a0e2f6df971c877d",
-      "size": 3603,
+      "sha256": "8b26f9323c27527f59b6e433cbde2f58debd4af780796cbdc0ecedbb3eaaef3a",
+      "size": 9374,
       "groups": [
         "appkit",
         "custom_qpa",
         "host_call",
+        "input_ime",
         "rendering"
       ]
     },
     {
       "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-      "sha256": "8f619a2752962f62c4e788cb53b46312fade415d1b2c9c484c966a8628adedb3",
-      "size": 491,
+      "sha256": "5ca0ff6ab8e6bc7a189391a438dbe9cac7393a6678411e195e530d5730656519",
+      "size": 612,
       "groups": [
         "appkit",
+        "input_ime",
         "rendering"
       ]
     },
@@ -1142,6 +1144,72 @@
         "input_ime",
         "opcode_256",
         "rendering"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-m8-failure-harvester.yml",
+      "sha256": "86c535106c982117a02ccd69b623cd0d5d6f63e5b8e8400c868ba37e0a6bfe57",
+      "size": 4879,
+      "groups": [
+        "appkit",
+        "custom_qpa",
+        "host_call",
+        "input_ime",
+        "opcode_256"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+      "sha256": "34ff65d96b480491458037ba951100970135a940f260ac59f3c6b1b4068b7b60",
+      "size": 23273,
+      "groups": [
+        "appkit",
+        "custom_qpa",
+        "host_call",
+        "input_ime",
+        "opcode_256",
+        "rendering"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+      "sha256": "21eef2050d242bfbb804ee6016fa543ec72d2c090f5a0f7a00fffc0856bf9589",
+      "size": 2399,
+      "groups": [
+        "custom_qpa",
+        "host_call",
+        "input_ime"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+      "sha256": "92f6cf84aa0167c7f26fed4818b4e49b11139719f811109fcfe42fae4fda306e",
+      "size": 8473,
+      "groups": [
+        "custom_qpa",
+        "host_call",
+        "input_ime"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+      "sha256": "bf1e6a6c807ce24ec3145fca3e911ab014a8a3f2591747012c80d2b090e555d0",
+      "size": 9095,
+      "groups": [
+        "appkit",
+        "custom_qpa",
+        "host_call",
+        "input_ime"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+      "sha256": "09fd90a4cbcc8d1f5469590150bc742e7ed098647472cfc765adc17242df8820",
+      "size": 8299,
+      "groups": [
+        "custom_qpa",
+        "host_call",
+        "input_ime"
       ]
     },
     {
@@ -3718,6 +3786,141 @@
         "text": "'presented_frame_screenshot_sha256': hashlib.sha256(post).hexdigest(),"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m8-failure-harvester.yml",
+        "line": 104,
+        "text": "'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 23,
+        "text": "ROOTFS_ARTIFACT_SHA256: 3e301d3c6269926c62804bff18671136fcf8c0b0b22b3952072e427a8fa9918a"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 24,
+        "text": "ROOTFS_ARCHIVE_SHA256: 322fcf228092b296a34edbfa7ee43f9a7b237d5bcedaee50109ac4bb44d9ca28"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 26,
+        "text": "PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 28,
+        "text": "QTBASE_ARCHIVE_SHA256: c6bf887732b83ce072eb72eddb7497bedcdf9ca794e7ed91261a93f063623e1c"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 66,
+        "text": "printf '%s  %s\\n' \"$QTBASE_ARCHIVE_SHA256\" build/source/qtbase.tar.xz \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 67,
+        "text": "| sha256sum --check -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 74,
+        "text": "sha256sum build/source/qtbase.tar.xz \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 75,
+        "text": ">build/m8-qpa-output/report/qtbase-source.sha256"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 140,
+        "text": "actual = hashlib.sha256(plugin.read_bytes()).hexdigest()"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 141,
+        "text": "assert actual == record['sha256_after'], (actual, record)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 155,
+        "text": "'qtbase_archive_sha256': os.environ['QTBASE_ARCHIVE_SHA256'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 160,
+        "text": "'sha256_before_prepatch': record['sha256_before'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 161,
+        "text": "'sha256_after_prepatch': record['sha256_after'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 162,
+        "text": "'xz_sha256': hashlib.sha256(compressed).hexdigest(),"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 176,
+        "text": "sha256sum build/m8-qpa-output/libqhrtappkit.so.xz \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 177,
+        "text": ">build/m8-qpa-output/report/plugin-xz.sha256"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 218,
+        "text": "printf '%s  %s\\n' \"$ROOTFS_ARTIFACT_SHA256\" build/input/hword-artifact.zip \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 219,
+        "text": "| shasum -a 256 -c -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 221,
+        "text": "printf '%s  %s\\n' \"$ROOTFS_ARCHIVE_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 222,
+        "text": "build/input/hword/hword-rootfs.tar.gz | shasum -a 256 -c -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 254,
+        "text": "assert hashlib.sha256(compressed).hexdigest() == lock['plugin']['xz_sha256'], lock"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 256,
+        "text": "assert hashlib.sha256(plugin).hexdigest() == lock['plugin']['sha256_after_prepatch'], lock"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 308,
+        "text": "'#define M3_TRACE_LIMIT 256u', '#define M3_TRACE_LIMIT 30000u'))"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 430,
+        "text": "'program_sha256': os.environ['PROGRAM_SHA256'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 432,
+        "text": "'qpa_sha256': lock['plugin']['sha256_after_prepatch'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 438,
+        "text": "'capture_sha256': hashlib.sha256(capture.read_bytes()).hexdigest(),"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-progress-snapshot-v2.yml",
         "line": 189,
         "text": "'plugin_sha256': data.get('plugin_sha256'),"
@@ -4498,22 +4701,27 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 46,
+        "line": 65,
+        "text": "const qint64 poll = hrtM6HostCall("
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 179,
         "text": "const qint64 result = hrtM6HostCall("
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 66,
+        "line": 201,
         "text": "const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 50);"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 67,
+        "line": 202,
         "text": "const qint64 flags = hrtM6HostCall("
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 69,
+        "line": 204,
         "text": "const qint64 capture = hrtM6HostCall("
       },
       {
@@ -5832,6 +6040,146 @@
         "text": "'host_calls': calls,"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m8-failure-harvester.yml",
+        "line": 8,
+        "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-failure-harvester.yml",
+        "line": 81,
+        "text": "'(^|[^a-z])(error:|fatal:|undefined symbol|cannot load|could not load|failed|failure|assert|traceback|segmentation|fatal signal|enosys|HRT M8|HRT M7|HRT M6 QPA|host-call opcode=26[012]|qhrtappkit|QPA|AppKit|mouse delivered|key delivered|input pump|local input monitor)' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 11,
+        "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 166,
+        "text": "'m7_bgra_transport': True,"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 167,
+        "text": "'m8_input_poll_transport': True,"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 252,
+        "text": "assert lock['plugin']['m8_input_poll_transport'] is True, lock"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 300,
+        "text": "python3 runtime/m6/augment_appkit_hostcall_deferred.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 311,
+        "text": "grep -q 'case HRT_M6_HOSTCALL_SYSCALL' build/generated/syscall_bridge.c"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 321,
+        "text": "for source in runtime/m6/main.c runtime/m6/hostcall_trampoline.c \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 336,
+        "text": "clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 337,
+        "text": "-o build/objects/hostcall-trampoline.o"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 379,
+        "text": "grep -E 'libqhrtappkit|HRT M7 QPA|HRT M8 APPKIT|HRT M8 QPA|host-call opcode=26[0-2]|fatal signal|Qt platform plugin|Linux syscall ENOSYS' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 399,
+        "text": "grep -E 'hrt-m6: host-call opcode=262 result=1' \"$stderr\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 400,
+        "text": "grep -E 'hrt-m6: host-call opcode=262 result=0' \"$stderr\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 419,
+        "text": "for match in re.finditer(r'hrt-m6: host-call opcode=262 result=(-?\\d+)', stderr)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+        "line": 8,
+        "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 8,
+        "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 39,
+        "text": "- name: Dispatch and verify the exact M8 pipeline"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 103,
+        "text": "grep -R -q '\"m8_input_poll_transport\"[[:space:]]*:[[:space:]]*true' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 120,
+        "text": "\"repos/${GITHUB_REPOSITORY}/actions/workflows/${PUBLISH_WORKFLOW}/dispatches\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 149,
+        "text": "\"repos/${GITHUB_REPOSITORY}/actions/workflows/${REPLAY_WORKFLOW}/dispatches\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 8,
+        "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 122,
+        "text": "grep -R -q '\"m8_input_poll_transport\"[[:space:]]*:[[:space:]]*true' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+        "line": 8,
+        "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+        "line": 39,
+        "text": "- name: Dispatch, wait for, and verify the M8 pipeline"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+        "line": 52,
+        "text": "--jq '.workflow_runs | map(select(.status != \"queued\" or .event == \"workflow_dispatch\" or .event == \"push\")) | .[0] // empty'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+        "line": 98,
+        "text": "\"repos/${GITHUB_REPOSITORY}/actions/workflows/${PUBLISH_WORKFLOW}/dispatches\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+        "line": 131,
+        "text": "\"repos/${GITHUB_REPOSITORY}/actions/workflows/${REPLAY_WORKFLOW}/dispatches\" \\"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-progress-snapshot-v2.yml",
         "line": 8,
         "text": "workflow_dispatch:"
@@ -5891,7 +6239,7 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 7,
-        "text": "\"qpa_source_tree\": \"feb0776084c0c015618aaff9df1eecc2014cb5fa\""
+        "text": "\"qpa_source_tree\": \"176e331fe060611e1694489399100b6bc2251c68\""
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
@@ -6125,32 +6473,67 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 7,
+        "line": 10,
         "text": "#include <QtGui/qpainter.h>"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 17,
+        "line": 12,
+        "text": "#include <qpa/qwindowsysteminterface.h>"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 54,
         "text": "qWarning(\"HRT M7 QPA: backing store constructed\");"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 31,
+        "line": 71,
+        "text": "qWarning(\"HRT M8 QPA: input queue drained key=%llu mouse=%llu\","
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 78,
+        "text": "qWarning(\"HRT M8 QPA: input poll failed result=%lld iteration=%u\","
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 83,
+        "text": "qWarning(\"HRT M8 QPA: rejected input ABI size=%u expected=%u\","
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 109,
+        "text": "qWarning(\"HRT M8 QPA: key event delivered sequence=%llu action=%u key=0x%x native=%u text=%s accepted=%d\","
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 141,
+        "text": "qWarning(\"HRT M8 QPA: mouse event delivered sequence=%llu action=%u button=0x%x buttons=0x%x local=%d,%d global=%d,%d\","
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 148,
+        "text": "qWarning(\"HRT M8 QPA: input drain iteration limit reached key=%llu mouse=%llu\","
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 164,
         "text": "QPaintDevice *device = paintDevice();"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 56,
+        "line": 189,
         "text": "qWarning(\"HRT M7 QPA: PRESENT_BGRA failed sequence=%llu result=%lld size=%dx%d stride=%d host=%lld\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 80,
+        "line": 215,
         "text": "qWarning(\"HRT M7 QPA: BGRA frame accepted sequence=%llu size=%dx%d stride=%d host=%lld pump=%lld flags=0x%llx capture=%lld\","
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 88,
+        "line": 223,
         "text": "qWarning(\"HRT M7 QPA: BGRA frame gate incomplete sequence=%llu result=%lld flags=0x%llx capture=%lld\","
       },
       {
@@ -8339,6 +8722,426 @@
         "text": "'qpa_plugin_sha256': lock['plugin']['sha256_after_prepatch'], 'qpa_key': 'hrtappkit',"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m8-failure-harvester.yml",
+        "line": 81,
+        "text": "'(^|[^a-z])(error:|fatal:|undefined symbol|cannot load|could not load|failed|failure|assert|traceback|segmentation|fatal signal|enosys|HRT M8|HRT M7|HRT M6 QPA|host-call opcode=26[012]|qhrtappkit|QPA|AppKit|mouse delivered|key delivered|input pump|local input monitor)' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 8,
+        "text": "- 'runtime/m6/qpa/qhrtappkitbackingstore.cpp'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 9,
+        "text": "- 'runtime/m6/qpa/qhrtappkitbackingstore.h'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 27,
+        "text": "PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 31,
+        "text": "build-input-qpa:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 60,
+        "text": "mkdir -p build/source build/qpa \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 61,
+        "text": "\"build/m8-qpa-output/plugin-root$(dirname \"$PLUGIN_GUEST\")\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 62,
+        "text": "build/m8-qpa-output/report"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 72,
+        "text": "test -f \"$qtbase/src/plugins/platforms/offscreen/qoffscreenintegration.cpp\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 73,
+        "text": "printf '%s\\n' \"$qtbase\" >build/m8-qpa-output/report/qtbase-path.txt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 75,
+        "text": ">build/m8-qpa-output/report/qtbase-source.sha256"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 77,
+        "text": "- name: Build and audit the M8 input-enabled QPA"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 82,
+        "text": "qtbase=$(cat build/m8-qpa-output/report/qtbase-path.txt)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 83,
+        "text": "qpa_source=\"$PWD/runtime/m6/qpa/hrtappkit.pro\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 84,
+        "text": "offscreen=\"$PWD/$qtbase/src/plugins/platforms/offscreen\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 85,
+        "text": "cd build/qpa"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 86,
+        "text": "qmake -qt=5 \"$qpa_source\" \"QTOFFSCREEN_DIR=$offscreen\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 90,
+        "text": "cp \"$plugin\" \"$GITHUB_WORKSPACE/build/m8-qpa-output/plugin-root$PLUGIN_GUEST\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 92,
+        "text": "chmod 0755 \"build/m8-qpa-output/plugin-root$PLUGIN_GUEST\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 93,
+        "text": "file \"build/m8-qpa-output/plugin-root$PLUGIN_GUEST\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 94,
+        "text": "| tee build/m8-qpa-output/report/plugin-file.txt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 95,
+        "text": "readelf -dW \"build/m8-qpa-output/plugin-root$PLUGIN_GUEST\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 96,
+        "text": "| tee build/m8-qpa-output/report/plugin-dynamic.txt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 97,
+        "text": "readelf -Ws \"build/m8-qpa-output/plugin-root$PLUGIN_GUEST\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 98,
+        "text": "| tee build/m8-qpa-output/report/plugin-symbols.txt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 99,
+        "text": "readelf -p .qtmetadata \"build/m8-qpa-output/plugin-root$PLUGIN_GUEST\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 100,
+        "text": "| tee build/m8-qpa-output/report/plugin-qtmetadata.txt || true"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 101,
+        "text": "strings -a \"build/m8-qpa-output/plugin-root$PLUGIN_GUEST\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 102,
+        "text": "| grep -E 'hrtappkit|HRT M7 QPA|HRT M8 QPA' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 103,
+        "text": "| tee build/m8-qpa-output/report/plugin-markers.txt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 105,
+        "text": "build/m8-qpa-output/report/plugin-dynamic.txt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 107,
+        "text": "build/m8-qpa-output/report/plugin-dynamic.txt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 108,
+        "text": "grep -aF 'HRT M7 QPA: BGRA frame accepted' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 109,
+        "text": "\"build/m8-qpa-output/plugin-root$PLUGIN_GUEST\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 110,
+        "text": "grep -aF 'HRT M8 QPA: key event delivered' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 111,
+        "text": "\"build/m8-qpa-output/plugin-root$PLUGIN_GUEST\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 112,
+        "text": "grep -aF 'HRT M8 QPA: mouse event delivered' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 113,
+        "text": "\"build/m8-qpa-output/plugin-root$PLUGIN_GUEST\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 115,
+        "text": "build/m8-qpa-output/report/plugin-symbols.txt | grep .; then"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 124,
+        "text": "python3 runtime/m3/prepatch_elf.py build/m8-qpa-output/plugin-root \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 125,
+        "text": "| tee build/m8-qpa-output/report/plugin-prepatch.txt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 126,
+        "text": "test -s build/m8-qpa-output/plugin-root/.hrt-prepatched-v1"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 128,
+        "text": "\"build/m8-qpa-output/plugin-root$PLUGIN_GUEST\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 129,
+        "text": ">build/m8-qpa-output/libqhrtappkit.so.xz"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 135,
+        "text": "output = Path('build/m8-qpa-output')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 147,
+        "text": "'kind': 'same-run-m8-qpa',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 159,
+        "text": "'qpa_key': 'hrtappkit',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 176,
+        "text": "sha256sum build/m8-qpa-output/libqhrtappkit.so.xz \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 177,
+        "text": ">build/m8-qpa-output/report/plugin-xz.sha256"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 181,
+        "text": "name: hrt-m8-qt5113-hrtappkit-input-qpa"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 182,
+        "text": "path: build/m8-qpa-output"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 188,
+        "text": "needs: build-input-qpa"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 206,
+        "text": "name: hrt-m8-qt5113-hrtappkit-input-qpa"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 207,
+        "text": "path: build/input/qpa"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 245,
+        "text": "python3 - build/input/qpa/libqhrtappkit.so.xz \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 246,
+        "text": "build/input/qpa/lock.json \"$root$PLUGIN_GUEST\" <<'PY'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 258,
+        "text": "pathlib.Path('build/proof/qpa-lock.json').write_text(json.dumps(lock, indent=2) + '\\n')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 358,
+        "text": "if grep -q 'HRT M7 QPA: BGRA frame accepted' build/proof/stderr.txt 2>/dev/null && \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 359,
+        "text": "grep -q 'HRT M8 QPA: key event delivered' build/proof/stderr.txt 2>/dev/null && \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 360,
+        "text": "grep -q 'HRT M8 QPA: mouse event delivered' build/proof/stderr.txt 2>/dev/null && \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 361,
+        "text": "grep -q 'HRT M8 QPA: input queue drained' build/proof/stderr.txt 2>/dev/null; then"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 379,
+        "text": "grep -E 'libqhrtappkit|HRT M7 QPA|HRT M8 APPKIT|HRT M8 QPA|host-call opcode=26[0-2]|fatal signal|Qt platform plugin|Linux syscall ENOSYS' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 390,
+        "text": "grep -F 'loaded library \"/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so\"' \"$stderr\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 391,
+        "text": "grep -F 'HRT M7 QPA: BGRA frame accepted' \"$stderr\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 401,
+        "text": "grep -E 'HRT M8 QPA: key event delivered .*action=1' \"$stderr\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 402,
+        "text": "grep -E 'HRT M8 QPA: key event delivered .*action=2' \"$stderr\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 403,
+        "text": "grep -E 'HRT M8 QPA: mouse event delivered .*action=1' \"$stderr\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 404,
+        "text": "grep -E 'HRT M8 QPA: mouse event delivered .*action=2' \"$stderr\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 405,
+        "text": "grep -E 'HRT M8 QPA: mouse event delivered .*action=3' \"$stderr\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 406,
+        "text": "grep -F 'HRT M8 QPA: input queue drained' \"$stderr\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 415,
+        "text": "key_events = re.findall(r'HRT M8 QPA: key event delivered .*', stderr)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 416,
+        "text": "mouse_events = re.findall(r'HRT M8 QPA: mouse event delivered .*', stderr)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 422,
+        "text": "lock = json.loads(Path('build/proof/qpa-lock.json').read_text())"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 432,
+        "text": "'qpa_sha256': lock['plugin']['sha256_after_prepatch'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+        "line": 53,
+        "text": "repo/runtime/m6/qpa/.m8-input-rebuild-trigger-20260807 \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+        "line": 55,
+        "text": "repo/runtime/m6/qpa/.m8-supervisor-publish-trigger \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 20,
+        "text": "PUBLISH_WORKFLOW: hoffice-runtime-m6-qpa-publish.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 130,
+        "text": "--arg status FAIL --arg stage qpa-publish \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 20,
+        "text": "PUBLISH_WORKFLOW: hoffice-runtime-m6-qpa-publish.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 138,
+        "text": "push_trigger runtime/m6/qpa/.m8-supervisor-publish-trigger \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 139,
+        "text": "'ci: trigger the M8 input-enabled QPA publisher'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 148,
+        "text": "--arg status FAIL --arg stage qpa-publish \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+        "line": 20,
+        "text": "PUBLISH_WORKFLOW: hoffice-runtime-m6-qpa-publish.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+        "line": 108,
+        "text": "--arg stage qpa-publish \\"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-proof-frontier-v3.yml",
         "line": 180,
         "text": "'diagnostics/hostcall-qpa-inventory.json'),"
@@ -8607,17 +9410,22 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 12,
+        "line": 47,
         "text": "QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 20,
+        "line": 57,
+        "text": "void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 153,
         "text": "void QHrtAppKitBackingStore::flush(QWindow *target,"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 27,
+        "line": 160,
         "text": "const qint64 hostWindow = QHrtAppKitWindow::hostWindowFor(topLevel);"
       },
       {
@@ -9031,6 +9839,51 @@
         "text": "-framework AppKit -framework CoreGraphics -framework ImageIO \\"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m8-failure-harvester.yml",
+        "line": 81,
+        "text": "'(^|[^a-z])(error:|fatal:|undefined symbol|cannot load|could not load|failed|failure|assert|traceback|segmentation|fatal signal|enosys|HRT M8|HRT M7|HRT M6 QPA|host-call opcode=26[012]|qhrtappkit|QPA|AppKit|mouse delivered|key delivered|input pump|local input monitor)' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 1,
+        "text": "name: HOffice runtime M8 exact HWord AppKit input"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 265,
+        "text": "- name: Generate the mature Linux bridge and M8 AppKit adapter"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 339,
+        "text": "-framework AppKit -framework CoreGraphics -framework ImageIO \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 346,
+        "text": "- name: Run exact HWord through AppKit key and mouse delivery"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 386,
+        "text": "- name: Accept only AppKit-originated events delivered into exact HWord Qt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 439,
+        "text": "'proof': 'AppKit NSEvents traversed the M8 queue and QWindowSystemInterface into exact HWord Qt',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 456,
+        "text": "git commit -m 'proof: verify M8 exact HWord AppKit key and mouse input'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 167,
+        "text": "'ci: trigger the exact-HWord M8 AppKit input replay'"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml",
         "line": 158,
         "text": "'AppKit window creation',"
@@ -9189,32 +10042,37 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 12,
+        "line": 47,
         "text": "QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 13,
+        "line": 48,
         "text": ": QOffscreenBackingStore(window)"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 17,
+        "line": 54,
         "text": "qWarning(\"HRT M7 QPA: backing store constructed\");"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 20,
+        "line": 57,
+        "text": "void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 153,
         "text": "void QHrtAppKitBackingStore::flush(QWindow *target,"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 24,
+        "line": 157,
         "text": "QOffscreenBackingStore::flush(target, region, offset);"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
-        "line": 31,
+        "line": 164,
         "text": "QPaintDevice *device = paintDevice();"
       },
       {
@@ -10148,6 +11006,16 @@
         "text": "grep -F 'HRT M7 QPA: backing store constructed' \"$stderr\""
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 8,
+        "text": "- 'runtime/m6/qpa/qhrtappkitbackingstore.cpp'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 9,
+        "text": "- 'runtime/m6/qpa/qhrtappkitbackingstore.h'"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-progress-snapshot-v2.yml",
         "line": 113,
         "text": "('m6-create-backing-store', 'createPlatformBackingStore',"
@@ -10493,6 +11361,71 @@
         "path": "runtime/m6/qpa/build_hrtappkit_root.sh",
         "line": 136,
         "text": "tar --sort=name --mtime='UTC 2026-01-01' \\"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 50,
+        "text": ", m_keyEventsDelivered(0)"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 51,
+        "text": ", m_mouseEventsDelivered(0)"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 72,
+        "text": "static_cast<unsigned long long>(m_keyEventsDelivered),"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 73,
+        "text": "static_cast<unsigned long long>(m_mouseEventsDelivered));"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 103,
+        "text": "QWindowSystemInterface::handleKeyEvent<"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 107,
+        "text": "++m_keyEventsDelivered;"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 134,
+        "text": "QWindowSystemInterface::handleMouseEvent<"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 138,
+        "text": "Qt::MouseEventNotSynthesized);"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 139,
+        "text": "++m_mouseEventsDelivered;"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 149,
+        "text": "static_cast<unsigned long long>(m_keyEventsDelivered),"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
+        "line": 150,
+        "text": "static_cast<unsigned long long>(m_mouseEventsDelivered));"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
+        "line": 23,
+        "text": "quint64 m_keyEventsDelivered;"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
+        "line": 24,
+        "text": "quint64 m_mouseEventsDelivered;"
       },
       {
         "path": ".github/workflows/hoffice-legacy-openssl-audit.yml",
@@ -17188,6 +18121,406 @@
         "path": ".github/workflows/hoffice-runtime-m7-hword-bgra-first-frame.yml",
         "line": 247,
         "text": "'not_credited': ['continuous animation quality', 'native input', 'Korean IME',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-failure-harvester.yml",
+        "line": 1,
+        "text": "name: HOffice runtime M8 failure harvester"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-failure-harvester.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-failure-harvester.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-m8-failure-harvester.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-failure-harvester.yml",
+        "line": 19,
+        "text": "TARGET_BRANCH: codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-failure-harvester.yml",
+        "line": 24,
+        "text": "timeout-minutes: 80"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 1,
+        "text": "name: HOffice runtime M8 exact HWord AppKit input"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 7,
+        "text": "- 'runtime/m8/**'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 8,
+        "text": "- 'runtime/m6/qpa/qhrtappkitbackingstore.cpp'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 9,
+        "text": "- 'runtime/m6/qpa/qhrtappkitbackingstore.h'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 10,
+        "text": "- '.github/workflows/hoffice-runtime-m8-hword-appkit-input.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 34,
+        "text": "timeout-minutes: 40"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 83,
+        "text": "qpa_source=\"$PWD/runtime/m6/qpa/hrtappkit.pro\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 124,
+        "text": "python3 runtime/m3/prepatch_elf.py build/m8-qpa-output/plugin-root \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 190,
+        "text": "timeout-minutes: 50"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 275,
+        "text": "python3 runtime/m8/augment_appkit_adapter_input.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 276,
+        "text": "runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 280,
+        "text": "python3 runtime/m6/augment_stack_hrtappkit.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 281,
+        "text": "runtime/m3/stack.c build/generated/stack.c"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 282,
+        "text": "python3 runtime/m3/augment_syscalls.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 283,
+        "text": "runtime/m3/syscall_bridge.c build/generated/stage1.c"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 284,
+        "text": "python3 runtime/m3/augment_directory_syscalls.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 286,
+        "text": "python3 runtime/m3/augment_directory_stream.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 288,
+        "text": "python3 runtime/m3/augment_pipe2.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 290,
+        "text": "python3 runtime/m3/augment_eventfd2.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 292,
+        "text": "python3 runtime/m3/augment_crash_signals.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 294,
+        "text": "python3 runtime/m3/augment_poll.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 296,
+        "text": "python3 runtime/m3/augment_posix_basics.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 298,
+        "text": "python3 runtime/m3/augment_connect.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 300,
+        "text": "python3 runtime/m6/augment_appkit_hostcall_deferred.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 302,
+        "text": "python3 runtime/m3/augment_darwin_syscall_abi.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 319,
+        "text": "-Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 321,
+        "text": "for source in runtime/m6/main.c runtime/m6/hostcall_trampoline.c \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 322,
+        "text": "runtime/m1/common.c runtime/m3/elf_map.c build/generated/stack.c \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 323,
+        "text": "runtime/m3/patch.c build/generated/syscall_bridge.c; do"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 328,
+        "text": "-Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 332,
+        "text": "-Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 333,
+        "text": "-c runtime/m8/appkit_input.m -o build/objects/appkit-input.o"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 334,
+        "text": "clang -arch x86_64 -g -c runtime/m1/enter_guest.S \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 336,
+        "text": "clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 343,
+        "text": "codesign --force --sign - --timestamp=none build/host/hrt-m8-hword-input"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-hword-appkit-input.yml",
+        "line": 368,
+        "text": "ps -o pid,ppid,state,%cpu,%mem,etime,command -p \"$pid\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+        "line": 1,
+        "text": "name: HOffice runtime M8 supervisor cleanup"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+        "line": 18,
+        "text": "TARGET_BRANCH: codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+        "line": 23,
+        "text": "timeout-minutes: 80"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+        "line": 51,
+        "text": "repo/.github/workflows/hoffice-runtime-m8-supervisor.yml \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+        "line": 52,
+        "text": "repo/.github/workflows/hoffice-runtime-m8-supervisor-v2.yml \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+        "line": 53,
+        "text": "repo/runtime/m6/qpa/.m8-input-rebuild-trigger-20260807 \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+        "line": 54,
+        "text": "repo/runtime/m8/.m8-input-replay-trigger-20260807 \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+        "line": 55,
+        "text": "repo/runtime/m6/qpa/.m8-supervisor-publish-trigger \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-cleanup.yml",
+        "line": 56,
+        "text": "repo/runtime/m8/.m8-supervisor-replay-trigger"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 1,
+        "text": "name: HOffice runtime M8 pipeline supervisor v2"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-m8-supervisor-v2.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 19,
+        "text": "TARGET_BRANCH: codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 20,
+        "text": "PUBLISH_WORKFLOW: hoffice-runtime-m6-qpa-publish.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 21,
+        "text": "REPLAY_WORKFLOW: hoffice-runtime-m8-hword-appkit-input.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 26,
+        "text": "timeout-minutes: 80"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 102,
+        "text": "test -d repo/runtime/m6/prebuilt && \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v2.yml",
+        "line": 104,
+        "text": "repo/runtime/m6/prebuilt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 1,
+        "text": "name: HOffice runtime M8 pipeline supervisor v3"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-m8-supervisor-v3.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 19,
+        "text": "TARGET_BRANCH: codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 20,
+        "text": "PUBLISH_WORKFLOW: hoffice-runtime-m6-qpa-publish.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 21,
+        "text": "REPLAY_WORKFLOW: hoffice-runtime-m8-hword-appkit-input.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 26,
+        "text": "timeout-minutes: 80"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 121,
+        "text": "test -d repo/runtime/m6/prebuilt && \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 123,
+        "text": "repo/runtime/m6/prebuilt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 138,
+        "text": "push_trigger runtime/m6/qpa/.m8-supervisor-publish-trigger \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor-v3.yml",
+        "line": 166,
+        "text": "push_trigger runtime/m8/.m8-supervisor-replay-trigger \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+        "line": 1,
+        "text": "name: HOffice runtime M8 pipeline supervisor"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-m8-supervisor.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+        "line": 19,
+        "text": "TARGET_BRANCH: codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+        "line": 20,
+        "text": "PUBLISH_WORKFLOW: hoffice-runtime-m6-qpa-publish.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+        "line": 21,
+        "text": "REPLAY_WORKFLOW: hoffice-runtime-m8-hword-appkit-input.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m8-supervisor.yml",
+        "line": 26,
+        "text": "timeout-minutes: 75"
       },
       {
         "path": ".github/workflows/hoffice-runtime-progress-snapshot-v2.yml",
