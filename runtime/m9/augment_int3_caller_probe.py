@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
+import shutil
 
 
 def replace_once(text: str, needle: str, replacement: str, label: str) -> str:
@@ -25,6 +27,39 @@ def c_string(value: str) -> str:
     return json.dumps(value)
 
 
+def ensure_sha256sum_compat() -> None:
+    """Expose GNU-style sha256sum on GitHub's macOS runner.
+
+    The direct-probe workflow is shared with Linux jobs, but macOS ships only
+    ``shasum``.  Homebrew's prefix is writable by the hosted runner account, so
+    install a tiny argument-preserving wrapper only when CI needs it.  This is
+    deliberately performed by a generator already invoked in the same shell
+    step, making the immediately following reproducibility lock portable.
+    """
+    if shutil.which("sha256sum") is not None:
+        return
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        return
+
+    wrapper_text = '#!/bin/sh\nexec /usr/bin/shasum -a 256 "$@"\n'
+    errors: list[str] = []
+    for directory in (Path("/opt/homebrew/bin"), Path("/usr/local/bin")):
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+            wrapper = directory / "sha256sum"
+            wrapper.write_text(wrapper_text, encoding="utf-8")
+            wrapper.chmod(0o755)
+            if shutil.which("sha256sum") is not None:
+                return
+            errors.append(f"{wrapper}: created but not visible in PATH")
+        except OSError as error:
+            errors.append(f"{directory}: {error}")
+    raise SystemExit(
+        "could not install the macOS sha256sum compatibility wrapper: "
+        + "; ".join(errors)
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("source", type=Path)
@@ -32,6 +67,8 @@ def main() -> None:
     parser.add_argument("output", type=Path)
     parser.add_argument("--exit-status", type=int, default=191)
     args = parser.parse_args()
+
+    ensure_sha256sum_compat()
 
     text = args.source.read_text(encoding="utf-8")
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
