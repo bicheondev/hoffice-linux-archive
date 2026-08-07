@@ -88,8 +88,21 @@ static void copy_text(HrtM8InputEvent *event, NSString *text) {
     event->utf8_length = (uint32_t)length;
 }
 
-static void global_coordinates(int32_t *x, int32_t *y) {
+static void global_coordinates_for_event(NSEvent *event, NSWindow *window,
+                                         int32_t *x, int32_t *y) {
     NSPoint point = [NSEvent mouseLocation];
+    if (event != nil && window != nil &&
+        event.windowNumber == window.windowNumber) {
+        /*
+         * Synthetic events do not move the physical cursor, so
+         * +mouseLocation remains at the runner's idle cursor position.  Qt
+         * receives both local and global coordinates and can reject a click
+         * whose pair is inconsistent.  Derive the screen point from the
+         * event's window-local coordinate whenever possible.
+         */
+        point = [window convertPointToScreen:event.locationInWindow];
+    }
+
     NSScreen *selected = nil;
     for (NSScreen *screen in NSScreen.screens) {
         if (NSPointInRect(point, screen.frame)) {
@@ -97,7 +110,7 @@ static void global_coordinates(int32_t *x, int32_t *y) {
             break;
         }
     }
-    if (selected == nil) selected = NSScreen.mainScreen;
+    if (selected == nil) selected = window.screen ?: NSScreen.mainScreen;
     *x = clamp_coordinate(point.x);
     *y = selected != nil
         ? clamp_coordinate(NSMaxY(selected.frame) - point.y)
@@ -166,7 +179,8 @@ static void capture_mouse_event(NSEvent *event, uint32_t action) {
         local = [window.contentView convertPoint:local fromView:nil];
     output.x = clamp_coordinate(local.x);
     output.y = clamp_coordinate(local.y);
-    global_coordinates(&output.global_x, &output.global_y);
+    global_coordinates_for_event(
+        event, window, &output.global_x, &output.global_y);
     enqueue_event(&output);
 }
 
