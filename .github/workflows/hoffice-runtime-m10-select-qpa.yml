@@ -1,0 +1,85 @@
+name: Select recursive-drain QPA for M10
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-select-qpa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hrt-m10-select-qpa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  select-qpa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pin the verified recursive-drain input QPA
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/hoffice-runtime-m10-hword-main-input.yml')
+          text = path.read_text(encoding='utf-8')
+
+          old_run = "  QPA_RUN_ID: '31225186394'"
+          new_run = "  QPA_RUN_ID: '31227077027'"
+          if old_run in text:
+              assert text.count(old_run) == 1
+              text = text.replace(old_run, new_run, 1)
+          else:
+              assert text.count(new_run) == 1, 'unexpected QPA_RUN_ID state'
+
+          trigger_anchor = "      - 'runtime/m10/augment_appkit_input_capture.py'\n"
+          extra_triggers = (
+              "      - 'runtime/m10/route_synthetic_events_directly.py'\n"
+              "      - 'runtime/m6/qpa/qhrtappkitbackingstore.cpp'\n"
+          )
+          if "      - 'runtime/m10/route_synthetic_events_directly.py'\n" not in text:
+              assert text.count(trigger_anchor) == 1
+              text = text.replace(
+                  trigger_anchor,
+                  trigger_anchor + extra_triggers,
+                  1,
+              )
+
+          assert text.count(new_run) == 1
+          assert text.count("runtime/m10/route_synthetic_events_directly.py") == 1
+          assert text.count("runtime/m6/qpa/qhrtappkitbackingstore.cpp") == 1
+          path.write_text(text, encoding='utf-8')
+          PY
+          grep -F "QPA_RUN_ID: '31227077027'" \
+            .github/workflows/hoffice-runtime-m10-hword-main-input.yml
+          grep -F "runtime/m10/route_synthetic_events_directly.py" \
+            .github/workflows/hoffice-runtime-m10-hword-main-input.yml
+          grep -F "runtime/m6/qpa/qhrtappkitbackingstore.cpp" \
+            .github/workflows/hoffice-runtime-m10-hword-main-input.yml
+
+      - name: Commit and trigger the exact-HWord M10 replay
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/workflows/hoffice-runtime-m10-hword-main-input.yml
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'ci: replay M10 with recursive-drain input QPA'
+          for _ in $(seq 1 12); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+          done
+          exit 1
