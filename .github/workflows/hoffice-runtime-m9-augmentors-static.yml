@@ -1,0 +1,124 @@
+name: HOffice runtime M9 augmentors static
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m9/patch_elf_int3_at_offset.py'
+      - 'runtime/m9/augment_int3_method_abi_probe.py'
+      - 'runtime/m9/augment_int3_string_override.py'
+      - 'runtime/m9/augment_int3_cxa_throw_probe.py'
+      - '.github/workflows/hoffice-runtime-m9-augmentors-static.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile every new Python generator
+        run: |
+          set -euxo pipefail
+          python3 -m py_compile \
+            runtime/m9/patch_elf_int3_at_offset.py \
+            runtime/m9/augment_int3_method_abi_probe.py \
+            runtime/m9/augment_int3_string_override.py \
+            runtime/m9/augment_int3_cxa_throw_probe.py
+
+      - name: Generate the mature bridge shape
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated build/proof
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+            build/generated/stage9.c build/generated/stage10.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage10.c build/generated/base.c
+
+      - name: Exercise every diagnostic composition
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json,pathlib
+          original=bytes.fromhex(
+              'f30f1efa554889e54883ec2048897df8488975f0')
+          patched=bytes([0xcc])+original[1:]
+          base={
+              'schema':1,
+              'label':'provider-vtable+0x130',
+              'file_offset':4096,
+              'virtual_address':4096,
+              'original_bytes_hex':original.hex(),
+              'patched_bytes_hex':patched.hex(),
+              'sha256_before':'0'*64,
+              'sha256_after':'1'*64,
+          }
+          pathlib.Path('build/proof/method.json').write_text(
+              json.dumps(base,indent=2)+'\n')
+          cxa=dict(base,label='__cxa_throw')
+          pathlib.Path('build/proof/cxa.json').write_text(
+              json.dumps(cxa,indent=2)+'\n')
+          PY
+          python3 runtime/m9/augment_int3_method_abi_probe.py \
+            build/generated/base.c build/proof/method.json \
+            build/generated/method-abi.c
+          python3 runtime/m9/augment_int3_string_override.py \
+            build/generated/base.c build/proof/method.json \
+            build/generated/override-out.c \
+            --abi this-rdi-out-rsi --value HWP11
+          python3 runtime/m9/augment_int3_string_override.py \
+            build/generated/base.c build/proof/method.json \
+            build/generated/override-sret.c \
+            --abi sret-rdi-this-rsi --value HWP11.20.0.1520
+          python3 runtime/m9/augment_int3_cxa_throw_probe.py \
+            build/generated/override-out.c build/proof/cxa.json \
+            build/generated/combined.c
+
+          grep -Fq 'HRT M9 METHOD ABI:' build/generated/method-abi.c
+          grep -Fq 'm9_method_abi_signal_handler' \
+            build/generated/method-abi.c
+          grep -Fq 'HRT M9 METHOD OVERRIDE:' \
+            build/generated/override-out.c
+          grep -Fq 'state->__rdi' build/generated/override-out.c
+          grep -Fq 'state->__rsi' build/generated/override-sret.c
+          grep -Fq 'HRT M9 CXA THROW:' build/generated/combined.c
+          grep -Fq 'm9_cxa_throw_signature_matches' \
+            build/generated/combined.c
+          test "$(grep -c 'sigaction(SIGTRAP' build/generated/combined.c)" -eq 1
+
+      - name: Lock generated hashes
+        run: |
+          set -euxo pipefail
+          sha256sum build/generated/*.c | LC_ALL=C sort \
+            | tee build/proof/generated.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m9-augmentors-static
+          path: |
+            build/generated
+            build/proof
+          if-no-files-found: error
+          retention-days: 14
