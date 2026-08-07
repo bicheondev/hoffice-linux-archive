@@ -2,9 +2,9 @@
   "schema": 2,
   "artifact": {
     "kind": "repository-published-xz",
-    "workflow_run": "31226381369",
-    "source_commit": "93bec9ea72409f2cbfc6be8d7e4fc179b6d923b5",
-    "qpa_source_tree": "5412540a2feafdcf1e8dc9d2420e463e921bde38"
+    "workflow_run": "31227077075",
+    "source_commit": "e7f412f8e821bacd564ad4c508ddee33acc15e23",
+    "qpa_source_tree": "434e637f15009aa7137950978d81a34b3bdab319"
   },
   "toolchain": {
     "distribution": "Debian Buster",
@@ -15,9 +15,9 @@
   "plugin": {
     "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so",
     "qpa_key": "hrtappkit",
-    "sha256_before_prepatch": "7f4fb7f06e6344015ec2c608d58fba4dfa0b402e20562cd49f779f95286eb12a",
-    "sha256_after_prepatch": "d41981c15e8cf6e835ed4302ceb3d15003b51f222cc68ba8b14179376042d66c",
-    "xz_sha256": "f0c3304057c60a1ffcd6e78aa2dce682061bfe1605362190d7979161ccf7bdf0",
+    "sha256_before_prepatch": "0cec204c1801d98c8e805c37516cec28b92b7ec585d5c9e23944a885b51e610a",
+    "sha256_after_prepatch": "183010fe16337e4f4573cff9767f0f3651c64821bf8d324aef5f5728a3c6f170",
+    "xz_sha256": "55e09877099b8dd8d9375ad0f9b60a7b77bdf4511d42fd4aed72da6cfec3ff63",
     "patched_syscalls": 10,
     "rewritten_fs_prefixes": 102,
     "vulkan_private_abi_locally_defined": true,
@@ -36,7 +36,7 @@
       "libgcc_s.so.1",
       "libc.so.6"
     ],
-    "xz_size": 70088,
+    "xz_size": 70080,
     "compression": {
       "format": "xz",
       "preset": 9,
