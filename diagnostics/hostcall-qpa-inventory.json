@@ -1,16 +1,16 @@
 {
   "schema": 1,
-  "commit": "dccad15b354b08eaa2aa12a1e2aeb31cf364eca3",
-  "workflow_run": "31227077065",
-  "file_count": 138,
+  "commit": "dd5496efb33a3ee706d9e22ec35adea747d86ddc",
+  "workflow_run": "31227777868",
+  "file_count": 140,
   "match_counts": {
-    "opcode_256": 879,
-    "create_operation": 61,
-    "host_call": 491,
-    "custom_qpa": 766,
+    "opcode_256": 910,
+    "create_operation": 63,
+    "host_call": 497,
+    "custom_qpa": 797,
     "appkit": 163,
-    "rendering": 261,
-    "input_ime": 2177
+    "rendering": 264,
+    "input_ime": 2207
   },
   "files": [
     {
@@ -127,7 +127,7 @@
     },
     {
       "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
-      "sha256": "4cde85d9080ad23a2b02673b233e31fb20e5194d8a7fa44ae48389b2ad7ba567",
+      "sha256": "4fdd7fdc4fbc325c5def57e1ad2142467ef3d52092bd13c7090c73bdd6d794c2",
       "size": 1472,
       "groups": [
         "custom_qpa",
@@ -486,6 +486,29 @@
         "host_call",
         "input_ime",
         "opcode_256"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+      "sha256": "1245154128c012a401c1e0feff03df817ca567a088ad95e265815f1d66fe8b9d",
+      "size": 18206,
+      "groups": [
+        "create_operation",
+        "custom_qpa",
+        "host_call",
+        "input_ime",
+        "opcode_256"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+      "sha256": "861a07902c921321e30cf8a8d08dadcdba6abdb841f61fba122e89a33a2499fc",
+      "size": 3105,
+      "groups": [
+        "custom_qpa",
+        "host_call",
+        "input_ime",
+        "rendering"
       ]
     },
     {
@@ -1537,17 +1560,17 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 18,
-        "text": "\"sha256_before_prepatch\": \"7f4fb7f06e6344015ec2c608d58fba4dfa0b402e20562cd49f779f95286eb12a\","
+        "text": "\"sha256_before_prepatch\": \"0cec204c1801d98c8e805c37516cec28b92b7ec585d5c9e23944a885b51e610a\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 19,
-        "text": "\"sha256_after_prepatch\": \"d41981c15e8cf6e835ed4302ceb3d15003b51f222cc68ba8b14179376042d66c\","
+        "text": "\"sha256_after_prepatch\": \"183010fe16337e4f4573cff9767f0f3651c64821bf8d324aef5f5728a3c6f170\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 20,
-        "text": "\"xz_sha256\": \"f0c3304057c60a1ffcd6e78aa2dce682061bfe1605362190d7979161ccf7bdf0\","
+        "text": "\"xz_sha256\": \"55e09877099b8dd8d9375ad0f9b60a7b77bdf4511d42fd4aed72da6cfec3ff63\","
       },
       {
         "path": "runtime/m6/qpa/build_hrtappkit_root.sh",
@@ -2208,6 +2231,161 @@
         "path": ".github/workflows/hoffice-runtime-m10-hword-main-input.yml",
         "line": 484,
         "text": "f\"- After SHA-256: `{after['sha256'] if after else None}`\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 20,
+        "text": "ROOTFS_ARTIFACT_SHA256: 3e301d3c6269926c62804bff18671136fcf8c0b0b22b3952072e427a8fa9918a"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 21,
+        "text": "ROOTFS_ARCHIVE_SHA256: 322fcf228092b296a34edbfa7ee43f9a7b237d5bcedaee50109ac4bb44d9ca28"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 28,
+        "text": "PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 30,
+        "text": "PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 32,
+        "text": "HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 33,
+        "text": "HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 82,
+        "text": "printf '%s  %s\\n' \"$ROOTFS_ARTIFACT_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 83,
+        "text": "build/input/hword-artifact.zip | shasum -a 256 -c -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 85,
+        "text": "printf '%s  %s\\n' \"$ROOTFS_ARCHIVE_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 86,
+        "text": "build/input/hword/hword-rootfs.tar.gz | shasum -a 256 -c -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 91,
+        "text": "printf '%s  %s\\n' \"$PACKAGE_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 92,
+        "text": "\"build/input/deb/$ASSET_NAME\" | shasum -a 256 -c -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 104,
+        "text": "shasum -a 256 build/host/hrt-m10-recursive-replay \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 105,
+        "text": "| tee build/proof/host-sha256.txt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 148,
+        "text": "assert hashlib.sha256(compressed).hexdigest() == lock['plugin']['xz_sha256']"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 150,
+        "text": "assert hashlib.sha256(plugin).hexdigest() == lock['plugin']['sha256_after_prepatch']"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 157,
+        "text": "python3 - \"$root\" \"$PROGRAM\" \"$PROGRAM_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 158,
+        "text": "\"$HWORD_APP_GUEST\" \"$HWORD_APP_SHA256\" <<'PY'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 164,
+        "text": "assert program_record['sha256_before'] == sys.argv[3]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 165,
+        "text": "actual = hashlib.sha256((root / program.lstrip('/')).read_bytes()).hexdigest()"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 166,
+        "text": "assert actual == program_record['sha256_after'], (actual, program_record)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 169,
+        "text": "assert record['sha256_after'] == sys.argv[5], record"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 170,
+        "text": "assert hashlib.sha256((root / hword_app.lstrip('/')).read_bytes()).hexdigest() == sys.argv[5]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 175,
+        "text": "--expected-sha256 \"$HWORD_APP_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 176,
+        "text": "--expected-output-sha256 \"$HWORD_APP_PATCHED_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 178,
+        "text": "printf '%s  %s\\n' \"$HWORD_APP_PATCHED_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 179,
+        "text": "\"$root$HWORD_APP_GUEST\" | shasum -a 256 -c -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 262,
+        "text": "'size': len(data), 'sha256': hashlib.sha256(data).hexdigest()}"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 266,
+        "text": "visual_change = bool(before and after and before['sha256'] != after['sha256'])"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 300,
+        "text": "'program_sha256': os.environ['PROGRAM_SHA256'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 301,
+        "text": "'package_sha256': os.environ['PACKAGE_SHA256'],"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m3-hword.yml",
@@ -5972,6 +6150,16 @@
         "text": "for line in re.findall(r'HRT M6 QPA: CREATE .*',stderr):"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 222,
+        "text": "grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|HRT M8 APPKIT|HRT M8 QPA|HRT M10 QPA|HRT M10 APPKIT|host-call opcode=262|fatal signal|basic_string::substr|Caught exception' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 238,
+        "text": "for line in re.findall(r'HRT M6 QPA: CREATE .*', stderr):"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-probe-matrix-v2.yml",
         "line": 57,
         "text": "regex: 'QOffscreenIntegration.*createPlatformWindow'"
@@ -6907,6 +7095,36 @@
         "path": ".github/workflows/hoffice-runtime-m10-hword-main-input.yml",
         "line": 368,
         "text": "r'hrt-m7-hostcall: presented BGRA frame=(\\d+)',stderr)]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 8,
+        "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 53,
+        "text": "- name: Download the proven M10 host transport"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 146,
+        "text": "assert lock['plugin']['m8_input_poll_transport'] is True, lock"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 222,
+        "text": "grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|HRT M8 APPKIT|HRT M8 QPA|HRT M10 QPA|HRT M10 APPKIT|host-call opcode=262|fatal signal|basic_string::substr|Caught exception' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 253,
+        "text": "r'hrt-m7-hostcall: presented BGRA frame=(\\d+)', stderr)]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 8,
+        "text": "workflow_dispatch:"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m2-probe.yml",
@@ -8668,7 +8886,7 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 7,
-        "text": "\"qpa_source_tree\": \"5412540a2feafdcf1e8dc9d2420e463e921bde38\""
+        "text": "\"qpa_source_tree\": \"434e637f15009aa7137950978d81a34b3bdab319\""
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
@@ -9299,6 +9517,161 @@
         "path": ".github/workflows/hoffice-runtime-m10-hword-main-input.yml",
         "line": 442,
         "text": "'qpa_sha256':lock['plugin']['sha256_after_prepatch'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 24,
+        "text": "QPA_RUN_ID: '31227077027'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 25,
+        "text": "QPA_ARTIFACT_DIGEST: efec8d29ae98a8c759eeef17c23857b6d1b726cd3a92e17187843a6245a5f5d1"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 34,
+        "text": "PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 62,
+        "text": "- name: Download the recursive-drain Qt 5.11.3 QPA"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 65,
+        "text": "name: hrt-m8-qt5113-hrtappkit-input-qpa"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 66,
+        "text": "path: build/input/qpa"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 68,
+        "text": "run-id: ${{ env.QPA_RUN_ID }}"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 140,
+        "text": "python3 - build/input/qpa/libqhrtappkit.so.xz \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 141,
+        "text": "build/input/qpa/lock.json \"$root$PLUGIN_GUEST\" <<'PY'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 152,
+        "text": "pathlib.Path('build/proof/qpa-lock.json').write_text("
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 222,
+        "text": "grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|HRT M8 APPKIT|HRT M8 QPA|HRT M10 QPA|HRT M10 APPKIT|host-call opcode=262|fatal signal|basic_string::substr|Caught exception' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 238,
+        "text": "for line in re.findall(r'HRT M6 QPA: CREATE .*', stderr):"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 244,
+        "text": "key_lines = re.findall(r'HRT M8 QPA: key event delivered .*', stderr)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 245,
+        "text": "mouse_lines = re.findall(r'HRT M8 QPA: mouse event delivered .*', stderr)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 248,
+        "text": "nested_deferred = stderr.count('HRT M10 QPA: nested input drain deferred')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 250,
+        "text": "r'HRT M8 QPA: (?:key|mouse) event delivered sequence=(\\d+)', stderr)]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 271,
+        "text": "queue_drained = 'HRT M8 QPA: input queue drained' in stderr"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 303,
+        "text": "'recursive_qpa_run': os.environ['QPA_RUN_ID'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 1,
+        "text": "name: Select recursive-drain QPA for M10"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-m10-select-qpa.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 14,
+        "text": "group: hrt-m10-select-qpa-${{ github.ref }}"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 18,
+        "text": "select-qpa:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 26,
+        "text": "- name: Pin the verified recursive-drain input QPA"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 35,
+        "text": "old_run = \"  QPA_RUN_ID: '31225186394'\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 36,
+        "text": "new_run = \"  QPA_RUN_ID: '31227077027'\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 41,
+        "text": "assert text.count(new_run) == 1, 'unexpected QPA_RUN_ID state'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 46,
+        "text": "\"      - 'runtime/m6/qpa/qhrtappkitbackingstore.cpp'\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 58,
+        "text": "assert text.count(\"runtime/m6/qpa/qhrtappkitbackingstore.cpp\") == 1"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 61,
+        "text": "grep -F \"QPA_RUN_ID: '31227077027'\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 65,
+        "text": "grep -F \"runtime/m6/qpa/qhrtappkitbackingstore.cpp\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 77,
+        "text": "git commit -m 'ci: replay M10 with recursive-drain input QPA'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m5-hword-connect.yml",
@@ -13785,6 +14158,21 @@
         "text": "'QEventLoop', 'QPlatform', 'QWindow', 'QBackingStore',"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 46,
+        "text": "\"      - 'runtime/m6/qpa/qhrtappkitbackingstore.cpp'\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 58,
+        "text": "assert text.count(\"runtime/m6/qpa/qhrtappkitbackingstore.cpp\") == 1"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 65,
+        "text": "grep -F \"runtime/m6/qpa/qhrtappkitbackingstore.cpp\" \\"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m5-m6-qoffscreen-probe-matrix-v2.yml",
         "line": 74,
         "text": "- id: create-backing-store"
@@ -16369,6 +16757,156 @@
       {
         "path": ".github/workflows/hoffice-runtime-m10-hword-main-input.yml",
         "line": 513,
+        "text": "git rebase origin/codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 1,
+        "text": "name: HOffice runtime M10 recursive-drain replay"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-m10-recursive-replay.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 39,
+        "text": "timeout-minutes: 45"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 99,
+        "text": "codesign --force --sign - --timestamp=none \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 173,
+        "text": "python3 runtime/m9/patch_hword_utility_culture_redirect.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 211,
+        "text": "ps -o pid,ppid,state,%cpu,%mem,etime,command -p \"$pid\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 351,
+        "text": "git pull --rebase origin codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 360,
+        "text": "if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 361,
+        "text": "git fetch origin codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-recursive-replay.yml",
+        "line": 362,
+        "text": "git rebase origin/codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-m10-select-qpa.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 20,
+        "text": "timeout-minutes: 10"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 32,
+        "text": "path = Path('.github/workflows/hoffice-runtime-m10-hword-main-input.yml')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 43,
+        "text": "trigger_anchor = \"      - 'runtime/m10/augment_appkit_input_capture.py'\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 45,
+        "text": "\"      - 'runtime/m10/route_synthetic_events_directly.py'\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 46,
+        "text": "\"      - 'runtime/m6/qpa/qhrtappkitbackingstore.cpp'\\n\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 48,
+        "text": "if \"      - 'runtime/m10/route_synthetic_events_directly.py'\\n\" not in text:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 57,
+        "text": "assert text.count(\"runtime/m10/route_synthetic_events_directly.py\") == 1"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 58,
+        "text": "assert text.count(\"runtime/m6/qpa/qhrtappkitbackingstore.cpp\") == 1"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 62,
+        "text": ".github/workflows/hoffice-runtime-m10-hword-main-input.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 63,
+        "text": "grep -F \"runtime/m10/route_synthetic_events_directly.py\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 64,
+        "text": ".github/workflows/hoffice-runtime-m10-hword-main-input.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 65,
+        "text": "grep -F \"runtime/m6/qpa/qhrtappkitbackingstore.cpp\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 66,
+        "text": ".github/workflows/hoffice-runtime-m10-hword-main-input.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 73,
+        "text": "git add .github/workflows/hoffice-runtime-m10-hword-main-input.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 79,
+        "text": "if git push origin HEAD:codex/hoffice-runtime-from-scratch; then"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 82,
+        "text": "git fetch origin codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m10-select-qpa.yml",
+        "line": 83,
         "text": "git rebase origin/codex/hoffice-runtime-from-scratch"
       },
       {
