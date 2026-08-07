@@ -106,6 +106,12 @@ def replace_new_document_shortcut(text: str) -> str:
 def split_input_stages(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
     text = replace_new_document_shortcut(text)
+    text = replace_once(
+        text,
+        "static NSEvent *m10_synthetic_key(",
+        "static __attribute__((unused)) NSEvent *m10_synthetic_key(",
+        "retired Ctrl+N key helper annotation",
+    )
 
     old = r'''        if (g_m10_synthetic_stage == 1u) {
             const NSRect bounds = window.contentView != nil
@@ -182,6 +188,7 @@ def split_input_stages(path: Path) -> None:
         "HRT M8 APPKIT: posted deterministic focus click, key and mouse events": 2,
         "g_m10_synthetic_stage = 3u": 1,
         "NSMaxY(bounds) - 163.0": 1,
+        "__attribute__((unused)) NSEvent *m10_synthetic_key": 1,
     }
     for marker, expected in required.items():
         actual = text.count(marker)
