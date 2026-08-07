@@ -3,7 +3,7 @@ TARGET = qhrtappkit
 CONFIG += plugin c++11
 CONFIG -= app_bundle
 
-QT += core-private gui-private eventdispatcher_support-private fontdatabase_support-private
+QT += core-private gui-private widgets eventdispatcher_support-private fontdatabase_support-private
 DEFINES += QT_NO_FOREACH
 INCLUDEPATH += $$QTOFFSCREEN_DIR
 
@@ -17,10 +17,21 @@ system(ln -sf /usr/lib/x86_64-linux-gnu/libfontconfig.so.1 $$HRT_COMPAT_LIBDIR/l
 system(ln -sf /usr/lib/x86_64-linux-gnu/libfreetype.so.6 $$HRT_COMPAT_LIBDIR/libfreetype.so)
 QMAKE_LIBDIR += $$HRT_COMPAT_LIBDIR
 
+# Generate the QWidget-aware backing-store variant in the build directory so
+# the stable M7/M8 implementation remains auditable and the M10 additions stay
+# exact-anchor/fail-closed.
+HRT_M10_BACKINGSTORE = $$OUT_PWD/qhrtappkitbackingstore_m10.cpp
+system(python3 $$PWD/../../m10/augment_qpa_widget_input.py $$PWD/qhrtappkitbackingstore.cpp $$HRT_M10_BACKINGSTORE)
+exists($$HRT_M10_BACKINGSTORE) {
+    message(Building QWidget-aware M10 backing store: $$HRT_M10_BACKINGSTORE)
+} else {
+    error(Failed to generate QWidget-aware M10 backing store)
+}
+
 SOURCES += $$PWD/main.cpp
 SOURCES += $$PWD/qhrtappkitintegration.cpp
 SOURCES += $$PWD/qhrtappkitwindow.cpp
-SOURCES += $$PWD/qhrtappkitbackingstore.cpp
+SOURCES += $$HRT_M10_BACKINGSTORE
 SOURCES += $$PWD/qplatform_vulkan_compat.cpp
 SOURCES += $$QTOFFSCREEN_DIR/qoffscreenintegration.cpp
 SOURCES += $$QTOFFSCREEN_DIR/qoffscreenintegration_dummy.cpp
