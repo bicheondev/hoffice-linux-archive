@@ -1,0 +1,894 @@
+name: HOffice runtime M9 provider string-method override
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m9/patch_elf_int3_at_offset.py'
+      - 'runtime/m9/augment_int3_method_abi_probe.py'
+      - 'runtime/m9/augment_int3_string_override.py'
+      - '.github/workflows/hoffice-runtime-m9-provider-method-override.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m9-provider-method-override-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PROVIDER_SOURCE_RUN_ID: '31171219264'
+  ROOTFS_ARTIFACT_ID: '8968324706'
+  ROOTFS_ARTIFACT_SHA256: 3e301d3c6269926c62804bff18671136fcf8c0b0b22b3952072e427a8fa9918a
+  ROOTFS_ARCHIVE_SHA256: 322fcf228092b296a34edbfa7ee43f9a7b237d5bcedaee50109ac4bb44d9ca28
+  QPA_RUN_ID: '31166152504'
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  probe-method-abi:
+    runs-on: macos-14
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the exact HWord font-bootstrap advance
+        run: |
+          set -euxo pipefail
+          test -s proofs/m9-hword-past-font-initialization.json
+          grep -F '"status": "PASS"' \
+            proofs/m9-hword-past-font-initialization.json
+
+      - name: Download the exact provider-object trace
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m9-hword-throw-int3-caller
+          path: build/input/provider
+          repository: ${{ github.repository }}
+          run-id: ${{ env.PROVIDER_SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download the verified Qt 5.11.3 hrtappkit QPA
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m8-qt5113-hrtappkit-input-qpa
+          path: build/input/qpa
+          repository: ${{ github.repository }}
+          run-id: ${{ env.QPA_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download and verify the exact HWord root and package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/hword build/input/deb build/generated \
+                   build/objects build/host build/proof
+          curl --fail --location --retry 5 --retry-delay 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ROOTFS_ARTIFACT_ID/zip" \
+            -o build/input/hword-artifact.zip
+          printf '%s  %s\n' "$ROOTFS_ARTIFACT_SHA256" \
+            build/input/hword-artifact.zip | shasum -a 256 -c -
+          ditto -x -k build/input/hword-artifact.zip build/input/hword
+          printf '%s  %s\n' "$ROOTFS_ARCHIVE_SHA256" \
+            build/input/hword/hword-rootfs.tar.gz | shasum -a 256 -c -
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" \
+            --dir build/input/deb
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/input/deb/$ASSET_NAME" | shasum -a 256 -c -
+
+      - name: Reconstruct the exact full-font case-sensitive guest
+        run: |
+          set -euxo pipefail
+          image="$RUNNER_TEMP/hrt-m9-method-abi.sparsebundle"
+          root="/tmp/h9a-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"; mkdir -p "$root"
+          if ! hdiutil create -quiet -size 12g -fs APFSX \
+               -volname HRTM9A -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 12g -fs HFSX \
+              -volname HRTM9A -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >>"$GITHUB_ENV"
+          echo "HRT_IMAGE=$image" >>"$GITHUB_ENV"
+          tar -xzf build/input/hword/hword-rootfs.tar.gz -C "$root"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+
+          deb="build/input/deb/$ASSET_NAME"
+          data_member=$(ar t "$deb" | awk '/^data\.tar/{print; exit}')
+          test -n "$data_member"
+          ar p "$deb" "$data_member" >"build/input/deb/$data_member"
+          tar -xf "build/input/deb/$data_member" -C "$root" \
+            ./opt/hnc/hoffice11/Shared/Fonts \
+            ./opt/hnc/hoffice11/Shared/TTF
+          rm -f "$root/opt/hnc/hoffice1"
+          ln -s hoffice11 "$root/opt/hnc/hoffice1"
+          test -f "$root/opt/hnc/hoffice1/Shared/Fonts/HGSMJ.HFT"
+          test -f "$root/opt/hnc/hoffice11/Shared/TTF/Install/HanSantteutDotum-Regular.ttf"
+
+          mkdir -p "$root$(dirname "$PLUGIN_GUEST")"
+          python3 - build/input/qpa/libqhrtappkit.so.xz \
+            build/input/qpa/lock.json "$root$PLUGIN_GUEST" <<'PY'
+          import hashlib,json,lzma,pathlib,sys
+          compressed=pathlib.Path(sys.argv[1]).read_bytes()
+          lock=json.loads(pathlib.Path(sys.argv[2]).read_text())
+          assert lock['toolchain']['qt_version']=='5.11.3'
+          assert hashlib.sha256(compressed).hexdigest()==lock['plugin']['xz_sha256']
+          plugin=lzma.decompress(compressed)
+          assert hashlib.sha256(plugin).hexdigest()==lock['plugin']['sha256_after_prepatch']
+          pathlib.Path(sys.argv[3]).write_bytes(plugin)
+          pathlib.Path('build/proof/qpa-lock.json').write_text(
+              json.dumps(lock,indent=2)+'\n')
+          PY
+          chmod 0755 "$root$PLUGIN_GUEST"
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+          grep -F 'Case-sensitive' build/proof/guest-volume.txt
+
+      - name: Resolve the exact vtable+0x130 method object and file offset
+        run: |
+          set -euxo pipefail
+          python3 - "$HRT_ROOT" <<'PY'
+          import hashlib,json,pathlib,re,sys
+          root=pathlib.Path(sys.argv[1])
+          provider_root=pathlib.Path('build/input/provider')
+          stderr_path=next(provider_root.rglob('stderr.txt'))
+          stderr=stderr_path.read_text(errors='replace')
+          object_line=next(line for line in stderr.splitlines()
+                           if line.startswith('HRT M9 THROW OBJECT:'))
+          method_match=re.search(r' method130=(0x[0-9a-f]+) ',object_line)
+          assert method_match,object_line
+          method_address=int(method_match.group(1),16)
+          map_pattern=re.compile(
+              r'HRT M9 MAP: start=(0x[0-9a-f]+) end=(0x[0-9a-f]+) '
+              r'offset=(0x[0-9a-f]+) fd=(\d+) path=(.*)$')
+          mappings=[]
+          for line in stderr.splitlines():
+              mapped=map_pattern.fullmatch(line)
+              if not mapped: continue
+              mappings.append({
+                  'start':int(mapped.group(1),16),
+                  'end':int(mapped.group(2),16),
+                  'file_offset':int(mapped.group(3),16),
+                  'fd':int(mapped.group(4)),
+                  'host_path':mapped.group(5),
+              })
+          owner=next(item for item in mappings
+                     if item['start'] <= method_address < item['end'])
+          guest_match=re.search(r'(/(?:opt|lib|lib64|usr|bin|sbin)/.*)$',
+                                owner['host_path'])
+          assert guest_match,owner
+          guest_path=guest_match.group(1)
+          object_path=root/guest_path.lstrip('/')
+          assert object_path.is_file(),object_path
+          file_offset=(owner['file_offset']+
+                       method_address-owner['start'])
+          marker=json.loads((root/'.hrt-prepatched-v1').read_text())
+          records={item['path']:item for item in marker['objects']}
+          record=records.get(guest_path)
+          actual=hashlib.sha256(object_path.read_bytes()).hexdigest()
+          if record is not None:
+              assert actual==record['sha256_after'],(actual,record)
+          target={
+              'schema':1,
+              'source_probe_run':'31171219264',
+              'source_stderr':str(stderr_path),
+              'source_object_line':object_line,
+              'method_runtime_address':hex(method_address),
+              'guest_path':guest_path,
+              'file_offset':file_offset,
+              'file_offset_hex':hex(file_offset),
+              'owner_mapping':owner,
+              'object_sha256_before_probe':actual,
+              'prepatch_record':record,
+          }
+          pathlib.Path('build/proof/method-target.json').write_text(
+              json.dumps(target,indent=2)+'\n')
+          pathlib.Path('build/proof/method-guest-path.txt').write_text(
+              guest_path+'\n')
+          pathlib.Path('build/proof/method-file-offset.txt').write_text(
+              str(file_offset)+'\n')
+          print(json.dumps(target,indent=2))
+          PY
+
+      - name: Patch the exact provider method entry with INT3
+        run: |
+          set -euxo pipefail
+          guest_path=$(cat build/proof/method-guest-path.txt)
+          file_offset=$(cat build/proof/method-file-offset.txt)
+          python3 runtime/m9/patch_elf_int3_at_offset.py \
+            "$HRT_ROOT$guest_path" \
+            --file-offset "$file_offset" \
+            --label 'provider-vtable+0x130' \
+            --signature-length 24 \
+            --manifest build/proof/method-int3-manifest.json
+          python3 - <<'PY'
+          import json,pathlib
+          target=json.loads(pathlib.Path(
+              'build/proof/method-target.json').read_text())
+          probe=json.loads(pathlib.Path(
+              'build/proof/method-int3-manifest.json').read_text())
+          assert probe['sha256_before']==target['object_sha256_before_probe']
+          assert probe['file_offset']==target['file_offset']
+          assert probe['patched_bytes_hex'].startswith('cc')
+          assert probe['sha256_after']!=probe['sha256_before']
+          PY
+
+      - name: Generate the mature bridge with the terminal ABI probe
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+          python3 runtime/m8/augment_appkit_adapter_input.py \
+            runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m
+          python3 runtime/m6/augment_stack_hrtappkit.py \
+            runtime/m3/stack.c build/generated/stack.c
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+            build/generated/stage9.c build/generated/stage10.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage10.c build/generated/stage11.c
+          python3 runtime/m9/augment_int3_method_abi_probe.py \
+            build/generated/stage11.c \
+            build/proof/method-int3-manifest.json \
+            build/generated/syscall_bridge.c --exit-status 192
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('build/generated/syscall_bridge.c')
+          path.write_text(path.read_text().replace(
+              '#define M3_TRACE_LIMIT 256u','#define M3_TRACE_LIMIT 50000u'))
+          PY
+          grep -Fq 'HRT M9 METHOD ABI:' build/generated/syscall_bridge.c
+          grep -Fq 'm9_method_abi_signal_handler' \
+            build/generated/syscall_bridge.c
+
+      - name: Compile and sign the method-ABI runtime
+        run: |
+          set -euxo pipefail
+          common=(-arch x86_64 -std=c17 -O2 -g -fno-stack-protector \
+            -fno-omit-frame-pointer -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1)
+          index=0
+          for source in runtime/m6/main.c runtime/m6/hostcall_trampoline.c \
+            runtime/m1/common.c runtime/m3/elf_map.c build/generated/stack.c \
+            runtime/m3/patch.c build/generated/syscall_bridge.c; do
+            clang "${common[@]}" -c "$source" \
+              -o "build/objects/c-${index}.o"
+            index=$((index+1))
+          done
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c build/generated/appkit_adapter_m8.m \
+            -o build/objects/appkit-adapter.o
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c runtime/m8/appkit_input.m -o build/objects/appkit-input.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S \
+            -o build/objects/enter-guest.o
+          clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \
+            -o build/objects/hostcall-trampoline.o
+          clang -arch x86_64 build/objects/*.o -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO \
+            -o build/host/hrt-m9-provider-method-abi
+          file build/host/hrt-m9-provider-method-abi \
+            | tee build/proof/host-file.txt
+          codesign --force --sign - --timestamp=none \
+            build/host/hrt-m9-provider-method-abi
+          codesign --verify --strict \
+            build/host/hrt-m9-provider-method-abi
+
+      - name: Stop at the exact provider method entry
+        run: |
+          set -uxo pipefail
+          : >build/proof/stdout.txt; : >build/proof/stderr.txt
+          /usr/bin/arch -x86_64 build/host/hrt-m9-provider-method-abi \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          reached=0
+          for _ in $(jot 1000); do
+            if grep -q 'HRT M9 METHOD ABI:' \
+                 build/proof/stderr.txt 2>/dev/null; then
+              reached=1
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 0.05
+          done
+          if kill -0 "$pid" 2>/dev/null; then
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.25
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e; wait "$pid"; raw_status=$?; set -e
+          printf '%s\n' "$raw_status" >build/proof/raw-exit-status.txt
+          printf '%s\n' "$reached" >build/proof/probe-reached.txt
+          grep -F 'HRT M9 METHOD ABI:' build/proof/stderr.txt \
+            | tee build/proof/method-abi-lines.txt || true
+          tail -n 1000 build/proof/stderr.txt \
+            >build/proof/stderr-tail.txt
+          cat build/proof/method-abi-lines.txt
+          test "$reached" -eq 1
+          test "$raw_status" -eq 192
+
+      - name: Classify the exact method calling convention
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json,os,pathlib,re
+          lines=pathlib.Path(
+              'build/proof/method-abi-lines.txt').read_text().splitlines()
+          assert len(lines)==1,lines
+          line=lines[0]
+          pairs={name:int(value,16) for name,value in re.findall(
+              r'([a-z][a-z0-9]*)=(0x[0-9a-f]+)',line)}
+          required={'site','return','rsp','rdi','rsi','rdi0','rdi1',
+                    'rsi0','rsi1'}
+          assert required <= pairs.keys(),(required-pairs.keys(),line)
+          rdi_sso=(pairs['rdi0']==pairs['rdi']+16 and
+                   pairs['rdi1']<=15)
+          rsi_sso=(pairs['rsi0']==pairs['rsi']+16 and
+                   pairs['rsi1']<=15)
+          rdi_stack=abs(pairs['rdi']-pairs['rsp']) < 0x10000
+          rsi_stack=abs(pairs['rsi']-pairs['rsp']) < 0x10000
+          reasons=[]
+          abi=None
+          if rdi_stack and not rsi_stack:
+              abi='sret-rdi-this-rsi'
+              reasons.append('RDI points into the active caller stack')
+          elif rsi_stack and not rdi_stack:
+              abi='this-rdi-out-rsi'
+              reasons.append('RSI points into the active caller stack')
+          elif rdi_sso and not rsi_sso:
+              abi='sret-rdi-this-rsi'
+              reasons.append('RDI already has libstdc++ SSO layout')
+          elif rsi_sso and not rdi_sso:
+              abi='this-rdi-out-rsi'
+              reasons.append('RSI already has libstdc++ SSO layout')
+          assert abi is not None,{
+              'pairs':pairs,'rdi_sso':rdi_sso,'rsi_sso':rsi_sso,
+              'rdi_stack':rdi_stack,'rsi_stack':rsi_stack,
+          }
+          target=json.loads(pathlib.Path(
+              'build/proof/method-target.json').read_text())
+          manifest=json.loads(pathlib.Path(
+              'build/proof/method-int3-manifest.json').read_text())
+          result={
+              'schema':1,
+              'milestone':'M9-provider-method-abi',
+              'status':'PASS',
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'abi':abi,
+              'reasons':reasons,
+              'rdi_sso':rdi_sso,
+              'rsi_sso':rsi_sso,
+              'rdi_stack_relative':rdi_stack,
+              'rsi_stack_relative':rsi_stack,
+              'registers':pairs,
+              'raw_line':line,
+              'target':target,
+              'probe_manifest':manifest,
+              'raw_exit_status':int(pathlib.Path(
+                  'build/proof/raw-exit-status.txt').read_text()),
+          }
+          payload=json.dumps(result,indent=2)+'\n'
+          pathlib.Path('build/proof/method-abi.json').write_text(payload)
+          pathlib.Path('build/proof/method-abi.txt').write_text(abi+'\n')
+          print(payload)
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m9-provider-method-abi
+          path: |
+            build/host/hrt-m9-provider-method-abi
+            build/proof
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Detach the ABI-probe guest
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true
+
+  test-string-candidates:
+    needs: probe-method-abi
+    runs-on: macos-14
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download the exact ABI and method target
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m9-provider-method-abi
+          path: build/input/abi
+
+      - name: Download the exact provider-object trace
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m9-hword-throw-int3-caller
+          path: build/input/provider
+          repository: ${{ github.repository }}
+          run-id: ${{ env.PROVIDER_SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download the verified Qt 5.11.3 hrtappkit QPA
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m8-qt5113-hrtappkit-input-qpa
+          path: build/input/qpa
+          repository: ${{ github.repository }}
+          run-id: ${{ env.QPA_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download and verify the exact HWord root and package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/hword build/input/deb build/generated/base \
+                   build/generated/candidates build/objects/common \
+                   build/objects/bridges build/host build/proof \
+                   build/results build/logs diagnostics proofs
+          curl --fail --location --retry 5 --retry-delay 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ROOTFS_ARTIFACT_ID/zip" \
+            -o build/input/hword-artifact.zip
+          printf '%s  %s\n' "$ROOTFS_ARTIFACT_SHA256" \
+            build/input/hword-artifact.zip | shasum -a 256 -c -
+          ditto -x -k build/input/hword-artifact.zip build/input/hword
+          printf '%s  %s\n' "$ROOTFS_ARCHIVE_SHA256" \
+            build/input/hword/hword-rootfs.tar.gz | shasum -a 256 -c -
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" \
+            --dir build/input/deb
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/input/deb/$ASSET_NAME" | shasum -a 256 -c -
+
+      - name: Reconstruct the exact full-font candidate guest
+        run: |
+          set -euxo pipefail
+          image="$RUNNER_TEMP/hrt-m9-method-override.sparsebundle"
+          root="/tmp/h9o-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"; mkdir -p "$root"
+          if ! hdiutil create -quiet -size 12g -fs APFSX \
+               -volname HRTM9O -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 12g -fs HFSX \
+              -volname HRTM9O -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >>"$GITHUB_ENV"
+          echo "HRT_IMAGE=$image" >>"$GITHUB_ENV"
+          tar -xzf build/input/hword/hword-rootfs.tar.gz -C "$root"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+
+          deb="build/input/deb/$ASSET_NAME"
+          data_member=$(ar t "$deb" | awk '/^data\.tar/{print; exit}')
+          test -n "$data_member"
+          ar p "$deb" "$data_member" >"build/input/deb/$data_member"
+          tar -xf "build/input/deb/$data_member" -C "$root" \
+            ./opt/hnc/hoffice11/Shared/Fonts \
+            ./opt/hnc/hoffice11/Shared/TTF
+          rm -f "$root/opt/hnc/hoffice1"
+          ln -s hoffice11 "$root/opt/hnc/hoffice1"
+          test -f "$root/opt/hnc/hoffice1/Shared/Fonts/HGSMJ.HFT"
+
+          mkdir -p "$root$(dirname "$PLUGIN_GUEST")"
+          python3 - build/input/qpa/libqhrtappkit.so.xz \
+            build/input/qpa/lock.json "$root$PLUGIN_GUEST" <<'PY'
+          import hashlib,json,lzma,pathlib,sys
+          compressed=pathlib.Path(sys.argv[1]).read_bytes()
+          lock=json.loads(pathlib.Path(sys.argv[2]).read_text())
+          assert hashlib.sha256(compressed).hexdigest()==lock['plugin']['xz_sha256']
+          plugin=lzma.decompress(compressed)
+          assert hashlib.sha256(plugin).hexdigest()==lock['plugin']['sha256_after_prepatch']
+          pathlib.Path(sys.argv[3]).write_bytes(plugin)
+          pathlib.Path('build/proof/qpa-lock.json').write_text(
+              json.dumps(lock,indent=2)+'\n')
+          PY
+          chmod 0755 "$root$PLUGIN_GUEST"
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+          grep -F 'Case-sensitive' build/proof/guest-volume.txt
+
+      - name: Verify and patch the identical exact provider method
+        run: |
+          set -euxo pipefail
+          abi_json=$(find build/input/abi -type f -name method-abi.json -print -quit)
+          target_json=$(find build/input/abi -type f -name method-target.json -print -quit)
+          test -n "$abi_json"; test -n "$target_json"
+          cp "$abi_json" build/proof/method-abi.json
+          cp "$target_json" build/proof/method-target.json
+          python3 - "$HRT_ROOT" <<'PY'
+          import hashlib,json,pathlib,sys
+          root=pathlib.Path(sys.argv[1])
+          target=json.loads(pathlib.Path(
+              'build/proof/method-target.json').read_text())
+          abi=json.loads(pathlib.Path(
+              'build/proof/method-abi.json').read_text())
+          assert abi['status']=='PASS'
+          assert abi['abi'] in ('this-rdi-out-rsi','sret-rdi-this-rsi')
+          path=root/target['guest_path'].lstrip('/')
+          assert path.is_file(),path
+          actual=hashlib.sha256(path.read_bytes()).hexdigest()
+          assert actual==target['object_sha256_before_probe'],(actual,target)
+          pathlib.Path('build/proof/method-abi.txt').write_text(abi['abi']+'\n')
+          pathlib.Path('build/proof/method-guest-path.txt').write_text(
+              target['guest_path']+'\n')
+          pathlib.Path('build/proof/method-file-offset.txt').write_text(
+              str(target['file_offset'])+'\n')
+          PY
+          guest_path=$(cat build/proof/method-guest-path.txt)
+          file_offset=$(cat build/proof/method-file-offset.txt)
+          python3 runtime/m9/patch_elf_int3_at_offset.py \
+            "$HRT_ROOT$guest_path" --file-offset "$file_offset" \
+            --label 'provider-vtable+0x130' --signature-length 24 \
+            --manifest build/proof/method-int3-manifest.json
+
+      - name: Generate the mature common bridge and candidate list
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          python3 runtime/m8/augment_appkit_adapter_input.py \
+            runtime/m6/appkit_adapter.m \
+            build/generated/base/appkit_adapter_m8.m
+          python3 runtime/m6/augment_stack_hrtappkit.py \
+            runtime/m3/stack.c build/generated/base/stack.c
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/base/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/base/stage1.c build/generated/base/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/base/stage2.c build/generated/base/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/base/stage3.c build/generated/base/stage4.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/base/stage4.c build/generated/base/stage5.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/base/stage5.c build/generated/base/stage6.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/base/stage6.c build/generated/base/stage7.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/base/stage7.c build/generated/base/stage8.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/base/stage8.c build/generated/base/stage9.c
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+            build/generated/base/stage9.c build/generated/base/stage10.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/base/stage10.c \
+            build/generated/base/syscall_bridge.c
+          python3 - <<'PY'
+          import pathlib,re
+          values=[
+              ('prefix','HWP'),
+              ('v11','HWP11'),
+              ('year2022','HWP2022'),
+              ('v1120','HWP11.20'),
+              ('full','HWP11.20.0.1520'),
+              ('beta','HWP2022Beta'),
+          ]
+          provider_root=pathlib.Path('build/input/provider')
+          stderr=next(provider_root.rglob('stderr.txt')).read_text(errors='replace')
+          line=next(line for line in stderr.splitlines()
+                    if line.startswith('HRT M9 THROW OBJECT:'))
+          second=re.search(r' second-length=0x[0-9a-f]+ second=(.*)$',line)
+          if second:
+              text=''.join(ch for ch in second.group(1)
+                           if 32 <= ord(ch) <= 126)
+              if text:
+                  dynamic=('HWP'+text)[:15]
+                  values.append(('from_second',dynamic))
+          unique=[]; seen=set()
+          for identifier,value in values:
+              if value in seen or len(value.encode('ascii'))>15: continue
+              seen.add(value); unique.append((identifier,value))
+          pathlib.Path('build/proof/candidates.tsv').write_text(
+              ''.join(f'{identifier}\t{value}\n'
+                      for identifier,value in unique))
+          print(pathlib.Path('build/proof/candidates.tsv').read_text())
+          PY
+
+      - name: Compile common runtime objects once
+        run: |
+          set -euxo pipefail
+          common=(-arch x86_64 -std=c17 -O2 -g -fno-stack-protector \
+            -fno-omit-frame-pointer -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1)
+          index=0
+          for source in runtime/m6/main.c runtime/m6/hostcall_trampoline.c \
+            runtime/m1/common.c runtime/m3/elf_map.c \
+            build/generated/base/stack.c runtime/m3/patch.c; do
+            clang "${common[@]}" -c "$source" \
+              -o "build/objects/common/c-${index}.o"
+            index=$((index+1))
+          done
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c build/generated/base/appkit_adapter_m8.m \
+            -o build/objects/common/appkit-adapter.o
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c runtime/m8/appkit_input.m \
+            -o build/objects/common/appkit-input.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S \
+            -o build/objects/common/enter-guest.o
+          clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \
+            -o build/objects/common/hostcall-trampoline.o
+
+      - name: Build all exact provider-string candidates
+        run: |
+          set -euxo pipefail
+          abi=$(cat build/proof/method-abi.txt)
+          common=(-arch x86_64 -std=c17 -O2 -g -fno-stack-protector \
+            -fno-omit-frame-pointer -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1)
+          while IFS=$'\t' read -r identifier value; do
+            test -n "$identifier"
+            python3 runtime/m9/augment_int3_string_override.py \
+              build/generated/base/syscall_bridge.c \
+              build/proof/method-int3-manifest.json \
+              "build/generated/candidates/${identifier}.c" \
+              --abi "$abi" --value "$value"
+            python3 - "$identifier" <<'PY'
+          import pathlib,sys
+          path=pathlib.Path('build/generated/candidates')/(sys.argv[1]+'.c')
+          path.write_text(path.read_text().replace(
+              '#define M3_TRACE_LIMIT 256u','#define M3_TRACE_LIMIT 60000u'))
+          PY
+            clang "${common[@]}" -c \
+              "build/generated/candidates/${identifier}.c" \
+              -o "build/objects/bridges/${identifier}.o"
+            clang -arch x86_64 build/objects/common/*.o \
+              "build/objects/bridges/${identifier}.o" \
+              -Wl,-pagezero_size,0x1000 \
+              -framework AppKit -framework CoreGraphics -framework ImageIO \
+              -o "build/host/hrt-m9-provider-${identifier}"
+            codesign --force --sign - --timestamp=none \
+              "build/host/hrt-m9-provider-${identifier}"
+            codesign --verify --strict \
+              "build/host/hrt-m9-provider-${identifier}"
+          done <build/proof/candidates.tsv
+          file build/host/hrt-m9-provider-* | tee build/proof/host-files.txt
+
+      - name: Run every candidate against unchanged exact HWord
+        run: |
+          set -uxo pipefail
+          : >build/results/index.jsonl
+          while IFS=$'\t' read -r identifier value; do
+            test -n "$identifier" || continue
+            dir="build/logs/$identifier"
+            mkdir -p "$dir"
+            export HRT_M6_CAPTURE_PATH="$PWD/$dir/pre-frame.png"
+            export HRT_M7_CAPTURE_PATH="$PWD/$dir/frame.png"
+            unset HRT_M8_SYNTHETIC_INPUT
+            : >"$dir/stdout.txt"; : >"$dir/stderr.txt"
+            /usr/bin/arch -x86_64 \
+              "build/host/hrt-m9-provider-${identifier}" \
+              --root "$HRT_ROOT" --program "$PROGRAM" \
+              >"$dir/stdout.txt" 2>"$dir/stderr.txt" &
+            pid=$!
+            reached_deadline=1
+            observed_frame=0
+            for _ in $(jot 240); do
+              if grep -q 'HRT M7 QPA: BGRA frame accepted' \
+                   "$dir/stderr.txt" 2>/dev/null; then
+                observed_frame=1
+                sleep 1
+                break
+              fi
+              if ! kill -0 "$pid" 2>/dev/null; then
+                reached_deadline=0
+                break
+              fi
+              sleep 0.05
+            done
+            if kill -0 "$pid" 2>/dev/null; then
+              ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+                >"$dir/process.txt" 2>&1 || true
+              /usr/bin/sample "$pid" 1 1 -file "$dir/sample.txt" \
+                >/dev/null 2>&1 || true
+              kill -TERM "$pid" 2>/dev/null || true
+              sleep 0.25
+              kill -KILL "$pid" 2>/dev/null || true
+            fi
+            set +e; wait "$pid"; raw_status=$?; set -e
+            printf '%s\n' "$raw_status" >"$dir/raw-exit-status.txt"
+            printf '%s\n' "$reached_deadline" \
+              >"$dir/reached-deadline.txt"
+            printf '%s\n' "$observed_frame" \
+              >"$dir/observed-frame.txt"
+            python3 - "$identifier" "$value" "$dir" <<'PY'
+          import hashlib,json,pathlib,re,sys
+          identifier,value,directory=sys.argv[1],sys.argv[2],pathlib.Path(sys.argv[3])
+          stderr=(directory/'stderr.txt').read_text(errors='replace')
+          stdout=(directory/'stdout.txt').read_text(errors='replace')
+          titles=[]
+          for line in re.findall(r'HRT M6 QPA: CREATE .*',stderr):
+              title=re.search(r' title=(.*?) handle=',line)
+              if title: titles.append(title.group(1))
+          unknown=sorted({int(number) for number in re.findall(
+              r'Linux syscall ENOSYS (\d+)',stderr)})
+          result={
+              'identifier':identifier,
+              'value':value,
+              'override_hits':stderr.count('HRT M9 METHOD OVERRIDE:'),
+              'substr_exception':(
+                  'basic_string::substr' in stderr or
+                  '__pos (which is %zu) > this->size()' in stderr),
+              'initialization_error':('Initialization Error' in titles),
+              'window_titles':titles,
+              'qpa_create_count':stderr.count('HRT M6 QPA: CREATE '),
+              'frame_count':stderr.count('HRT M7 QPA: BGRA frame accepted'),
+              'fatal_signal_count':stderr.count('fatal signal'),
+              'unknown_syscalls':unknown,
+              'syscall_trace_count':len(re.findall(r'hrt-m3: syscall \d+ ',stderr)),
+              'stderr_lines':len(stderr.splitlines()),
+              'stderr_bytes':len(stderr.encode(errors='replace')),
+              'stderr_sha256':hashlib.sha256(stderr.encode()).hexdigest(),
+              'stdout_sha256':hashlib.sha256(stdout.encode()).hexdigest(),
+              'raw_exit_status':int((directory/'raw-exit-status.txt').read_text()),
+              'reached_deadline':bool(int((directory/'reached-deadline.txt').read_text())),
+              'observed_frame':bool(int((directory/'observed-frame.txt').read_text())),
+              'stderr_tail':stderr.splitlines()[-120:],
+          }
+          score=0
+          if result['override_hits']>0: score+=1000
+          if not result['substr_exception']: score+=100000
+          if result['frame_count']>0: score+=1000000
+          elif result['qpa_create_count']>0: score+=500000
+          if result['reached_deadline']: score+=250000
+          score+=min(result['syscall_trace_count'],100000)
+          score+=min(result['stderr_lines'],10000)
+          score-=100*result['fatal_signal_count']
+          result['score']=score
+          with pathlib.Path('build/results/index.jsonl').open('a') as stream:
+              stream.write(json.dumps(result)+'\n')
+          (directory/'summary.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
+          PY
+          done <build/proof/candidates.tsv
+
+      - name: Select and persist the furthest exact-HWord advance
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json,os,pathlib
+          results=[json.loads(line) for line in pathlib.Path(
+              'build/results/index.jsonl').read_text().splitlines() if line]
+          assert results,results
+          assert all(item['override_hits']>0 for item in results),results
+          ranked=sorted(results,key=lambda item:(
+              item['score'],item['syscall_trace_count'],item['stderr_lines']),
+              reverse=True)
+          best=ranked[0]
+          advanced=[item for item in results if not item['substr_exception']]
+          if best['frame_count']>0 or best['qpa_create_count']>0 or (
+                  best['reached_deadline'] and not best['substr_exception']):
+              status='PASS'
+          elif advanced:
+              status='ADVANCED'
+          else:
+              status='DIAGNOSTIC'
+          abi=json.loads(pathlib.Path(
+              'build/proof/method-abi.json').read_text())
+          target=json.loads(pathlib.Path(
+              'build/proof/method-target.json').read_text())
+          result={
+              'schema':1,
+              'milestone':'M9-provider-string-override',
+              'status':status,
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'program':os.environ['PROGRAM'],
+              'program_sha256':os.environ['PROGRAM_SHA256'],
+              'package_sha256':os.environ['PACKAGE_SHA256'],
+              'method_abi':abi,
+              'method_target':target,
+              'best_candidate':best,
+              'ranked_candidates':ranked,
+              'substr_boundary_cleared_by':[item['value'] for item in advanced],
+          }
+          payload=json.dumps(result,indent=2)+'\n'
+          pathlib.Path('diagnostics').mkdir(exist_ok=True)
+          pathlib.Path(
+              f"diagnostics/m9-hword-provider-string-{os.environ['GITHUB_RUN_ID']}.json"
+          ).write_text(payload)
+          pathlib.Path(
+              'diagnostics/m9-hword-provider-string-latest.json').write_text(payload)
+          pathlib.Path(
+              'diagnostics/m9-hword-provider-string-latest.md').write_text(
+              '# HWord M9 provider string override\n\n'
+              f"- Status: `{status}`\n"
+              f"- ABI: `{abi['abi']}`\n"
+              f"- Method object: `{target['guest_path']}`\n"
+              f"- Method file offset: `{target['file_offset_hex']}`\n"
+              f"- Best value: `{best['value']}`\n"
+              f"- `substr(3)` boundary cleared: `{not best['substr_exception']}`\n"
+              f"- Native window titles: `{best['window_titles']}`\n"
+              f"- BGRA frames: `{best['frame_count']}`\n"
+              f"- Survived observation window: `{best['reached_deadline']}`\n"
+          )
+          if best['frame_count']>0:
+              pathlib.Path('proofs').mkdir(exist_ok=True)
+              pathlib.Path(
+                  'proofs/m9-hword-provider-string-boundary.json').write_text(payload)
+          pathlib.Path('build/proof/final-summary.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Commit the durable provider-string result
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git add diagnostics/m9-hword-provider-string-*.json \
+                  diagnostics/m9-hword-provider-string-latest.md
+          if test -f proofs/m9-hword-provider-string-boundary.json; then
+            git add proofs/m9-hword-provider-string-boundary.json
+          fi
+          if ! git diff --cached --quiet; then
+            git commit -m 'diagnostic: test exact HWord provider string values'
+            git push origin HEAD:codex/hoffice-runtime-from-scratch
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m9-provider-string-override-proof
+          path: |
+            build/host
+            build/proof
+            build/results
+            build/logs
+            diagnostics/m9-hword-provider-string-*.json
+            diagnostics/m9-hword-provider-string-latest.md
+            proofs/m9-hword-provider-string-boundary.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach the candidate guest
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true
