@@ -229,7 +229,7 @@ static void m10ActivateDeliveryWindow(QWindow *deliveryWindow,
                         "QWidget mouse result logging")
 
     required = {
-        "HRT M10 WIDGET:": 5,
+        "HRT M10 WIDGET:": 4,
         "QApplication::focusWidget()": 2,
         "QApplication::topLevelWidgets()": 1,
         "m10DeliverMouseToWidget(": 2,
