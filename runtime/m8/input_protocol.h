@@ -11,8 +11,9 @@
 #define HRT_M8_EVENT_KEY UINT32_C(1)
 #define HRT_M8_EVENT_MOUSE UINT32_C(2)
 
-#define HRT_M8_KEY_DOWN UINT32_C(1)
-#define HRT_M8_KEY_UP UINT32_C(2)
+/* Key-event actions are distinct from the Qt logical-key namespace below. */
+#define HRT_M8_KEY_ACTION_DOWN UINT32_C(1)
+#define HRT_M8_KEY_ACTION_UP UINT32_C(2)
 
 #define HRT_M8_MOUSE_MOVE UINT32_C(1)
 #define HRT_M8_MOUSE_DOWN UINT32_C(2)
