@@ -17,7 +17,11 @@ public:
                const QPoint &offset) override;
 
 private:
+    void drainHostInput(QWindow *deliveryWindow);
+
     quint64 m_presentSequence;
+    quint64 m_keyEventsDelivered;
+    quint64 m_mouseEventsDelivered;
     bool m_firstFrameAccepted;
 };
 
