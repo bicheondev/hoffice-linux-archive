@@ -3,9 +3,12 @@
 #include "hrt_hostcall.h"
 #include "../../m8/input_protocol.h"
 
+#include <QtCore/qcoreapplication.h>
 #include <QtCore/qdebug.h>
+#include <QtCore/qeventloop.h>
 #include <QtCore/qstring.h>
 #include <QtGui/qevent.h>
+#include <QtGui/qguiapplication.h>
 #include <QtGui/qimage.h>
 #include <QtGui/qpainter.h>
 #include <QtGui/qwindow.h>
@@ -44,6 +47,32 @@ static Qt::MouseButtons m8Buttons(quint32 value)
     return result;
 }
 
+static void m10ActivateDeliveryWindow(QWindow *deliveryWindow,
+                                      const char *phase)
+{
+    if (deliveryWindow == nullptr)
+        return;
+
+    QWindow *before = QGuiApplication::focusWindow();
+    if (before != deliveryWindow) {
+        QWindowSystemInterface::handleWindowActivated<
+            QWindowSystemInterface::SynchronousDelivery>(
+                deliveryWindow, Qt::ActiveWindowFocusReason);
+    }
+    QWindow *after = QGuiApplication::focusWindow();
+    QObject *focusObject = QGuiApplication::focusObject();
+    const QByteArray title = deliveryWindow->title().toUtf8();
+    qWarning("HRT M10 QPA: activation phase=%s target=%p before=%p after=%p focus-object=%p active=%d visible=%d title=%s",
+             phase,
+             static_cast<void *>(deliveryWindow),
+             static_cast<void *>(before),
+             static_cast<void *>(after),
+             static_cast<void *>(focusObject),
+             deliveryWindow->isActive() ? 1 : 0,
+             deliveryWindow->isVisible() ? 1 : 0,
+             title.constData());
+}
+
 QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)
     : QOffscreenBackingStore(window)
     , m_presentSequence(0)
@@ -58,6 +87,8 @@ void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)
 {
     if (deliveryWindow == nullptr)
         return;
+
+    m10ActivateDeliveryWindow(deliveryWindow, "drain-begin");
 
     bool delivered = false;
     for (quint32 iteration = 0u; iteration < 64u; ++iteration) {
@@ -95,6 +126,7 @@ void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)
             else
                 continue;
 
+            m10ActivateDeliveryWindow(deliveryWindow, "before-key");
             quint32 length = event.utf8_length;
             if (length > HRT_M8_INPUT_TEXT_BYTES)
                 length = HRT_M8_INPUT_TEXT_BYTES;
@@ -104,12 +136,15 @@ void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)
                     QWindowSystemInterface::SynchronousDelivery>(
                         deliveryWindow, type, int(event.logical_key),
                         modifiers, text, false, 1u);
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 1);
             ++m_keyEventsDelivered;
             delivered = true;
-            qWarning("HRT M8 QPA: key event delivered sequence=%llu action=%u key=0x%x native=%u text=%s accepted=%d",
+            qWarning("HRT M8 QPA: key event delivered sequence=%llu action=%u key=0x%x native=%u text=%s accepted=%d focus-window=%p focus-object=%p",
                      static_cast<unsigned long long>(event.sequence),
                      event.action, event.logical_key, event.native_key,
-                     text.toUtf8().constData(), accepted ? 1 : 0);
+                     text.toUtf8().constData(), accepted ? 1 : 0,
+                     static_cast<void *>(QGuiApplication::focusWindow()),
+                     static_cast<void *>(QGuiApplication::focusObject()));
             continue;
         }
 
@@ -129,6 +164,7 @@ void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)
                 continue;
             }
 
+            m10ActivateDeliveryWindow(deliveryWindow, "before-mouse");
             const QPointF local(qreal(event.x), qreal(event.y));
             const QPointF global(qreal(event.global_x), qreal(event.global_y));
             QWindowSystemInterface::handleMouseEvent<
@@ -136,12 +172,18 @@ void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)
                     deliveryWindow, local, global,
                     m8Buttons(event.buttons), changed, type, modifiers,
                     Qt::MouseEventNotSynthesized);
+            if (event.action == HRT_M8_MOUSE_UP) {
+                QCoreApplication::processEvents(QEventLoop::AllEvents, 2);
+                m10ActivateDeliveryWindow(deliveryWindow, "after-mouse-up");
+            }
             ++m_mouseEventsDelivered;
             delivered = true;
-            qWarning("HRT M8 QPA: mouse event delivered sequence=%llu action=%u button=0x%x buttons=0x%x local=%d,%d global=%d,%d",
+            qWarning("HRT M8 QPA: mouse event delivered sequence=%llu action=%u button=0x%x buttons=0x%x local=%d,%d global=%d,%d focus-window=%p focus-object=%p",
                      static_cast<unsigned long long>(event.sequence),
                      event.action, event.button, event.buttons,
-                     event.x, event.y, event.global_x, event.global_y);
+                     event.x, event.y, event.global_x, event.global_y,
+                     static_cast<void *>(QGuiApplication::focusWindow()),
+                     static_cast<void *>(QGuiApplication::focusObject()));
         }
     }
 
