@@ -1,0 +1,128 @@
+name: HOffice runtime M8 failure harvester
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m8-failure-harvester.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m8-failure-harvester-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TARGET_BRANCH: codex/hoffice-runtime-from-scratch
+
+jobs:
+  harvest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - name: Clone the exact target branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          git clone --filter=blob:none --single-branch \
+            --branch "$TARGET_BRANCH" \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
+          git -C repo config user.name github-actions[bot]
+          git -C repo config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+      - name: Wait for the supervisor and collect exact run logs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p repo/diagnostics build/logs
+          supervisor=repo/diagnostics/m8-pipeline-supervisor-v3.json
+          for _ in $(seq 1 420); do
+            git -C repo fetch origin "$TARGET_BRANCH"
+            git -C repo reset --hard "origin/$TARGET_BRANCH"
+            if [ -s "$supervisor" ]; then
+              break
+            fi
+            sleep 10
+          done
+          test -s "$supervisor"
+          cp "$supervisor" repo/diagnostics/m8-pipeline-supervisor-v3-harvested.json
+
+          status=$(jq -r .status "$supervisor")
+          publish_id=$(jq -r '.publish.run // 0' "$supervisor")
+          replay_id=$(jq -r '.replay.run // 0' "$supervisor")
+
+          : >repo/diagnostics/m8-failure-key-lines.txt
+          printf 'supervisor_status=%s\npublish_run=%s\nreplay_run=%s\n' \
+            "$status" "$publish_id" "$replay_id" \
+            >>repo/diagnostics/m8-failure-key-lines.txt
+
+          collect_run() {
+            local label=$1
+            local run_id=$2
+            if [ "$run_id" -le 0 ]; then
+              return 0
+            fi
+            gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" \
+              >"repo/diagnostics/m8-${label}-run.json"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/jobs?per_page=100" \
+              >"repo/diagnostics/m8-${label}-jobs.json"
+            if gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/logs" \
+                 >"build/${label}-logs.zip"; then
+              mkdir -p "build/logs/${label}"
+              unzip -q "build/${label}-logs.zip" -d "build/logs/${label}" || true
+              find "build/logs/${label}" -type f -print0 \
+                | xargs -0 cat \
+                | grep -E -i \
+                    '(^|[^a-z])(error:|fatal:|undefined symbol|cannot load|could not load|failed|failure|assert|traceback|segmentation|fatal signal|enosys|HRT M8|HRT M7|HRT M6 QPA|host-call opcode=26[012]|qhrtappkit|QPA|AppKit|mouse delivered|key delivered|input pump|local input monitor)' \
+                | tail -n 5000 \
+                >"repo/diagnostics/m8-${label}-key-lines.txt" || true
+              printf '\n===== %s run %s =====\n' "$label" "$run_id" \
+                >>repo/diagnostics/m8-failure-key-lines.txt
+              cat "repo/diagnostics/m8-${label}-key-lines.txt" \
+                >>repo/diagnostics/m8-failure-key-lines.txt
+            fi
+          }
+
+          collect_run publish "$publish_id"
+          collect_run replay "$replay_id"
+
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root=Path('repo/diagnostics')
+          files=[]
+          for path in sorted(root.glob('m8-*')):
+              if path.is_file():
+                  files.append({
+                      'path':str(path.relative_to('repo')),
+                      'size':path.stat().st_size,
+                      'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),
+                  })
+          Path('repo/diagnostics/m8-failure-harvest-manifest.json').write_text(
+              json.dumps({'schema':1,'files':files},indent=2)+'\n')
+          PY
+
+      - name: Commit the durable M8 diagnostics
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          cd repo
+          git add diagnostics/m8-*
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'diagnostics: preserve the exact M8 pipeline evidence [skip ci]'
+          for _ in $(seq 1 12); do
+            if git push origin "HEAD:$TARGET_BRANCH"; then
+              exit 0
+            fi
+            git fetch origin "$TARGET_BRANCH"
+            git rebase "origin/$TARGET_BRANCH"
+          done
+          exit 1
