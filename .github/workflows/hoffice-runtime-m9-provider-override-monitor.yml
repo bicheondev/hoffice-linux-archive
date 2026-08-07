@@ -1,0 +1,147 @@
+name: HOffice runtime M9 provider override monitor
+
+on:
+  workflow_run:
+    workflows: ['HOffice runtime M9 provider string-method override']
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  persist:
+    if: github.event.workflow_run.head_branch == 'codex/hoffice-runtime-from-scratch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/hoffice-runtime-from-scratch
+          fetch-depth: 0
+
+      - name: Fetch the exact run, jobs, and failed log tail
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          SOURCE_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/monitor diagnostics
+          gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" \
+            >build/monitor/run.json
+          gh api --paginate \
+            "/repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/jobs?per_page=100" \
+            >build/monitor/jobs-pages.json
+          set +e
+          gh run view "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --log-failed >build/monitor/failed.log 2>&1
+          log_status=$?
+          set -e
+          printf '%s\n' "$log_status" >build/monitor/log-status.txt
+          tail -n 4000 build/monitor/failed.log \
+            >build/monitor/failed-tail.log
+
+      - name: Write the durable workflow conclusion
+        env:
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          SOURCE_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json,os,pathlib,re
+          run=json.loads(pathlib.Path('build/monitor/run.json').read_text())
+          raw=pathlib.Path('build/monitor/jobs-pages.json').read_text()
+          try:
+              decoded=json.loads(raw)
+          except json.JSONDecodeError:
+              decoded=[]
+          pages=decoded if isinstance(decoded,list) else [decoded]
+          jobs=[]
+          for page in pages:
+              jobs.extend(page.get('jobs',[]))
+          normalized=[]
+          failed_steps=[]
+          for job in jobs:
+              steps=[]
+              for step in job.get('steps') or []:
+                  item={
+                      'name':step.get('name'),
+                      'number':step.get('number'),
+                      'status':step.get('status'),
+                      'conclusion':step.get('conclusion'),
+                  }
+                  steps.append(item)
+                  if item['conclusion']=='failure':
+                      failed_steps.append({
+                          'job':job.get('name'),
+                          **item,
+                      })
+              normalized.append({
+                  'id':job.get('id'),
+                  'name':job.get('name'),
+                  'status':job.get('status'),
+                  'conclusion':job.get('conclusion'),
+                  'started_at':job.get('started_at'),
+                  'completed_at':job.get('completed_at'),
+                  'steps':steps,
+              })
+          log=pathlib.Path('build/monitor/failed-tail.log').read_text(
+              errors='replace')
+          result={
+              'schema':1,
+              'milestone':'M9-provider-string-override-workflow',
+              'status':'PASS' if os.environ['SOURCE_CONCLUSION']=='success'
+                               else 'FAIL',
+              'source_run_id':os.environ['SOURCE_RUN_ID'],
+              'source_conclusion':os.environ['SOURCE_CONCLUSION'],
+              'source_head_sha':os.environ['SOURCE_HEAD_SHA'],
+              'source_created_at':run.get('created_at'),
+              'source_updated_at':run.get('updated_at'),
+              'jobs':normalized,
+              'failed_steps':failed_steps,
+              'failed_log_tail':log.splitlines()[-1200:],
+              'error_lines':[line for line in log.splitlines()
+                             if re.search(r'error|failed|traceback|assert',line,
+                                          re.IGNORECASE)][-300:],
+          }
+          payload=json.dumps(result,indent=2)+'\n'
+          pathlib.Path(
+              f"diagnostics/m9-provider-override-workflow-{os.environ['SOURCE_RUN_ID']}.json"
+          ).write_text(payload)
+          pathlib.Path(
+              'diagnostics/m9-provider-override-workflow-latest.json').write_text(payload)
+          pathlib.Path(
+              'diagnostics/m9-provider-override-workflow-latest.md').write_text(
+              '# HWord provider-override workflow\n\n'
+              f"- Run: `{os.environ['SOURCE_RUN_ID']}`\n"
+              f"- Conclusion: `{os.environ['SOURCE_CONCLUSION']}`\n"
+              f"- Failed steps: `{failed_steps}`\n"
+          )
+          print(payload)
+          PY
+
+      - name: Commit the monitor record
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git add diagnostics/m9-provider-override-workflow-*.json \
+                  diagnostics/m9-provider-override-workflow-latest.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'diagnostic: persist provider override workflow result'
+            git push origin HEAD:codex/hoffice-runtime-from-scratch
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m9-provider-override-monitor
+          path: |
+            build/monitor
+            diagnostics/m9-provider-override-workflow-*.json
+            diagnostics/m9-provider-override-workflow-latest.md
+          if-no-files-found: error
+          retention-days: 14
