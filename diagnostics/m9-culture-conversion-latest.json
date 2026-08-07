@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "milestone": "M9-culture-conversion-call",
+  "status": "PASS",
+  "workflow_run": "31173127504",
+  "commit": "bb4f384a0e14a240ebc2a7bd0c6d4bd68336d3e6",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "package_sha256": "23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46",
+  "before": {
+    "probe_site": "0xd7f8136",
+    "receiver": "0x446a370",
+    "receiver_vtable": "0xeddca50",
+    "method20": "0xd7f9070",
+    "wide_pointer": "0x3fbb33c",
+    "wide_preview": "zh-CN",
+    "rdx_destination": "0xd3e3e90",
+    "outer_rbp_destination": "0xd3e3e90",
+    "destination_matches_outer_rbp": true
+  },
+  "after": {
+    "probe_site": "0xfd57139",
+    "destination": "0xf93fe90",
+    "data": "0xf93fea0",
+    "length": 0,
+    "capacity_or_inline": "0x0",
+    "text": "",
+    "conversion_return_rax": "0x1",
+    "receiver": "0x6b56c80"
+  },
+  "note": "Before and after probes use separate ASLR processes; raw pointers are not compared across runs.",
+  "conclusion": "The conversion receives the correct destination but produces an empty std::string."
+}
