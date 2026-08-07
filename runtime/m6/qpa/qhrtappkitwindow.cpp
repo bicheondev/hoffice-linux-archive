@@ -4,6 +4,7 @@
 #include <QtCore/qbytearray.h>
 #include <QtCore/qdebug.h>
 #include <QtGui/qwindow.h>
+#include <qpa/qwindowsysteminterface.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -70,6 +71,7 @@ void QHrtAppKitWindow::createNativeWindow()
 
     m_hostWindow = handle;
     s_nativeOwner = this;
+    requestActivateWindow();
     const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 250);
     const qint64 flags = hrtM6HostCall(
         HRT_M6_OP_QUERY_WINDOW, quint64(handle));
@@ -127,6 +129,17 @@ void QHrtAppKitWindow::setWindowTitle(const QString &title)
         qWarning("HRT M6 QPA: TITLE handle=%lld title=%s",
                  static_cast<long long>(m_hostWindow), utf8.constData());
     }
+}
+
+void QHrtAppKitWindow::requestActivateWindow()
+{
+    QWindowSystemInterface::handleWindowActivated<
+        QWindowSystemInterface::SynchronousDelivery>(
+            window(), Qt::ActiveWindowFocusReason);
+    const QByteArray title = window()->title().toUtf8();
+    qWarning("HRT M8B QPA: Qt window activated type=%d title=%s host=%lld",
+             int(window()->type()), title.constData(),
+             static_cast<long long>(m_hostWindow));
 }
 
 QT_END_NAMESPACE
