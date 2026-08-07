@@ -10,6 +10,8 @@ class QHrtAppKitIntegration : public QOffscreenIntegration
 public:
     QHrtAppKitIntegration();
     QPlatformWindow *createPlatformWindow(QWindow *window) const override;
+    QPlatformBackingStore *
+    createPlatformBackingStore(QWindow *window) const override;
 };
 
 QT_END_NAMESPACE

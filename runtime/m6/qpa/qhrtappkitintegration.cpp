@@ -1,4 +1,5 @@
 #include "qhrtappkitintegration.h"
+#include "qhrtappkitbackingstore.h"
 #include "qhrtappkitwindow.h"
 
 #include <QtCore/qdebug.h>
@@ -16,6 +17,12 @@ QPlatformWindow *QHrtAppKitIntegration::createPlatformWindow(QWindow *window) co
     QPlatformWindow *platformWindow = new QHrtAppKitWindow(window);
     platformWindow->requestActivateWindow();
     return platformWindow;
+}
+
+QPlatformBackingStore *
+QHrtAppKitIntegration::createPlatformBackingStore(QWindow *window) const
+{
+    return new QHrtAppKitBackingStore(window);
 }
 
 QT_END_NAMESPACE

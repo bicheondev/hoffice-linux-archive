@@ -19,6 +19,7 @@
 #define HRT_M6_WINDOW_MAIN UINT64_C(0x10)
 #define HRT_M6_SCREEN_AVAILABLE UINT64_C(0x20)
 #define HRT_M6_ON_MAIN_THREAD UINT64_C(0x40)
+#define HRT_M7_FRAME_PRESENTED UINT64_C(0x80)
 
 #ifdef __cplusplus
 extern "C" {

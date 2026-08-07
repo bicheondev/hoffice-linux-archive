@@ -3,6 +3,8 @@
 
 #include "qoffscreenwindow.h"
 
+#include <QtCore/qglobal.h>
+
 QT_BEGIN_NAMESPACE
 
 class QHrtAppKitWindow : public QOffscreenWindow
@@ -14,6 +16,8 @@ public:
     void setVisible(bool visible) override;
     void setGeometry(const QRect &rect) override;
     void setWindowTitle(const QString &title) override;
+
+    static qint64 hostWindowFor(const QWindow *window);
 
 private:
     bool isNativeCandidate() const;

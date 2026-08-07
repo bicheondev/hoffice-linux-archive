@@ -24,6 +24,16 @@ QHrtAppKitWindow::~QHrtAppKitWindow()
     destroyNativeWindow();
 }
 
+qint64 QHrtAppKitWindow::hostWindowFor(const QWindow *candidate)
+{
+    if (candidate == nullptr || s_nativeOwner == nullptr ||
+        s_nativeOwner->m_hostWindow <= 0 ||
+        s_nativeOwner->window() != candidate) {
+        return 0;
+    }
+    return s_nativeOwner->m_hostWindow;
+}
+
 bool QHrtAppKitWindow::isNativeCandidate() const
 {
     const Qt::WindowType type = window()->type();
