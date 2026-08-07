@@ -14,7 +14,9 @@ the rendered HWord UI, so this generator drives that real control instead:
 The toolbar point is expressed in AppKit's bottom-left window coordinates.  It
 maps to approximately ``(27, 163)`` in the 800x600 Qt content surface, matching
 the blank-document icon observed in the durable M9 HWord frame.  All source
-rewrites remain exact-anchor and fail closed.
+rewrites remain exact-anchor and fail closed.  The generated staged events are
+then routed synchronously through the installed AppKit monitor so each mouse-up
+is delivered before the following stage is created.
 """
 from __future__ import annotations
 
@@ -200,6 +202,17 @@ def split_input_stages(path: Path) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def route_staged_events_directly(path: Path) -> None:
+    subprocess.run(
+        [
+            sys.executable,
+            "runtime/m10/route_synthetic_events_directly.py",
+            str(path),
+        ],
+        check=True,
+    )
+
+
 def retime_captures(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
     text = replace_once(
@@ -236,8 +249,10 @@ def main() -> None:
     if len(sys.argv) != 3:
         raise SystemExit(f"usage: {sys.argv[0]} SOURCE.m OUTPUT.m")
     output = Path(sys.argv[2])
+    input_source = Path("runtime/m8/appkit_input.m")
     run_locked_generator()
-    split_input_stages(Path("runtime/m8/appkit_input.m"))
+    split_input_stages(input_source)
+    route_staged_events_directly(input_source)
     retime_captures(output)
 
 
