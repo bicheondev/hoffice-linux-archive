@@ -1,0 +1,181 @@
+name: HOffice runtime M5-M6 QOffscreen RTTI matrix v3
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m5-m6-qoffscreen-rtti-matrix-v3.yml'
+      - '.github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml'
+      - 'runtime/m3/patch_elf_int3_qt_vtable.py'
+      - 'runtime/m3/augment_int3_probe.py'
+      - 'runtime/m3/augment_directory_stream_hosttrace.py'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m5-m6-qoffscreen-rtti-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - id: plugin-instance
+            mode: symbol
+            symbol: qt_plugin_instance
+            class_name: ''
+            slot: -1
+            tail_jumps: 0
+            local_call: -1
+            expected: '0xfdd0'
+            label: Qt offscreen plugin instance
+            milestone: M5-v3-offscreen-plugin-instance
+            diagnostic: diagnostics/rtti-v3/m5-plugin-instance.json
+            proof: proofs/rtti-v3/m5-plugin-instance.json
+            trace: 56000
+            seconds: 35
+
+          - id: integration-create
+            mode: vtable
+            symbol: ''
+            class_name: QOffscreenIntegrationPlugin
+            slot: 12
+            tail_jumps: 0
+            local_call: -1
+            expected: '0xfd60'
+            label: Qt offscreen integration create
+            milestone: M5-v3-offscreen-integration-create
+            diagnostic: diagnostics/rtti-v3/m5-integration-create.json
+            proof: proofs/rtti-v3/m5-integration-create.json
+            trace: 64000
+            seconds: 40
+
+          - id: integration-constructor
+            mode: vtable
+            symbol: ''
+            class_name: QOffscreenIntegrationPlugin
+            slot: 12
+            tail_jumps: 1
+            local_call: 0
+            expected: '0x10210'
+            label: Qt offscreen integration constructor
+            milestone: M5-v3-offscreen-integration-constructor
+            diagnostic: diagnostics/rtti-v3/m5-integration-constructor.json
+            proof: proofs/rtti-v3/m5-integration-constructor.json
+            trace: 72000
+            seconds: 45
+
+          - id: create-platform-window
+            mode: vtable
+            symbol: ''
+            class_name: QOffscreenIntegration
+            slot: 4
+            tail_jumps: 0
+            local_call: -1
+            expected: '0x10390'
+            label: Qt offscreen createPlatformWindow
+            milestone: M6-v3-offscreen-create-platform-window
+            diagnostic: diagnostics/rtti-v3/m6-create-platform-window.json
+            proof: proofs/rtti-v3/m6-create-platform-window.json
+            trace: 80000
+            seconds: 50
+
+          - id: window-constructor
+            mode: vtable
+            symbol: ''
+            class_name: QOffscreenIntegration
+            slot: 4
+            tail_jumps: 0
+            local_call: 0
+            expected: '0x10ca0'
+            label: Qt offscreen window constructor
+            milestone: M6-v3-offscreen-window-constructor
+            diagnostic: diagnostics/rtti-v3/m6-window-constructor.json
+            proof: proofs/rtti-v3/m6-window-constructor.json
+            trace: 88000
+            seconds: 55
+
+          - id: create-backing-store
+            mode: vtable
+            symbol: ''
+            class_name: QOffscreenIntegration
+            slot: 6
+            tail_jumps: 0
+            local_call: -1
+            expected: '0x10040'
+            label: Qt offscreen createPlatformBackingStore
+            milestone: M6-v3-offscreen-create-backing-store
+            diagnostic: diagnostics/rtti-v3/m6-create-backing-store.json
+            proof: proofs/rtti-v3/m6-create-backing-store.json
+            trace: 96000
+            seconds: 60
+
+          - id: backing-store-constructor
+            mode: vtable
+            symbol: ''
+            class_name: QOffscreenIntegration
+            slot: 6
+            tail_jumps: 0
+            local_call: 0
+            expected: '0x11270'
+            label: Qt offscreen backing store constructor
+            milestone: M6-v3-offscreen-backing-store-constructor
+            diagnostic: diagnostics/rtti-v3/m6-backing-store-constructor.json
+            proof: proofs/rtti-v3/m6-backing-store-constructor.json
+            trace: 104000
+            seconds: 60
+
+          - id: paint-device
+            mode: vtable
+            symbol: ''
+            class_name: QOffscreenBackingStore
+            slot: 2
+            tail_jumps: 0
+            local_call: -1
+            expected: '0x11160'
+            label: Qt offscreen backing store paintDevice
+            milestone: M6-v3-offscreen-paint-device
+            diagnostic: diagnostics/rtti-v3/m6-paint-device.json
+            proof: proofs/rtti-v3/m6-paint-device.json
+            trace: 112000
+            seconds: 65
+
+          - id: flush
+            mode: vtable
+            symbol: ''
+            class_name: QOffscreenBackingStore
+            slot: 3
+            tail_jumps: 0
+            local_call: -1
+            expected: '0x11410'
+            label: Qt offscreen backing store flush
+            milestone: M6-v3-offscreen-backing-store-flush
+            diagnostic: diagnostics/rtti-v3/m6-flush.json
+            proof: proofs/rtti-v3/m6-flush.json
+            trace: 120000
+            seconds: 70
+
+    name: ${{ matrix.id }}
+    uses: ./.github/workflows/hoffice-runtime-guest-rtti-probe-v3.yml
+    with:
+      predecessor_proof: proofs/m3-hword-entry.json
+      target_mode: ${{ matrix.mode }}
+      symbol_name: ${{ matrix.symbol }}
+      class_name: ${{ matrix.class_name }}
+      vtable_slot: ${{ matrix.slot }}
+      follow_tail_jumps: ${{ matrix.tail_jumps }}
+      local_call_after_new_index: ${{ matrix.local_call }}
+      expected_address: ${{ matrix.expected }}
+      label: ${{ matrix.label }}
+      milestone: ${{ matrix.milestone }}
+      diagnostic_path: ${{ matrix.diagnostic }}
+      proof_path: ${{ matrix.proof }}
+      trace_limit: ${{ matrix.trace }}
+      run_seconds: ${{ matrix.seconds }}
+      require_pipe2: true

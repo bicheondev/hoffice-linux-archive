@@ -1,0 +1,209 @@
+name: HOffice runtime QOffscreen RTTI resolver v3
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-qoffscreen-rtti-resolver-v3.yml'
+      - 'runtime/m3/patch_elf_int3_qt_vtable.py'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-qoffscreen-rtti-resolver-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN_ID: '31102898765'
+  PLUGIN: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so
+  BRANCH: codex/hoffice-runtime-from-scratch
+
+jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Lock and extract the exact prepatched QOffscreen plugin
+        run: |
+          set -euxo pipefail
+          mkdir -p build/root build/cases build/manifests diagnostics
+          expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)
+          actual=$(sha256sum build/input/hword-rootfs.tar.gz | awk '{print $1}')
+          test "$actual" = "$expected"
+          tar -xzf build/input/hword-rootfs.tar.gz -C build/root \
+            ./.hrt-prepatched-v1 \
+            ./opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so
+          test -s "build/root$PLUGIN"
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          root = Path('build/root')
+          plugin_path = '/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so'
+          marker = json.loads((root / '.hrt-prepatched-v1').read_text())
+          record, = [item for item in marker['objects']
+                     if item['path'] == plugin_path]
+          actual = hashlib.sha256(
+              (root / plugin_path.lstrip('/')).read_bytes()).hexdigest()
+          assert actual == record['sha256_after'], (actual, record)
+          Path('build/plugin-lock.json').write_text(
+              json.dumps(record, indent=2) + '\n')
+          print(json.dumps(record, indent=2))
+          PY
+
+      - name: Resolve every stripped QOffscreen boundary fail-closed
+        run: |
+          set -euxo pipefail
+          source="build/root$PLUGIN"
+          resolve() {
+            id="$1"
+            shift
+            cp "$source" "build/cases/$id.so"
+            python3 runtime/m3/patch_elf_int3_qt_vtable.py \
+              "build/cases/$id.so" "$@" \
+              --label "$id" --manifest "build/manifests/$id.json"
+          }
+
+          resolve plugin-instance \
+            --symbol qt_plugin_instance \
+            --expected-address 0xfdd0
+          resolve integration-create \
+            --class-name QOffscreenIntegrationPlugin --vtable-slot 12 \
+            --expected-address 0xfd60
+          resolve integration-constructor \
+            --class-name QOffscreenIntegrationPlugin --vtable-slot 12 \
+            --follow-tail-jumps 1 --local-call-after-new-index 0 \
+            --expected-address 0x10210
+          resolve create-platform-window \
+            --class-name QOffscreenIntegration --vtable-slot 4 \
+            --expected-address 0x10390
+          resolve window-constructor \
+            --class-name QOffscreenIntegration --vtable-slot 4 \
+            --local-call-after-new-index 0 \
+            --expected-address 0x10ca0
+          resolve create-backing-store \
+            --class-name QOffscreenIntegration --vtable-slot 6 \
+            --expected-address 0x10040
+          resolve backing-store-constructor \
+            --class-name QOffscreenIntegration --vtable-slot 6 \
+            --local-call-after-new-index 0 \
+            --expected-address 0x11270
+          resolve paint-device \
+            --class-name QOffscreenBackingStore --vtable-slot 2 \
+            --expected-address 0x11160
+          resolve flush \
+            --class-name QOffscreenBackingStore --vtable-slot 3 \
+            --expected-address 0x11410
+
+      - name: Write the durable exact-binary resolver map
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          lock = json.loads(Path('build/plugin-lock.json').read_text())
+          manifests = {}
+          for path in sorted(Path('build/manifests').glob('*.json')):
+              manifest = json.loads(path.read_text())
+              assert manifest['schema'] == 2
+              assert manifest['sha256_before'] == lock['sha256_after']
+              assert manifest['patch_target_address'] == \
+                  manifest['expected_address']
+              assert manifest['patched_bytes_hex'].startswith('cc')
+              manifests[path.stem] = manifest
+          assert len(manifests) == 9
+          summary = {
+              'schema': 1,
+              'status': 'PASS',
+              'commit': os.environ['GITHUB_SHA'],
+              'workflow_run': os.environ['GITHUB_RUN_ID'],
+              'source_rootfs_run': int(os.environ['SOURCE_RUN_ID']),
+              'plugin': os.environ['PLUGIN'],
+              'plugin_sha256_before_prepatch': lock['sha256_before'],
+              'plugin_sha256_after_prepatch': lock['sha256_after'],
+              'build_id': '9c09b46e1029685d08287a83716de6040284f3ff',
+              'boundary_count': len(manifests),
+              'boundaries': {
+                  key: {
+                      'address': value['patch_target_address'],
+                      'address_hex': hex(value['patch_target_address']),
+                      'original_bytes_hex': value['original_bytes_hex'],
+                      'resolution': value['resolution'],
+                  }
+                  for key, value in manifests.items()
+              },
+              'credit': 'static fail-closed target resolution only',
+              'not_credited': [
+                  'guest execution of any resolved target',
+                  'QPlatformWindow construction',
+                  'backing-store paint or flush',
+                  'AppKit window creation',
+              ],
+          }
+          encoded = json.dumps(summary, indent=2) + '\n'
+          Path('diagnostics/qoffscreen-rtti-vtable-map-v3.json').write_text(encoded)
+
+          lines = [
+              '# QOffscreen RTTI/vtable map v3',
+              '',
+              f"Status: **{summary['status']}**",
+              '',
+              f"Exact prepatched plugin SHA-256: `{lock['sha256_after']}`",
+              '',
+              '| Boundary | Exact address |',
+              '|---|---:|',
+          ]
+          for key, value in summary['boundaries'].items():
+              lines.append(f"| `{key}` | `{value['address_hex']}` |")
+          lines += [
+              '',
+              'This map proves only exact-binary target resolution. Dynamic '
+              'guest execution remains gated by the v3 probe matrix.',
+              '',
+          ]
+          Path('diagnostics/qoffscreen-rtti-vtable-map-v3.md').write_text(
+              '\n'.join(lines))
+          print(encoded)
+          PY
+
+      - name: Commit the exact-binary resolver map
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/qoffscreen-rtti-vtable-map-v3.json \
+                  diagnostics/qoffscreen-rtti-vtable-map-v3.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: lock exact QOffscreen RTTI targets [skip ci]'
+          git pull --rebase origin "$BRANCH"
+          git push origin HEAD:"$BRANCH"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-qoffscreen-rtti-vtable-map-v3
+          path: |
+            build/plugin-lock.json
+            build/manifests
+            diagnostics/qoffscreen-rtti-vtable-map-v3.json
+            diagnostics/qoffscreen-rtti-vtable-map-v3.md
+          if-no-files-found: warn
+          retention-days: 30

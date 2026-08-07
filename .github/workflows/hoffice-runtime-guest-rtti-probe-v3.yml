@@ -1,0 +1,507 @@
+name: Reusable HOffice guest RTTI/vtable probe v3
+
+on:
+  workflow_call:
+    inputs:
+      predecessor_proof:
+        required: true
+        type: string
+      target_mode:
+        required: true
+        type: string
+      symbol_name:
+        required: false
+        type: string
+        default: ''
+      class_name:
+        required: false
+        type: string
+        default: ''
+      vtable_slot:
+        required: false
+        type: number
+        default: -1
+      follow_tail_jumps:
+        required: false
+        type: number
+        default: 0
+      local_call_after_new_index:
+        required: false
+        type: number
+        default: -1
+      expected_address:
+        required: true
+        type: string
+      label:
+        required: true
+        type: string
+      milestone:
+        required: true
+        type: string
+      diagnostic_path:
+        required: true
+        type: string
+      proof_path:
+        required: true
+        type: string
+      trace_limit:
+        required: false
+        type: number
+        default: 64000
+      run_seconds:
+        required: false
+        type: number
+        default: 40
+      require_pipe2:
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  probe:
+    runs-on: macos-14
+    timeout-minutes: 45
+    env:
+      SOURCE_RUN_ID: '31102898765'
+      PROGRAM: /opt/hnc/hoffice11/Bin/hword
+      PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+      PLUGIN: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so
+      PREDECESSOR_PROOF: ${{ inputs.predecessor_proof }}
+      TARGET_MODE: ${{ inputs.target_mode }}
+      SYMBOL_NAME: ${{ inputs.symbol_name }}
+      CLASS_NAME: ${{ inputs.class_name }}
+      VTABLE_SLOT: ${{ inputs.vtable_slot }}
+      FOLLOW_TAIL_JUMPS: ${{ inputs.follow_tail_jumps }}
+      LOCAL_CALL_AFTER_NEW_INDEX: ${{ inputs.local_call_after_new_index }}
+      EXPECTED_ADDRESS: ${{ inputs.expected_address }}
+      PROBE_LABEL: ${{ inputs.label }}
+      MILESTONE: ${{ inputs.milestone }}
+      DIAGNOSTIC_PATH: ${{ inputs.diagnostic_path }}
+      PROOF_PATH: ${{ inputs.proof_path }}
+      TRACE_LIMIT: ${{ inputs.trace_limit }}
+      RUN_SECONDS: ${{ inputs.run_seconds }}
+      REQUIRE_PIPE2: ${{ inputs.require_pipe2 }}
+      BRANCH: codex/hoffice-runtime-from-scratch
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the predecessor boundary
+        run: |
+          set -euxo pipefail
+          test -n "$PREDECESSOR_PROOF"
+          test -s "$PREDECESSOR_PROOF"
+          python3 - "$PREDECESSOR_PROOF" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          proof = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          assert proof.get('schema') == 1
+          PY
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Verify and mount the exact case-sensitive guest root
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated build/host build/proof
+          mkdir -p "$(dirname "$DIAGNOSTIC_PATH")" \
+                   "$(dirname "$PROOF_PATH")"
+          expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)
+          actual=$(shasum -a 256 build/input/hword-rootfs.tar.gz | awk '{print $1}')
+          test "$actual" = "$expected"
+          printf '%s\n' "$actual" > build/proof/rootfs-archive.sha256
+
+          image="$RUNNER_TEMP/hrt-rtti-v3-${GITHUB_RUN_ID}.sparsebundle"
+          root="$RUNNER_TEMP/hrt-rtti-v3-${GITHUB_RUN_ID}-root"
+          rm -rf "$image" "$root"
+          mkdir -p "$root"
+          if ! hdiutil create -quiet -size 8g -fs APFSX \
+               -volname HRTRTTIV3 -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 8g -fs HFSX \
+              -volname HRTRTTIV3 -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >> "$GITHUB_ENV"
+          echo "HRT_IMAGE=$image" >> "$GITHUB_ENV"
+          tar -xzf build/input/hword-rootfs.tar.gz -C "$root"
+
+          test -s "$root/.hrt-closure-v1.json"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+          test -f "$root$PLUGIN"
+          test -d "$root/opt/hnc/hoffice11/Bin/Hword"
+          python3 - "$root" "$PROGRAM" "$PROGRAM_SHA256" "$PLUGIN" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          root = pathlib.Path(sys.argv[1])
+          program = sys.argv[2]
+          expected_program = sys.argv[3]
+          plugin = sys.argv[4]
+          manifest = json.loads((root / '.hrt-prepatched-v1').read_text())
+          records = {item['path']: item for item in manifest['objects']}
+          program_record = records[program]
+          plugin_record = records[plugin]
+          assert program_record['sha256_before'] == expected_program
+          assert hashlib.sha256(
+              (root / program.lstrip('/')).read_bytes()).hexdigest() == \
+              program_record['sha256_after']
+          assert hashlib.sha256(
+              (root / plugin.lstrip('/')).read_bytes()).hexdigest() == \
+              plugin_record['sha256_after']
+          pathlib.Path('build/proof/prepatch-lock.json').write_text(
+              json.dumps({
+                  'program': program_record,
+                  'plugin': plugin_record,
+              }, indent=2) + '\n')
+          PY
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+          grep -F 'Case-sensitive' build/proof/guest-volume.txt
+
+      - name: Resolve and patch the stripped guest function
+        run: |
+          set -euxo pipefail
+          args=(
+            "$HRT_ROOT$PLUGIN"
+            --label "$PROBE_LABEL"
+            --manifest build/proof/symbol-probe.json
+            --expected-address "$EXPECTED_ADDRESS"
+          )
+          case "$TARGET_MODE" in
+            symbol)
+              test -n "$SYMBOL_NAME"
+              test "$VTABLE_SLOT" -eq -1
+              args+=(--symbol "$SYMBOL_NAME")
+              ;;
+            vtable)
+              test -n "$CLASS_NAME"
+              test "$VTABLE_SLOT" -ge 0
+              args+=(--class-name "$CLASS_NAME" --vtable-slot "$VTABLE_SLOT")
+              ;;
+            *)
+              echo "unsupported target mode: $TARGET_MODE" >&2
+              exit 1
+              ;;
+          esac
+          if [ "$FOLLOW_TAIL_JUMPS" -gt 0 ]; then
+            args+=(--follow-tail-jumps "$FOLLOW_TAIL_JUMPS")
+          fi
+          if [ "$LOCAL_CALL_AFTER_NEW_INDEX" -ge 0 ]; then
+            args+=(--local-call-after-new-index "$LOCAL_CALL_AFTER_NEW_INDEX")
+          fi
+          python3 runtime/m3/patch_elf_int3_qt_vtable.py "${args[@]}"
+
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          lock = json.loads(Path('build/proof/prepatch-lock.json').read_text())
+          probe = json.loads(Path('build/proof/symbol-probe.json').read_text())
+          assert probe['schema'] == 2
+          assert probe['sha256_before'] == lock['plugin']['sha256_after']
+          assert probe['patched_bytes_hex'].startswith('cc')
+          assert probe['patched_bytes_hex'][2:] == probe['original_bytes_hex'][2:]
+          assert probe['sha256_before'] != probe['sha256_after']
+          assert probe['patch_target_address'] == int(os.environ['EXPECTED_ADDRESS'], 0)
+          PY
+
+      - name: Generate the production M5/M6 bridge
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/1.c build/generated/2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/2.c build/generated/3.c
+          python3 runtime/m3/augment_directory_stream_hosttrace.py \
+            build/generated/3.c build/generated/4.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/4.c build/generated/5.c
+          python3 runtime/m3/augment_polling.py \
+            build/generated/5.c build/generated/6.c
+          python3 runtime/m3/augment_epoll.py \
+            build/generated/6.c build/generated/7.c
+          python3 runtime/m3/augment_tgkill.py \
+            build/generated/7.c build/generated/8.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/8.c build/generated/9.c
+          python3 runtime/m3/augment_int3_probe.py \
+            build/generated/9.c build/proof/symbol-probe.json \
+            build/generated/syscall_bridge.c
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path('build/generated/syscall_bridge.c')
+          text = path.read_text()
+          anchor = '#define M3_TRACE_LIMIT 256u'
+          assert text.count(anchor) == 1
+          path.write_text(text.replace(
+              anchor,
+              f'#define M3_TRACE_LIMIT {int(os.environ["TRACE_LIMIT"])}u'))
+          PY
+
+          grep -Fq 'host_getdents64_stream_bridge' \
+            build/generated/syscall_bridge.c
+          grep -Fq '(void)write(STDERR_FILENO, marker' \
+            build/generated/syscall_bridge.c
+          grep -Fq 'host_pipe2_bridge' build/generated/syscall_bridge.c
+          grep -Fq 'host_poll_bridge' build/generated/syscall_bridge.c
+          grep -Fq 'host_epoll_create1_bridge' \
+            build/generated/syscall_bridge.c
+          grep -Fq 'host_tgkill_bridge' build/generated/syscall_bridge.c
+          grep -Fq 'int3_probe_signal_handler' \
+            build/generated/syscall_bridge.c
+          grep -Fq 'last-syscall-rip=' build/generated/syscall_bridge.c
+          shasum -a 256 build/generated/syscall_bridge.c \
+            > build/proof/generated-bridge.sha256
+
+      - name: Compile and sign the x86-64 clean-room host
+        run: |
+          set -euxo pipefail
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Iruntime/m3 -Iruntime/m1 \
+            runtime/m3/main.c runtime/m1/common.c runtime/m3/elf_map.c \
+            runtime/m3/stack.c runtime/m3/patch.c \
+            build/generated/syscall_bridge.c runtime/m1/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 \
+            -o build/host/hrt-rtti-probe-v3
+          file build/host/hrt-rtti-probe-v3 | tee build/proof/host-file.txt
+          lipo -info build/host/hrt-rtti-probe-v3 \
+            | tee build/proof/host-arch.txt
+          codesign --force --sign - --timestamp=none \
+            build/host/hrt-rtti-probe-v3
+          codesign --verify --strict build/host/hrt-rtti-probe-v3
+
+      - name: Run exact HWord through the selected guest function
+        run: |
+          set -uxo pipefail
+          : > build/proof/stdout.txt
+          : > build/proof/stderr.txt
+          /usr/bin/arch -x86_64 build/host/hrt-rtti-probe-v3 \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          deadline=1
+          loops=$((RUN_SECONDS * 20))
+          for _ in $(jot "$loops"); do
+            if grep -Fq "HRT M5 INT3: guest $PROBE_LABEL entered" \
+                 build/proof/stderr.txt 2>/dev/null; then
+              deadline=0
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then
+              deadline=0
+              break
+            fi
+            sleep 0.05
+          done
+          if kill -0 "$pid" 2>/dev/null; then
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+              >build/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$pid" 2 1 -file build/proof/sample.txt \
+              >/dev/null 2>&1 || true
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.2
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e
+          wait "$pid"
+          status=$?
+          set -e
+          if grep -Fq "HRT M5 INT3: guest $PROBE_LABEL entered" \
+               build/proof/stderr.txt 2>/dev/null; then
+            reached=1
+          else
+            reached=0
+          fi
+          if [ "$deadline" -ne 0 ] && [ "$reached" -eq 0 ]; then
+            status=124
+          fi
+          printf '%s\n' "$status" > build/proof/exit-status.txt
+          printf '%s\n' "$deadline" > build/proof/reached-deadline.txt
+          printf '%s\n' "$reached" > build/proof/selected-target-entered.txt
+
+          grep -E 'HRT M5: directory stream|HRT M5 INT3|Found metadata|Got keys|loaded library|GWakeup|Linux syscall ENOSYS|fatal signal|Qt platform plugin|QFactoryLoader|syscall (7|213|232|233|234|271|281|290|291|293) ' \
+            build/proof/stderr.txt | tail -n 10000 \
+            | tee build/proof/key-lines.txt || true
+          grep -E 'Call graph:|Thread_.*DispatchQueue|libqoffscreen|Qt5|GLib|poll|ppoll|kevent|QEventLoop|QPlatform' \
+            build/proof/sample.txt 2>/dev/null | head -n 2200 \
+            > build/proof/sample-key-lines.txt || true
+          echo '--- key lines ---'; cat build/proof/key-lines.txt
+          echo '--- stderr tail ---'; tail -n 3000 build/proof/stderr.txt || true
+          echo '--- stdout tail ---'; tail -n 500 build/proof/stdout.txt || true
+          echo '--- process ---'; cat build/proof/process.txt 2>/dev/null || true
+          echo '--- sample ---'; cat build/proof/sample-key-lines.txt || true
+          echo "status=$status deadline=$deadline reached=$reached"
+
+      - name: Write the complete boundary diagnosis
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          stderr = Path('build/proof/stderr.txt').read_text(errors='replace')
+          stdout = Path('build/proof/stdout.txt').read_text(errors='replace')
+          sample = (
+              Path('build/proof/sample.txt').read_text(errors='replace')
+              if Path('build/proof/sample.txt').exists() else '')
+          probe = json.loads(Path('build/proof/symbol-probe.json').read_text())
+          unsupported = sorted({
+              int(match.group(1))
+              for line in stderr.splitlines()
+              if (match := re.search(r'Linux syscall ENOSYS ([0-9]+)', line))
+          })
+          marker = f'HRT M5 INT3: guest {os.environ["PROBE_LABEL"]} entered'
+          summary = {
+              'schema': 1,
+              'resolver_schema': probe['schema'],
+              'milestone': os.environ['MILESTONE'],
+              'commit': os.environ['GITHUB_SHA'],
+              'workflow_run': os.environ['GITHUB_RUN_ID'],
+              'predecessor_proof': os.environ['PREDECESSOR_PROOF'],
+              'program': os.environ['PROGRAM'],
+              'program_sha256_before_prepatch': os.environ['PROGRAM_SHA256'],
+              'plugin': os.environ['PLUGIN'],
+              'plugin_sha256_before_probe': probe['sha256_before'],
+              'status': int(Path('build/proof/exit-status.txt').read_text()),
+              'reached_deadline': bool(int(
+                  Path('build/proof/reached-deadline.txt').read_text())),
+              'directory_stream_yielded_offscreen': (
+                  'HRT M5: directory stream yielded libqoffscreen.so' in stderr),
+              'offscreen_metadata_observed': (
+                  'Got keys from plugin meta data ("offscreen")' in stderr or
+                  ('Found metadata in lib' in stderr and
+                   'libqoffscreen.so' in stderr)),
+              'offscreen_library_loaded': (
+                  'loaded library "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so"'
+                  in stderr),
+              'probe_label': os.environ['PROBE_LABEL'],
+              'selected_symbol': probe['symbol'],
+              'selected_symbol_entered': marker in stderr,
+              'resolved_patch_target_address': probe['patch_target_address'],
+              'expected_patch_target_address': probe['expected_address'],
+              'resolution': probe['resolution'],
+              'pipe2_called': 'hrt-m3: syscall 293 ' in stderr,
+              'poll_called': 'hrt-m3: syscall 7 ' in stderr,
+              'ppoll_called': 'hrt-m3: syscall 271 ' in stderr,
+              'epoll_create_called': 'hrt-m3: syscall 213 ' in stderr,
+              'epoll_create1_called': 'hrt-m3: syscall 291 ' in stderr,
+              'epoll_ctl_called': 'hrt-m3: syscall 233 ' in stderr,
+              'epoll_wait_called': 'hrt-m3: syscall 232 ' in stderr,
+              'epoll_pwait_called': 'hrt-m3: syscall 281 ' in stderr,
+              'eventfd2_called': 'hrt-m3: syscall 290 ' in stderr,
+              'tgkill_called': 'hrt-m3: syscall 234 ' in stderr,
+              'glib_gwakeup_pipe_failure': (
+                  'Creating pipes for GWakeup' in stderr),
+              'qt_platform_error_observed': 'Qt platform plugin' in stderr,
+              'fatal_signals': [
+                  line for line in stderr.splitlines()
+                  if 'hrt-m3: fatal signal ' in line
+              ],
+              'unsupported_syscalls': unsupported,
+              'sample_mentions_event_loop': any(
+                  token in sample for token in
+                  ('poll', 'ppoll', 'kevent', 'QEventLoop', 'QCoreApplication')),
+              'probe_manifest': probe,
+              'stdout_tail': stdout[-2400:],
+          }
+          encoded = json.dumps(summary, indent=2) + '\n'
+          Path('build/proof/summary.json').write_text(encoded)
+          target = Path(os.environ['DIAGNOSTIC_PATH'])
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_text(encoded)
+          print(encoded)
+          PY
+
+      - name: Persist the diagnosis before applying the proof gate
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$DIAGNOSTIC_PATH"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "diagnostic: record $MILESTONE [skip ci]"
+          git pull --rebase origin "$BRANCH"
+          git push origin HEAD:"$BRANCH"
+
+      - name: Accept only the demonstrated guest function boundary
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          summary = json.loads(Path('build/proof/summary.json').read_text())
+          assert summary['directory_stream_yielded_offscreen']
+          assert summary['offscreen_metadata_observed']
+          assert summary['offscreen_library_loaded']
+          assert summary['selected_symbol_entered']
+          assert summary['resolved_patch_target_address'] == \
+              summary['expected_patch_target_address']
+          if os.environ['REQUIRE_PIPE2'].lower() == 'true':
+              assert summary['pipe2_called']
+              assert 293 not in summary['unsupported_syscalls']
+              assert not summary['glib_gwakeup_pipe_failure']
+          PY
+
+      - name: Commit the durable proof
+        run: |
+          set -euxo pipefail
+          git fetch origin "$BRANCH"
+          git reset --hard "origin/$BRANCH"
+          mkdir -p "$(dirname "$PROOF_PATH")"
+          cp build/proof/summary.json "$PROOF_PATH"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$PROOF_PATH"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "proof: verify $MILESTONE"
+          git pull --rebase origin "$BRANCH"
+          git push origin HEAD:"$BRANCH"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-${{ inputs.milestone }}-v3-proof
+          path: |
+            build/generated/syscall_bridge.c
+            build/host/hrt-rtti-probe-v3
+            build/proof
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Detach the case-sensitive guest root
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true
