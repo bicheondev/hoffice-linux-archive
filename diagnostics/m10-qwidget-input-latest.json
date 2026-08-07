@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "milestone": "M10-qwidget-input",
+  "status": "DIAGNOSTIC",
+  "classification": "QWIDGET_MOUSE_ACCEPTED_KEY_REJECTED",
+  "workflow_run": "31228548446",
+  "commit": "1c6e712b0f0d332e21fd0a8ad0b6a008384536a3",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "package_sha256": "23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46",
+  "source_host_run": "31226851841",
+  "qwidget_qpa_run": "31228334501",
+  "window_titles": [
+    "HWord Qt Window",
+    "Word"
+  ],
+  "window_geometries": [
+    [
+      200,
+      100
+    ],
+    [
+      800,
+      600
+    ]
+  ],
+  "widget_log_count": 14,
+  "widget_receiver_classes": [
+    "QToolButton",
+    "QToolButton",
+    "QToolButton",
+    "QToolButton",
+    "QToolButton",
+    "QToolButton",
+    "QStackedWidget",
+    "QToolButton",
+    "QStackedWidget",
+    "QToolButton",
+    "QStackedWidget",
+    "QToolButton",
+    "QToolButton",
+    "QToolButton"
+  ],
+  "widget_action_texts": [],
+  "focus_classes": [
+    "Qhrt-m3:",
+    "hrt-m3:",
+    "QToolButton",
+    "QToolButton",
+    "hrt-m3:",
+    "QToolButton",
+    "QToolButton",
+    "hrt-m3:",
+    "QToolButton",
+    "QToolButton",
+    "hrt-m3:",
+    "QToolButton",
+    "QToolButton",
+    "hrt-m3:",
+    "QToolButton",
+    "QToolButton",
+    "hrt-m3:",
+    "QToolButton",
+    "QToolButton",
+    "QThrt-m3:",
+    "QToolButton",
+    "QThrt-m3:",
+    "QToolButton",
+    "Qhrt-m3:"
+  ],
+  "delivered_sequences": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "strictly_ordered_unique_sequences": true,
+  "key_events": 2,
+  "accepted_key_events": 0,
+  "directly_accepted_key_events": 0,
+  "mouse_events": 6,
+  "widget_accepted_mouse_events": 6,
+  "queue_drained": true,
+  "presented_frames": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "before_capture": {
+    "path": "build/proof/hword-before-input.png",
+    "width": 800,
+    "height": 628,
+    "size": 42837,
+    "sha256": "4516baabac26d23faeb343b14dc9b8c8cf47a0264dca187b26f6847775bbad18"
+  },
+  "after_capture": {
+    "path": "build/proof/hword-after-input.png",
+    "width": 800,
+    "height": 628,
+    "size": 42483,
+    "sha256": "16ad991ed39d0df2548090d3cdf5e2bb0dabc899d519dab98488635313be19e9"
+  },
+  "visual_change": true,
+  "post_capture_completed": true,
+  "fatal_signal": false,
+  "alive_at_observation": true,
+  "raw_exit_status": 143
+}
