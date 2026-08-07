@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "milestone": "M6 exact HWord hrtappkit first window",
+  "status": "PASS",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256_before_prepatch": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "qpa_plugin": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so",
+  "qpa_key": "hrtappkit",
+  "host_calls": [
+    {
+      "opcode": 256,
+      "result": 24
+    },
+    {
+      "opcode": 257,
+      "result": 0
+    },
+    {
+      "opcode": 258,
+      "result": 127
+    },
+    {
+      "opcode": 259,
+      "result": 1
+    }
+  ],
+  "window_server_listed": true,
+  "screenshot_created": true,
+  "process_was_terminated_by_supervisor": true,
+  "not_credited": [
+    "HWord pixel transport",
+    "native input",
+    "Korean IME",
+    "document operations",
+    "clean shutdown"
+  ]
+}
