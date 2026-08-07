@@ -1,11 +1,10 @@
 {
-  "schema": 1,
+  "schema": 2,
   "artifact": {
-    "id": "8974057689",
-    "name": "hrt-m6-qt5113-hrtappkit-qpa",
-    "workflow_run": "31117936555",
-    "source_commit": "ee71f36471b685392d70b0ca474331518a0f1a1e",
-    "zip_sha256": "f97648ef6fe59e1b74d3155f2ad286d3dd5c6afa7c59d66314e57014281c7cd7"
+    "kind": "repository-published-xz",
+    "workflow_run": "31149319524",
+    "source_commit": "cbda1477f4872e7da53f19ef1ad6568e14d4b9b2",
+    "qpa_source_tree": "feb0776084c0c015618aaff9df1eecc2014cb5fa"
   },
   "toolchain": {
     "distribution": "Debian Buster",
@@ -16,24 +15,28 @@
   "plugin": {
     "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so",
     "qpa_key": "hrtappkit",
-    "sha256_before_prepatch": "87d793180b18d7bc1fa3cfc1bb10774fe6ee08ff931844d2b011000f83d3e4ff",
-    "sha256_after_prepatch": "dafdd4fd8af86afe44ca2a6e2f845b0529ce08ff9e79581fc8df837574176ea9",
-    "xz_sha256": "296fdcb497c7a7d7a3a270f79794968558543cdb8ddd57aadf0284cd586bd140",
-    "patched_syscalls": 5,
+    "sha256_before_prepatch": "cae6ce0dbaa5bde02ded9f478be2b4e7aabc52a9d27fbb4fec93c0c385229867",
+    "sha256_after_prepatch": "833ebeb1168d83678d4d710cf12f1086c1da198bc31922e825e94cb79614d860",
+    "xz_sha256": "2cc7d7018d1520dfbcb68c0a397cd4dde958bbab0d3e98b235b448550543f3d6",
+    "patched_syscalls": 9,
     "rewritten_fs_prefixes": 102,
     "vulkan_private_abi_locally_defined": true,
+    "m7_bgra_transport": true,
     "dependencies": [
-      "libQt5Gui.so.5",
-      "libQt5Core.so.5",
+      "libgthread-2.0.so.0",
       "libglib-2.0.so.0",
       "libfontconfig.so.1",
       "libfreetype.so.6",
+      "libQt5Gui.so.5",
+      "libQt5Core.so.5",
       "libGL.so.1",
       "libpthread.so.0",
       "libstdc++.so.6",
+      "libm.so.6",
+      "libgcc_s.so.1",
       "libc.so.6"
     ],
-    "xz_size": 65900,
+    "xz_size": 67752,
     "compression": {
       "format": "xz",
       "preset": 9,
