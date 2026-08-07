@@ -57,7 +57,7 @@ def main() -> None:
     pump_events(0.05);
     fprintf(stderr,
 '''
-    frame_replacement = '''    [g_surface_view setNeedsDisplay:YES];
+    frame_replacement = r'''    [g_surface_view setNeedsDisplay:YES];
     [g_surface_view displayIfNeeded];
     [g_window displayIfNeeded];
 
