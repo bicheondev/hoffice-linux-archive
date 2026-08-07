@@ -1,0 +1,140 @@
+name: Bootstrap mature event-loop fallback for prebuilt QPA replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-bootstrap-mature-bridge-fallback.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hrt-bootstrap-mature-bridge-fallback-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch-and-commit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      BRANCH: codex/hoffice-runtime-from-scratch
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Clone the exact branch
+        shell: bash
+        run: |
+          set -euxo pipefail
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+          rm -rf /tmp/hrt-mature-fallback
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            clone --depth=1 --branch "$BRANCH" \
+            "https://github.com/$GITHUB_REPOSITORY.git" /tmp/hrt-mature-fallback
+          cd /tmp/hrt-mature-fallback
+          git config "http.https://github.com/.extraheader" \
+            "AUTHORIZATION: basic $auth"
+          git rev-parse HEAD
+
+      - name: Add the directory-stream mature event-loop fallback
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd /tmp/hrt-mature-fallback
+          python3 - <<'PY'
+          from pathlib import Path
+
+          eventfd = Path('runtime/m3/augment_eventfd2.py')
+          text = eventfd.read_text()
+          imports_old = "import argparse\nfrom pathlib import Path\n"
+          imports_new = (
+              "import argparse\n"
+              "import subprocess\n"
+              "import sys\n"
+              "import tempfile\n"
+              "from pathlib import Path\n"
+          )
+          assert text.count(imports_old) == 1
+          text = text.replace(imports_old, imports_new, 1)
+
+          anchor = '    text = args.source.read_text(encoding="utf-8")\n\n'
+          fallback = '''    text = args.source.read_text(encoding="utf-8")
+
+    # The deterministic directory-stream bridge owns close(2) interception,
+    # so the older pipe-backed eventfd transform cannot safely splice its
+    # cleanup into that function.  Exact HWord's proven Qt/GLib path instead
+    # uses poll/ppoll plus kqueue-backed epoll and tgkill.  When this legacy
+    # entrypoint is invoked after the directory-stream transform, delegate to
+    # that already-proven event-loop chain and leave crash-signal injection to
+    # the next explicit workflow stage.
+    if (
+        "host_getdents64_stream_bridge" in text
+        and "host_poll_bridge(" not in text
+        and "case LINUX_SYS_EVENTFD2:" not in text
+    ):
+        scripts = (
+            "augment_polling.py",
+            "augment_epoll.py",
+            "augment_tgkill.py",
+        )
+        script_directory = Path(__file__).resolve().parent
+        with tempfile.TemporaryDirectory(prefix="hrt-mature-loop-") as temp:
+            current = args.source
+            for index, script in enumerate(scripts, start=1):
+                output = Path(temp) / f"{index}.c"
+                subprocess.run(
+                    [
+                        sys.executable,
+                        str(script_directory / script),
+                        str(current),
+                        str(output),
+                    ],
+                    check=True,
+                )
+                current = output
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(current.read_text(encoding="utf-8"),
+                                   encoding="utf-8")
+        return
+
+'''
+          assert text.count(anchor) == 1
+          eventfd.write_text(text.replace(anchor, fallback, 1))
+
+          poll = Path('runtime/m3/augment_poll.py')
+          text = poll.read_text()
+          anchor = '    text = args.source.read_text(encoding="utf-8")\n\n'
+          passthrough = '''    text = args.source.read_text(encoding="utf-8")
+
+    # A preceding compatibility stage may already have installed the newer
+    # poll/ppoll bridge together with epoll and tgkill.  Preserve that mature
+    # translation rather than trying to inject the older poll-only variant a
+    # second time.
+    if "case LINUX_SYS_PPOLL:" in text and "host_poll_bridge(" in text:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(text, encoding="utf-8")
+        return
+
+'''
+          assert text.count(anchor) == 1
+          poll.write_text(text.replace(anchor, passthrough, 1))
+          PY
+
+          python3 -m py_compile \
+            runtime/m3/augment_eventfd2.py \
+            runtime/m3/augment_poll.py
+          git diff --check
+          git diff -- runtime/m3/augment_eventfd2.py runtime/m3/augment_poll.py
+
+      - name: Commit the backward-compatible bridge repair
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd /tmp/hrt-mature-fallback
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add runtime/m3/augment_eventfd2.py runtime/m3/augment_poll.py
+          git commit -m 'runtime: route directory-stream replays through the mature event loop'
+          git fetch origin "$BRANCH"
+          git rebase FETCH_HEAD
+          git push origin HEAD:"$BRANCH"
