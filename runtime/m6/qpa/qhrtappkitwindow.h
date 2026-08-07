@@ -16,6 +16,7 @@ public:
     void setVisible(bool visible) override;
     void setGeometry(const QRect &rect) override;
     void setWindowTitle(const QString &title) override;
+    void requestActivateWindow() override;
 
     static qint64 hostWindowFor(const QWindow *window);
 
