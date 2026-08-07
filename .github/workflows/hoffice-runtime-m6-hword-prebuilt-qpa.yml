@@ -5,6 +5,7 @@ on:
     branches: [codex/hoffice-runtime-from-scratch]
     paths:
       - 'runtime/m6/prebuilt/**'
+      - '.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml'
   workflow_dispatch:
 
 permissions:
@@ -44,7 +45,14 @@ jobs:
           git rev-parse HEAD | tee /tmp/hrt-m6-source-commit.txt
           test -s proofs/m6-linux-guest-appkit-window.json
           grep -F '"status": "PASS"' proofs/m6-linux-guest-appkit-window.json
-          test -s runtime/m6/prebuilt/libqhrtappkit.so
+          test -s proofs/rtti-v3/m6-flush.json
+          python3 - <<'PYPROOF'
+          import json
+          from pathlib import Path
+          proof = json.loads(Path('proofs/rtti-v3/m6-flush.json').read_text())
+          assert proof.get('selected_symbol_entered') is True, proof
+          PYPROOF
+          test -s runtime/m6/prebuilt/libqhrtappkit.so.xz
           test -s runtime/m6/prebuilt/libqhrtappkit.lock.json
 
       - name: Download and lock the verified HWord root artifact
@@ -90,8 +98,26 @@ jobs:
           test -d "$root/opt/hnc/hoffice11/Bin/Hword"
 
           mkdir -p "$root$(dirname "$PLUGIN_GUEST")"
-          cp /tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.so \
-            "$root$PLUGIN_GUEST"
+          prebuilt=/tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.so.xz
+          lock=/tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.lock.json
+          python3 - "$prebuilt" "$lock" "$root$PLUGIN_GUEST" <<'PYQPA'
+          import hashlib
+          import json
+          import lzma
+          import pathlib
+          import sys
+
+          source = pathlib.Path(sys.argv[1])
+          lock = json.loads(pathlib.Path(sys.argv[2]).read_text())
+          destination = pathlib.Path(sys.argv[3])
+          compressed = source.read_bytes()
+          assert hashlib.sha256(compressed).hexdigest() == \
+              lock['plugin']['xz_sha256'], lock
+          plugin = lzma.decompress(compressed)
+          assert hashlib.sha256(plugin).hexdigest() == \
+              lock['plugin']['sha256_after_prepatch'], lock
+          destination.write_bytes(plugin)
+          PYQPA
           chmod 0755 "$root$PLUGIN_GUEST"
           python3 - "$root" "$PROGRAM" "$PROGRAM_SHA256" \
                     "$PLUGIN_GUEST" <<'PY'
@@ -116,9 +142,9 @@ jobs:
           ).read_text())
           plugin = root / plugin_guest.lstrip('/')
           actual_plugin = hashlib.sha256(plugin.read_bytes()).hexdigest()
-          assert actual_plugin == lock['sha256_after_prepatch'], (actual_plugin, lock)
-          assert lock['qt_version'] == '5.11.3'
-          assert lock['qpa_key'] == 'hrtappkit'
+          assert actual_plugin == lock['plugin']['sha256_after_prepatch'], (actual_plugin, lock)
+          assert lock['toolchain']['qt_version'] == '5.11.3'
+          assert lock['plugin']['qpa_key'] == 'hrtappkit'
           pathlib.Path('/tmp/hrt-m6-build/proof/qpa-lock.json').write_text(
               json.dumps(lock, indent=2) + '\n')
           PY
