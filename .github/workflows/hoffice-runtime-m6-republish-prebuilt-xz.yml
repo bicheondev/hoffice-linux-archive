@@ -1,0 +1,155 @@
+name: HOffice runtime M6 republish locked prebuilt QPA xz
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m6-republish-prebuilt-xz.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m6-republish-prebuilt-xz-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  republish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: codex/hoffice-runtime-from-scratch
+    steps:
+      - name: Clone the exact branch
+        shell: bash
+        run: |
+          set -euxo pipefail
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+          rm -rf /tmp/hrt-republish
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            clone --depth=1 --branch "$BRANCH" \
+            "https://github.com/$GITHUB_REPOSITORY.git" /tmp/hrt-republish
+          cd /tmp/hrt-republish
+          git config "http.https://github.com/.extraheader" \
+            "AUTHORIZATION: basic $auth"
+          git rev-parse HEAD
+          test -s runtime/m6/prebuilt/libqhrtappkit.lock.json
+
+      - name: Download and verify the locked artifact
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd /tmp/hrt-republish
+          mkdir -p /tmp/hrt-republish-build/artifact
+          readarray -t lock_values < <(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          lock = json.loads(Path('runtime/m6/prebuilt/libqhrtappkit.lock.json').read_text())
+          print(lock['artifact']['id'])
+          print(lock['artifact']['zip_sha256'])
+          print(lock['plugin']['guest_path'])
+          print(lock['plugin']['sha256_after_prepatch'])
+          PY
+          )
+          artifact_id=${lock_values[0]}
+          artifact_sha=${lock_values[1]}
+          guest_path=${lock_values[2]}
+          plugin_sha=${lock_values[3]}
+          printf '%s\n' "$artifact_id" "$artifact_sha" "$guest_path" "$plugin_sha"
+
+          curl --fail --location --retry 5 --retry-delay 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
+            -o /tmp/hrt-republish-build/artifact.zip
+          printf '%s  %s\n' "$artifact_sha" \
+            /tmp/hrt-republish-build/artifact.zip | sha256sum --check -
+          unzip -q /tmp/hrt-republish-build/artifact.zip \
+            -d /tmp/hrt-republish-build/artifact
+          plugin=/tmp/hrt-republish-build/artifact/build/plugin-root${guest_path}
+          test -f "$plugin"
+          printf '%s  %s\n' "$plugin_sha" "$plugin" | sha256sum --check -
+          file "$plugin"
+
+      - name: Recompress deterministically and refresh only the container hash
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd /tmp/hrt-republish
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          lock_path = Path('runtime/m6/prebuilt/libqhrtappkit.lock.json')
+          lock = json.loads(lock_path.read_text())
+          Path('/tmp/hrt-republish-build/guest-path.txt').write_text(
+              lock['plugin']['guest_path'] + '\n')
+          PY
+          guest_path=$(cat /tmp/hrt-republish-build/guest-path.txt)
+          plugin=/tmp/hrt-republish-build/artifact/build/plugin-root${guest_path}
+          output=runtime/m6/prebuilt/libqhrtappkit.so.xz
+          xz --threads=1 --check=crc64 -9 --stdout "$plugin" >"$output.tmp"
+          mv "$output.tmp" "$output"
+
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import lzma
+          from pathlib import Path
+
+          lock_path = Path('runtime/m6/prebuilt/libqhrtappkit.lock.json')
+          payload_path = Path('runtime/m6/prebuilt/libqhrtappkit.so.xz')
+          lock = json.loads(lock_path.read_text())
+          compressed = payload_path.read_bytes()
+          plugin = lzma.decompress(compressed)
+          compressed_sha = hashlib.sha256(compressed).hexdigest()
+          plugin_sha = hashlib.sha256(plugin).hexdigest()
+          assert plugin_sha == lock['plugin']['sha256_after_prepatch'], {
+              'actual': plugin_sha,
+              'expected': lock['plugin']['sha256_after_prepatch'],
+          }
+          lock['plugin']['xz_sha256'] = compressed_sha
+          lock['plugin']['xz_size'] = len(compressed)
+          lock['plugin']['compression'] = {
+              'format': 'xz',
+              'preset': 9,
+              'check': 'crc64',
+              'threads': 1,
+          }
+          lock_path.write_text(json.dumps(lock, indent=2) + '\n')
+          Path('/tmp/hrt-republish-build/verification.json').write_text(
+              json.dumps({
+                  'xz_sha256': compressed_sha,
+                  'xz_size': len(compressed),
+                  'plugin_sha256': plugin_sha,
+                  'plugin_size': len(plugin),
+              }, indent=2) + '\n')
+          print(Path('/tmp/hrt-republish-build/verification.json').read_text())
+          PY
+          git diff --check
+          git status --short
+
+      - name: Publish the exact binary payload and refreshed lock
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd /tmp/hrt-republish
+          git fetch origin "$BRANCH"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse FETCH_HEAD)"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            runtime/m6/prebuilt/libqhrtappkit.so.xz \
+            runtime/m6/prebuilt/libqhrtappkit.lock.json
+          git commit -m 'runtime: republish the locked hrtappkit QPA as valid xz'
+          git push origin HEAD:"$BRANCH"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m6-republish-prebuilt-xz-evidence
+          path: /tmp/hrt-republish-build
+          if-no-files-found: warn
+          retention-days: 14
