@@ -1,0 +1,356 @@
+{
+  "schema": 1,
+  "resolver_schema": 2,
+  "milestone": "M5-v3-offscreen-integration-constructor",
+  "commit": "f7ed4a291c615abb14c414f6379ef33d4e18ffa5",
+  "workflow_run": "31145768999",
+  "predecessor_proof": "proofs/m3-hword-entry.json",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256_before_prepatch": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "plugin": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so",
+  "plugin_sha256_before_probe": "8ba0ddb433ed8cb838013f833b11d62a0f02c481aa51b2d8193c7179e232dee6",
+  "status": 143,
+  "reached_deadline": false,
+  "directory_stream_yielded_offscreen": true,
+  "offscreen_metadata_observed": true,
+  "offscreen_library_loaded": true,
+  "probe_label": "Qt offscreen integration constructor",
+  "selected_symbol": {
+    "name": "<resolved:Qt offscreen integration constructor>",
+    "value": 66064,
+    "size": 0,
+    "binding": 0,
+    "type": 2,
+    "section_index": null,
+    "symbol_table": "RTTI/vtable resolution",
+    "symbol_index": null
+  },
+  "selected_symbol_entered": true,
+  "resolved_patch_target_address": 66064,
+  "expected_patch_target_address": 66064,
+  "resolution": {
+    "mode": "qt-rtti-vtable",
+    "class_name": "QOffscreenIntegrationPlugin",
+    "itanium_type_name": "27QOffscreenIntegrationPlugin",
+    "type_name_address": 139152,
+    "type_name_reference": {
+      "offset": 2259568,
+      "type": 8,
+      "symbol_index": 0,
+      "symbol_name": "",
+      "symbol_section_index": 0,
+      "addend": 139152,
+      "relocation_section": ".rela.dyn",
+      "relocation_index": 9
+    },
+    "typeinfo_address": 2259560,
+    "typeinfo_vptr": {
+      "offset": 2259560,
+      "type": 1,
+      "symbol_index": 375,
+      "symbol_name": "_ZTVN10__cxxabiv120__si_class_type_infoE",
+      "symbol_section_index": 0,
+      "addend": 16,
+      "relocation_section": ".rela.dyn",
+      "relocation_index": 276
+    },
+    "vtable_candidates": [
+      {
+        "typeinfo_reference": {
+          "offset": 2259592,
+          "type": 8,
+          "symbol_index": 0,
+          "symbol_name": "",
+          "symbol_section_index": 0,
+          "addend": 2259560,
+          "relocation_section": ".rela.dyn",
+          "relocation_index": 10
+        },
+        "vtable_start": 2259584,
+        "offset_to_top": 0,
+        "address_point": 2259600,
+        "first_entry": {
+          "offset": 2259600,
+          "type": 8,
+          "symbol_index": 0,
+          "symbol_name": "",
+          "symbol_section_index": 0,
+          "addend": 64928,
+          "relocation_section": ".rela.dyn",
+          "relocation_index": 11
+        },
+        "first_target": 64928
+      }
+    ],
+    "selected_vtable_start": 2259584,
+    "selected_vtable_address_point": 2259600,
+    "vtable_slot": 12,
+    "vtable_entry_address": 2259696,
+    "vtable_entry": {
+      "offset": 2259696,
+      "type": 8,
+      "symbol_index": 0,
+      "symbol_name": "",
+      "symbol_section_index": 0,
+      "addend": 64864,
+      "relocation_section": ".rela.dyn",
+      "relocation_index": 16
+    },
+    "virtual_function_address": 64864,
+    "tail_jump_steps": [
+      {
+        "step": 0,
+        "source_function": 64864,
+        "candidates": [
+          {
+            "instruction_address": 64898,
+            "target": 75200,
+            "relative": 10297
+          }
+        ],
+        "selected": {
+          "instruction_address": 64898,
+          "target": 75200,
+          "relative": 10297
+        }
+      }
+    ],
+    "after_tail_jumps": 75200,
+    "local_call_after_operator_new": {
+      "source_function": 75200,
+      "operator_new_symbol": "_Znwm",
+      "operator_new_plt": 59664,
+      "all_direct_calls": [
+        {
+          "instruction_address": 75206,
+          "target": 59664,
+          "relative": -15547
+        },
+        {
+          "instruction_address": 75217,
+          "target": 66064,
+          "relative": -9158
+        },
+        {
+          "instruction_address": 75264,
+          "target": 59376,
+          "relative": -15893
+        },
+        {
+          "instruction_address": 75279,
+          "target": 60480,
+          "relative": -14804
+        },
+        {
+          "instruction_address": 75292,
+          "target": 60112,
+          "relative": -15185
+        }
+      ],
+      "operator_new_call": {
+        "instruction_address": 75206,
+        "target": 59664,
+        "relative": -15547
+      },
+      "local_calls_after_new": [
+        {
+          "instruction_address": 75217,
+          "target": 66064,
+          "relative": -9158
+        }
+      ],
+      "selected_local_call_index": 0,
+      "selected_local_call": {
+        "instruction_address": 75217,
+        "target": 66064,
+        "relative": -9158
+      }
+    }
+  },
+  "pipe2_called": true,
+  "poll_called": true,
+  "ppoll_called": false,
+  "epoll_create_called": false,
+  "epoll_create1_called": false,
+  "epoll_ctl_called": false,
+  "epoll_wait_called": false,
+  "epoll_pwait_called": false,
+  "eventfd2_called": true,
+  "tgkill_called": false,
+  "glib_gwakeup_pipe_failure": false,
+  "qt_platform_error_observed": false,
+  "fatal_signals": [],
+  "unsupported_syscalls": [
+    41,
+    83,
+    87,
+    201,
+    290
+  ],
+  "sample_mentions_event_loop": true,
+  "probe_manifest": {
+    "schema": 2,
+    "elf": "/Users/runner/work/_temp/hrt-rtti-v3-31145768999-root/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so",
+    "label": "Qt offscreen integration constructor",
+    "symbol": {
+      "name": "<resolved:Qt offscreen integration constructor>",
+      "value": 66064,
+      "size": 0,
+      "binding": 0,
+      "type": 2,
+      "section_index": null,
+      "symbol_table": "RTTI/vtable resolution",
+      "symbol_index": null
+    },
+    "virtual_address": 66064,
+    "resolution": {
+      "mode": "qt-rtti-vtable",
+      "class_name": "QOffscreenIntegrationPlugin",
+      "itanium_type_name": "27QOffscreenIntegrationPlugin",
+      "type_name_address": 139152,
+      "type_name_reference": {
+        "offset": 2259568,
+        "type": 8,
+        "symbol_index": 0,
+        "symbol_name": "",
+        "symbol_section_index": 0,
+        "addend": 139152,
+        "relocation_section": ".rela.dyn",
+        "relocation_index": 9
+      },
+      "typeinfo_address": 2259560,
+      "typeinfo_vptr": {
+        "offset": 2259560,
+        "type": 1,
+        "symbol_index": 375,
+        "symbol_name": "_ZTVN10__cxxabiv120__si_class_type_infoE",
+        "symbol_section_index": 0,
+        "addend": 16,
+        "relocation_section": ".rela.dyn",
+        "relocation_index": 276
+      },
+      "vtable_candidates": [
+        {
+          "typeinfo_reference": {
+            "offset": 2259592,
+            "type": 8,
+            "symbol_index": 0,
+            "symbol_name": "",
+            "symbol_section_index": 0,
+            "addend": 2259560,
+            "relocation_section": ".rela.dyn",
+            "relocation_index": 10
+          },
+          "vtable_start": 2259584,
+          "offset_to_top": 0,
+          "address_point": 2259600,
+          "first_entry": {
+            "offset": 2259600,
+            "type": 8,
+            "symbol_index": 0,
+            "symbol_name": "",
+            "symbol_section_index": 0,
+            "addend": 64928,
+            "relocation_section": ".rela.dyn",
+            "relocation_index": 11
+          },
+          "first_target": 64928
+        }
+      ],
+      "selected_vtable_start": 2259584,
+      "selected_vtable_address_point": 2259600,
+      "vtable_slot": 12,
+      "vtable_entry_address": 2259696,
+      "vtable_entry": {
+        "offset": 2259696,
+        "type": 8,
+        "symbol_index": 0,
+        "symbol_name": "",
+        "symbol_section_index": 0,
+        "addend": 64864,
+        "relocation_section": ".rela.dyn",
+        "relocation_index": 16
+      },
+      "virtual_function_address": 64864,
+      "tail_jump_steps": [
+        {
+          "step": 0,
+          "source_function": 64864,
+          "candidates": [
+            {
+              "instruction_address": 64898,
+              "target": 75200,
+              "relative": 10297
+            }
+          ],
+          "selected": {
+            "instruction_address": 64898,
+            "target": 75200,
+            "relative": 10297
+          }
+        }
+      ],
+      "after_tail_jumps": 75200,
+      "local_call_after_operator_new": {
+        "source_function": 75200,
+        "operator_new_symbol": "_Znwm",
+        "operator_new_plt": 59664,
+        "all_direct_calls": [
+          {
+            "instruction_address": 75206,
+            "target": 59664,
+            "relative": -15547
+          },
+          {
+            "instruction_address": 75217,
+            "target": 66064,
+            "relative": -9158
+          },
+          {
+            "instruction_address": 75264,
+            "target": 59376,
+            "relative": -15893
+          },
+          {
+            "instruction_address": 75279,
+            "target": 60480,
+            "relative": -14804
+          },
+          {
+            "instruction_address": 75292,
+            "target": 60112,
+            "relative": -15185
+          }
+        ],
+        "operator_new_call": {
+          "instruction_address": 75206,
+          "target": 59664,
+          "relative": -15547
+        },
+        "local_calls_after_new": [
+          {
+            "instruction_address": 75217,
+            "target": 66064,
+            "relative": -9158
+          }
+        ],
+        "selected_local_call_index": 0,
+        "selected_local_call": {
+          "instruction_address": 75217,
+          "target": 66064,
+          "relative": -9158
+        }
+      }
+    },
+    "virtual_function_address": 64864,
+    "patch_target_address": 66064,
+    "expected_address": 66064,
+    "file_offset": 66064,
+    "signature_length": 16,
+    "original_bytes_hex": "55488d05b0792100534889fb4883ec08",
+    "patched_bytes_hex": "cc488d05b0792100534889fb4883ec08",
+    "sha256_before": "8ba0ddb433ed8cb838013f833b11d62a0f02c481aa51b2d8193c7179e232dee6",
+    "sha256_after": "df1f683566d273d5efa487ec2ebb3beff3820d56ed6ba0cf55352709c59f1fb4"
+  },
+  "stdout_tail": ""
+}
