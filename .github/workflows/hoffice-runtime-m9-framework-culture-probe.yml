@@ -1,0 +1,439 @@
+name: HOffice runtime M9 framework culture probe
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m9/patch_elf_int3_probe_address.py'
+      - 'runtime/m9/augment_framework_call_probe.py'
+      - '.github/workflows/hoffice-runtime-m9-framework-culture-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m9-framework-culture-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ROOTFS_ARTIFACT_ID: '8968324706'
+  ROOTFS_ARTIFACT_SHA256: 3e301d3c6269926c62804bff18671136fcf8c0b0b22b3952072e427a8fa9918a
+  ROOTFS_ARCHIVE_SHA256: 322fcf228092b296a34edbfa7ee43f9a7b237d5bcedaee50109ac4bb44d9ca28
+  QPA_RUN_ID: '31166152504'
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  capture-framework-call:
+    runs-on: macos-14
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the exact full-font bootstrap proof
+        run: |
+          set -euxo pipefail
+          test -s proofs/m9-hword-past-font-initialization.json
+          grep -F '"status": "PASS"' \
+            proofs/m9-hword-past-font-initialization.json
+
+      - name: Download the verified Qt 5.11.3 hrtappkit QPA
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m8-qt5113-hrtappkit-input-qpa
+          path: build/input/qpa
+          repository: ${{ github.repository }}
+          run-id: ${{ env.QPA_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download and verify exact HWord inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/hword build/input/deb build/generated \
+                   build/objects build/host build/proof build/original \
+                   diagnostics
+          curl --fail --location --retry 5 --retry-delay 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ROOTFS_ARTIFACT_ID/zip" \
+            -o build/input/hword-artifact.zip
+          printf '%s  %s\n' "$ROOTFS_ARTIFACT_SHA256" \
+            build/input/hword-artifact.zip | shasum -a 256 -c -
+          ditto -x -k build/input/hword-artifact.zip build/input/hword
+          printf '%s  %s\n' "$ROOTFS_ARCHIVE_SHA256" \
+            build/input/hword/hword-rootfs.tar.gz | shasum -a 256 -c -
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" \
+            --dir build/input/deb
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/input/deb/$ASSET_NAME" | shasum -a 256 -c -
+
+      - name: Reconstruct the exact full-font case-sensitive guest
+        run: |
+          set -euxo pipefail
+          image="$RUNNER_TEMP/hrt-m9-framework.sparsebundle"
+          root="/tmp/h9c-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"; mkdir -p "$root"
+          if ! hdiutil create -quiet -size 12g -fs APFSX \
+               -volname HRTM9C -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 12g -fs HFSX \
+              -volname HRTM9C -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >>"$GITHUB_ENV"
+          echo "HRT_IMAGE=$image" >>"$GITHUB_ENV"
+          tar -xzf build/input/hword/hword-rootfs.tar.gz -C "$root"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+          test -f "$root$HWORD_APP"
+          printf '%s  %s\n' "$HWORD_APP_SHA256" "$root$HWORD_APP" \
+            | shasum -a 256 -c -
+          cp "$root$HWORD_APP" build/original/libHwordApp.so
+
+          deb="build/input/deb/$ASSET_NAME"
+          data_member=$(ar t "$deb" | awk '/^data\.tar/{print; exit}')
+          test -n "$data_member"
+          ar p "$deb" "$data_member" >"build/input/deb/$data_member"
+          tar -xf "build/input/deb/$data_member" -C "$root" \
+            ./opt/hnc/hoffice11/Shared/Fonts \
+            ./opt/hnc/hoffice11/Shared/TTF
+          rm -f "$root/opt/hnc/hoffice1"
+          ln -s hoffice11 "$root/opt/hnc/hoffice1"
+          test -f "$root/opt/hnc/hoffice1/Shared/Fonts/HGSMJ.HFT"
+          test -f "$root/opt/hnc/hoffice1/Shared/Fonts/fontinfo.dat"
+
+          mkdir -p "$root$(dirname "$PLUGIN_GUEST")"
+          python3 - build/input/qpa/libqhrtappkit.so.xz \
+            build/input/qpa/lock.json "$root$PLUGIN_GUEST" <<'PY'
+          import hashlib,json,lzma,pathlib,sys
+          compressed=pathlib.Path(sys.argv[1]).read_bytes()
+          lock=json.loads(pathlib.Path(sys.argv[2]).read_text())
+          assert lock['toolchain']['qt_version']=='5.11.3'
+          assert hashlib.sha256(compressed).hexdigest()==lock['plugin']['xz_sha256']
+          plugin=lzma.decompress(compressed)
+          assert hashlib.sha256(plugin).hexdigest()==lock['plugin']['sha256_after_prepatch']
+          pathlib.Path(sys.argv[3]).write_bytes(plugin)
+          pathlib.Path('build/proof/qpa-lock.json').write_text(
+              json.dumps(lock,indent=2)+'\n')
+          PY
+          chmod 0755 "$root$PLUGIN_GUEST"
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+          grep -F 'Case-sensitive' build/proof/guest-volume.txt
+
+      - name: Generate the shared mature bridge prefix
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+          sw_vers | tee build/proof/sw-vers.txt
+
+          python3 runtime/m8/augment_appkit_adapter_input.py \
+            runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m
+          python3 runtime/m6/augment_stack_hrtappkit.py \
+            runtime/m3/stack.c build/generated/stack.c
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+            build/generated/stage9.c build/generated/stage10.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage10.c build/generated/stage11.c
+          python3 runtime/m9/augment_exec_mmap_trace.py \
+            build/generated/stage11.c build/generated/bridge-prefix.c
+          grep -Fq 'HRT M9 MAP:' build/generated/bridge-prefix.c
+
+      - name: Compile the shared runtime objects
+        run: |
+          set -euxo pipefail
+          common=(-arch x86_64 -std=c17 -O2 -g -fno-stack-protector \
+            -fno-omit-frame-pointer -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1)
+          index=0
+          for source in runtime/m6/main.c runtime/m6/hostcall_trampoline.c \
+            runtime/m1/common.c runtime/m3/elf_map.c build/generated/stack.c \
+            runtime/m3/patch.c; do
+            clang "${common[@]}" -c "$source" \
+              -o "build/objects/common-${index}.o"
+            index=$((index+1))
+          done
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c build/generated/appkit_adapter_m8.m \
+            -o build/objects/appkit-adapter.o
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c runtime/m8/appkit_input.m -o build/objects/appkit-input.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S \
+            -o build/objects/enter-guest.o
+          clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \
+            -o build/objects/hostcall-trampoline.o
+
+      - name: Probe the actual framework vtable before GetCulture
+        run: |
+          set -euxo pipefail
+          cp build/original/libHwordApp.so "$HRT_ROOT$HWORD_APP"
+          python3 runtime/m9/patch_elf_int3_probe_address.py \
+            "$HRT_ROOT$HWORD_APP" \
+            --virtual-address 0x411121 \
+            --expected-prefix ff9228010000 \
+            --label framework-culture-before-call \
+            --signature-length 24 \
+            --manifest build/proof/framework-before-manifest.json
+          python3 runtime/m9/augment_framework_call_probe.py \
+            build/generated/bridge-prefix.c \
+            build/proof/framework-before-manifest.json \
+            build/generated/bridge-before.c \
+            --mode before --exit-status 192
+          clang -arch x86_64 -std=c17 -O2 -g -fno-stack-protector \
+            -fno-omit-frame-pointer -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1 \
+            -c build/generated/bridge-before.c \
+            -o build/objects/bridge-before.o
+          clang -arch x86_64 build/objects/common-*.o \
+            build/objects/appkit-adapter.o build/objects/appkit-input.o \
+            build/objects/enter-guest.o build/objects/hostcall-trampoline.o \
+            build/objects/bridge-before.o -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO \
+            -o build/host/hrt-m9-framework-before
+          codesign --force --sign - --timestamp=none \
+            build/host/hrt-m9-framework-before
+          codesign --verify --strict build/host/hrt-m9-framework-before
+
+          set +e
+          /usr/bin/arch -x86_64 build/host/hrt-m9-framework-before \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/before-stdout.txt 2>build/proof/before-stderr.txt
+          status=$?
+          set -e
+          printf '%s\n' "$status" >build/proof/before-exit-status.txt
+          grep -F 'HRT M9 FRAMEWORK: mode=before' \
+            build/proof/before-stderr.txt \
+            | tee build/proof/framework-before-line.txt
+          grep -F 'HRT M9 MAP:' build/proof/before-stderr.txt \
+            >build/proof/before-executable-maps.txt
+          test "$status" -eq 192
+
+      - name: Probe the CHncStringW result immediately after GetCulture
+        run: |
+          set -euxo pipefail
+          cp build/original/libHwordApp.so "$HRT_ROOT$HWORD_APP"
+          python3 runtime/m9/patch_elf_int3_probe_address.py \
+            "$HRT_ROOT$HWORD_APP" \
+            --virtual-address 0x411127 \
+            --expected-prefix 498b0424 \
+            --label framework-culture-after-call \
+            --signature-length 24 \
+            --manifest build/proof/framework-after-manifest.json
+          python3 runtime/m9/augment_framework_call_probe.py \
+            build/generated/bridge-prefix.c \
+            build/proof/framework-after-manifest.json \
+            build/generated/bridge-after.c \
+            --mode after --exit-status 193
+          clang -arch x86_64 -std=c17 -O2 -g -fno-stack-protector \
+            -fno-omit-frame-pointer -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1 \
+            -c build/generated/bridge-after.c \
+            -o build/objects/bridge-after.o
+          clang -arch x86_64 build/objects/common-*.o \
+            build/objects/appkit-adapter.o build/objects/appkit-input.o \
+            build/objects/enter-guest.o build/objects/hostcall-trampoline.o \
+            build/objects/bridge-after.o -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO \
+            -o build/host/hrt-m9-framework-after
+          codesign --force --sign - --timestamp=none \
+            build/host/hrt-m9-framework-after
+          codesign --verify --strict build/host/hrt-m9-framework-after
+
+          set +e
+          /usr/bin/arch -x86_64 build/host/hrt-m9-framework-after \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/after-stdout.txt 2>build/proof/after-stderr.txt
+          status=$?
+          set -e
+          printf '%s\n' "$status" >build/proof/after-exit-status.txt
+          grep -F 'HRT M9 FRAMEWORK: mode=after' \
+            build/proof/after-stderr.txt \
+            | tee build/proof/framework-after-line.txt
+          test "$status" -eq 193
+
+      - name: Attribute the actual framework methods and persist the result
+        run: |
+          set -euxo pipefail
+          python3 - "$HRT_ROOT" <<'PY'
+          import hashlib,json,os,pathlib,re,shutil,sys
+          root=pathlib.Path(sys.argv[1])
+          before_line=pathlib.Path(
+              'build/proof/framework-before-line.txt').read_text().strip()
+          after_line=pathlib.Path(
+              'build/proof/framework-after-line.txt').read_text().strip()
+          before_pattern=re.compile(
+              r'HRT M9 FRAMEWORK: mode=before label=(\S+) site=(0x[0-9a-f]+) '
+              r'framework=(0x[0-9a-f]+) vtable=(0x[0-9a-f]+) '
+              r'offset-to-top=(0x[0-9a-f]+) typeinfo=(0x[0-9a-f]+) '
+              r'type-name-pointer=(0x[0-9a-f]+) type-name=(\S*) '
+              r'method40=(0x[0-9a-f]+) method128=(0x[0-9a-f]+) '
+              r'output-object=(0x[0-9a-f]+) provider=(0x[0-9a-f]+) '
+              r'destination-string=(0x[0-9a-f]+)$')
+          after_pattern=re.compile(
+              r'HRT M9 FRAMEWORK: mode=after label=(\S+) site=(0x[0-9a-f]+) '
+              r'output-object=(0x[0-9a-f]+) qword0=(0x[0-9a-f]+) '
+              r'qword1=(0x[0-9a-f]+) qword2=(0x[0-9a-f]+) '
+              r'qword3=(0x[0-9a-f]+) wide-pointer=(0x[0-9a-f]+) '
+              r'wide=(.*?) return-rax=(0x[0-9a-f]+) '
+              r'provider=(0x[0-9a-f]+) destination-string=(0x[0-9a-f]+)$')
+          before=before_pattern.fullmatch(before_line); assert before,before_line
+          after=after_pattern.fullmatch(after_line); assert after,after_line
+
+          maps=[]
+          map_pattern=re.compile(
+              r'HRT M9 MAP: start=(0x[0-9a-f]+) end=(0x[0-9a-f]+) '
+              r'offset=(0x[0-9a-f]+) fd=(\d+) path=(.*)$')
+          for line in pathlib.Path(
+                  'build/proof/before-executable-maps.txt').read_text().splitlines():
+              match=map_pattern.fullmatch(line)
+              if not match: continue
+              maps.append({
+                  'start':int(match.group(1),16),
+                  'end':int(match.group(2),16),
+                  'file_offset':int(match.group(3),16),
+                  'fd':int(match.group(4)),
+                  'host_path':match.group(5),
+              })
+
+          def attribute(pointer_text):
+              pointer=int(pointer_text,16)
+              owner=next((entry for entry in maps
+                          if entry['start'] <= pointer < entry['end']),None)
+              if owner is None:
+                  return {'runtime_address':pointer_text,'owner':None}
+              host=pathlib.Path(owner['host_path'])
+              file_offset=owner['file_offset']+pointer-owner['start']
+              try: guest='/' + str(host.relative_to(root))
+              except ValueError: guest=str(host)
+              result={
+                  'runtime_address':pointer_text,
+                  'guest_path':guest,
+                  'file_offset':file_offset,
+                  'mapping':owner,
+              }
+              if host.is_file():
+                  result['sha256']=hashlib.sha256(host.read_bytes()).hexdigest()
+                  destination=pathlib.Path('build/proof')/host.name
+                  shutil.copy2(host,destination)
+                  result['object_copy']=str(destination)
+              return result
+
+          result={
+              'schema':1,
+              'milestone':'M9-framework-culture-call',
+              'status':'PASS',
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'program':os.environ['PROGRAM'],
+              'program_sha256':os.environ['PROGRAM_SHA256'],
+              'package_sha256':os.environ['PACKAGE_SHA256'],
+              'framework_object':before.group(3),
+              'framework_vtable':before.group(4),
+              'framework_offset_to_top':before.group(5),
+              'framework_typeinfo':before.group(6),
+              'framework_type_name_pointer':before.group(7),
+              'framework_type_name':before.group(8),
+              'get_site_method':attribute(before.group(9)),
+              'culture_method':attribute(before.group(10)),
+              'before_output_object':before.group(11),
+              'provider_object':before.group(12),
+              'destination_string':before.group(13),
+              'after_output_object':after.group(3),
+              'chncstring_qwords':[after.group(i) for i in range(4,8)],
+              'wide_pointer':after.group(8),
+              'wide_preview':after.group(9),
+              'culture_return_rax':after.group(10),
+              'after_provider_object':after.group(11),
+              'after_destination_string':after.group(12),
+              'before_exit_status':int(pathlib.Path(
+                  'build/proof/before-exit-status.txt').read_text()),
+              'after_exit_status':int(pathlib.Path(
+                  'build/proof/after-exit-status.txt').read_text()),
+          }
+          assert result['before_output_object']==result['after_output_object'],result
+          assert result['provider_object']==result['after_provider_object'],result
+          payload=json.dumps(result,indent=2)+'\n'
+          pathlib.Path('diagnostics').mkdir(exist_ok=True)
+          pathlib.Path(
+              f"diagnostics/m9-framework-culture-{os.environ['GITHUB_RUN_ID']}.json").write_text(payload)
+          pathlib.Path('diagnostics/m9-framework-culture-latest.json').write_text(payload)
+          pathlib.Path('diagnostics/m9-framework-culture-latest.md').write_text(
+              '# HWord M9 framework culture call\n\n'
+              f"- Framework type: `{result['framework_type_name']}`\n"
+              f"- GetSite: `{result['get_site_method']}`\n"
+              f"- Culture method: `{result['culture_method']}`\n"
+              f"- Returned wide text: `{result['wide_preview']}`\n"
+              f"- CHncStringW qwords: `{result['chncstring_qwords']}`\n"
+          )
+          pathlib.Path('build/proof/summary.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Commit the durable exact framework-call diagnostic
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git add diagnostics/m9-framework-culture-*.json \
+                  diagnostics/m9-framework-culture-latest.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'diagnostic: capture exact HWord framework culture call'
+            git push origin HEAD:codex/hoffice-runtime-from-scratch
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m9-framework-culture-proof
+          path: |
+            build/host/hrt-m9-framework-before
+            build/host/hrt-m9-framework-after
+            build/proof
+            diagnostics/m9-framework-culture-*.json
+            diagnostics/m9-framework-culture-latest.md
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach the exact HWord guest
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true
