@@ -1,0 +1,115 @@
+name: Bootstrap exact HWord prebuilt QPA replay v3
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-bootstrap-prebuilt-qpa-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hrt-bootstrap-prebuilt-qpa-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch-and-commit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch the replay to consume the locked xz payload
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml')
+          text = path.read_text()
+
+          old = """    paths:
+              - 'runtime/m6/prebuilt/**'
+          """
+          new = """    paths:
+              - 'runtime/m6/prebuilt/**'
+              - '.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml'
+          """
+          assert text.count(old) == 1, 'workflow path trigger anchor'
+          text = text.replace(old, new, 1)
+
+          old = """          test -s proofs/m6-linux-guest-appkit-window.json
+                    grep -F '\"status\": \"PASS\"' proofs/m6-linux-guest-appkit-window.json
+                    test -s runtime/m6/prebuilt/libqhrtappkit.so
+                    test -s runtime/m6/prebuilt/libqhrtappkit.lock.json
+          """
+          new = """          test -s proofs/m6-linux-guest-appkit-window.json
+                    grep -F '\"status\": \"PASS\"' proofs/m6-linux-guest-appkit-window.json
+                    test -s proofs/rtti-v3/m6-flush.json
+                    python3 - <<'PYPROOF'
+                    import json
+                    from pathlib import Path
+                    proof = json.loads(Path('proofs/rtti-v3/m6-flush.json').read_text())
+                    assert proof.get('selected_symbol_entered') is True, proof
+                    PYPROOF
+                    test -s runtime/m6/prebuilt/libqhrtappkit.so.xz
+                    test -s runtime/m6/prebuilt/libqhrtappkit.lock.json
+          """
+          assert text.count(old) == 1, 'predecessor and payload anchor'
+          text = text.replace(old, new, 1)
+
+          old = """          mkdir -p \"$root$(dirname \"$PLUGIN_GUEST\")\"
+                    cp /tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.so \\
+                      \"$root$PLUGIN_GUEST\"
+                    chmod 0755 \"$root$PLUGIN_GUEST\"
+          """
+          new = """          mkdir -p \"$root$(dirname \"$PLUGIN_GUEST\")\"
+                    prebuilt=/tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.so.xz
+                    lock=/tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.lock.json
+                    python3 - \"$prebuilt\" \"$lock\" \"$root$PLUGIN_GUEST\" <<'PYQPA'
+                    import hashlib
+                    import json
+                    import lzma
+                    import pathlib
+                    import sys
+
+                    source = pathlib.Path(sys.argv[1])
+                    lock = json.loads(pathlib.Path(sys.argv[2]).read_text())
+                    destination = pathlib.Path(sys.argv[3])
+                    compressed = source.read_bytes()
+                    assert hashlib.sha256(compressed).hexdigest() == \\
+                        lock['plugin']['xz_sha256'], lock
+                    plugin = lzma.decompress(compressed)
+                    assert hashlib.sha256(plugin).hexdigest() == \\
+                        lock['plugin']['sha256_after_prepatch'], lock
+                    destination.write_bytes(plugin)
+                    PYQPA
+                    chmod 0755 \"$root$PLUGIN_GUEST\"
+          """
+          assert text.count(old) == 1, 'prebuilt decompression anchor'
+          text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+          git diff --check
+          git diff -- .github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml
+
+      - name: Commit the focused replay repair
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml
+          if git diff --cached --quiet; then
+            echo 'The prebuilt QPA replay is already repaired.'
+            exit 0
+          fi
+          git commit -m 'ci: replay exact HWord from the locked prebuilt QPA'
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git push origin HEAD:codex/hoffice-runtime-from-scratch
