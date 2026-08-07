@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "commit": "30d4629f963db4d185caf70073d061867763417b",
-  "workflow_run": "31165999247",
+  "commit": "36d7543f3d24ac61a25eaaba34dcb08b2687de4e",
+  "workflow_run": "31166875084",
   "file_count": 120,
   "match_counts": {
     "opcode_256": 544,
@@ -9,7 +9,7 @@
     "host_call": 403,
     "custom_qpa": 595,
     "appkit": 141,
-    "rendering": 259,
+    "rendering": 260,
     "input_ime": 1559
   },
   "files": [
@@ -118,8 +118,8 @@
     },
     {
       "path": "runtime/m6/main.c",
-      "sha256": "dd453f95634b732c56af2ce09930306d0c9b41a8dbf9f9409ed35f41fb90e6ca",
-      "size": 4230,
+      "sha256": "a0c9f7eca4e3dba01ee9a572cb82d2a2e6696cb8bff978d4819df2d2ab6a95a6",
+      "size": 5322,
       "groups": [
         "appkit",
         "rendering"
@@ -127,7 +127,7 @@
     },
     {
       "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
-      "sha256": "02351c2439ef8f13b9d30d30329db844b62473bc96a0cf49e25f5ef522db29c9",
+      "sha256": "cc07672e0f37d238a7c1b4d2e92bd7465b30afe3119d6f87c124601325aee5bd",
       "size": 1472,
       "groups": [
         "custom_qpa",
@@ -1323,17 +1323,17 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 18,
-        "text": "\"sha256_before_prepatch\": \"b9ec731bba3b3bcb37c4a949cfede9041a8a5bd15b8dd802aa967fff5e501f13\","
+        "text": "\"sha256_before_prepatch\": \"748c3da64f1410f5291898a934d43f97f8675001827d03ff4b12365a3bffa6e1\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 19,
-        "text": "\"sha256_after_prepatch\": \"a4ffc8fffdadbafcd27c7fdab9099ea54f5d13a2f7bb61fd6885ed451f601730\","
+        "text": "\"sha256_after_prepatch\": \"40bf6251e2cab9715fb63b1bf060c4a2c3ee74294389ec696d2eb5b152093e05\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 20,
-        "text": "\"xz_sha256\": \"df1ae24b159360233ce6b8ab8e3c3b7312c4f68a763abc363080762ecb54a209\","
+        "text": "\"xz_sha256\": \"380f4d87eadb38d0509bcd16335b0abc18b922175a4d3030af38c495390d2f66\","
       },
       {
         "path": "runtime/m6/qpa/build_hrtappkit_root.sh",
@@ -6239,7 +6239,7 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 7,
-        "text": "\"qpa_source_tree\": \"841c2829de460781c085c0c9416e17ebe0f9a00d\""
+        "text": "\"qpa_source_tree\": \"ee888d386f52faa42718f123be7efd78c9ddada4\""
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
@@ -9390,17 +9390,17 @@
       },
       {
         "path": "runtime/m6/main.c",
-        "line": 100,
+        "line": 130,
         "text": "\"hrt-m6: AppKit initialization failed with result %d\\n\","
       },
       {
         "path": "runtime/m6/main.c",
-        "line": 121,
+        "line": 151,
         "text": "\"hrt-m6: AppKit main run loop entered; guest-thread=%llu\\n\","
       },
       {
         "path": "runtime/m6/main.c",
-        "line": 127,
+        "line": 157,
         "text": "\"hrt-m6: AppKit main run loop returned before guest exit\\n\");"
       },
       {
@@ -10047,7 +10047,12 @@
       },
       {
         "path": "runtime/m6/main.c",
-        "line": 123,
+        "line": 41,
+        "text": "fflush(stderr);"
+      },
+      {
+        "path": "runtime/m6/main.c",
+        "line": 153,
         "text": "fflush(stderr);"
       },
       {

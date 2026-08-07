@@ -1,6 +1,6 @@
 # Custom QPA and host-call inventory
 
-- Commit: `30d4629f963db4d185caf70073d061867763417b`
+- Commit: `36d7543f3d24ac61a25eaaba34dcb08b2687de4e`
 - Matching files: `120`
 
 - `opcode_256`: `544` matches
@@ -8,7 +8,7 @@
 - `host_call`: `403` matches
 - `custom_qpa`: `595` matches
 - `appkit`: `141` matches
-- `rendering`: `259` matches
+- `rendering`: `260` matches
 - `input_ime`: `1559` matches
 
 ## opcode_256
@@ -22,9 +22,9 @@
 - `runtime/m6/appkit_adapter.m:197` — `const size_t title_length = strnlen(guest_title, 256u);`
 - `runtime/m6/appkit_adapter.m:198` — `if (title_length == 0u || title_length == 256u) return -1003;`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:13` — `"qtbase_archive_sha256": "c6bf887732b83ce072eb72eddb7497bedcdf9ca794e7ed91261a93f063623e1c"`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:18` — `"sha256_before_prepatch": "b9ec731bba3b3bcb37c4a949cfede9041a8a5bd15b8dd802aa967fff5e501f13",`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:19` — `"sha256_after_prepatch": "a4ffc8fffdadbafcd27c7fdab9099ea54f5d13a2f7bb61fd6885ed451f601730",`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:20` — `"xz_sha256": "df1ae24b159360233ce6b8ab8e3c3b7312c4f68a763abc363080762ecb54a209",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:18` — `"sha256_before_prepatch": "748c3da64f1410f5291898a934d43f97f8675001827d03ff4b12365a3bffa6e1",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:19` — `"sha256_after_prepatch": "40bf6251e2cab9715fb63b1bf060c4a2c3ee74294389ec696d2eb5b152093e05",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:20` — `"xz_sha256": "380f4d87eadb38d0509bcd16335b0abc18b922175a4d3030af38c495390d2f66",`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:5` — `: "${PROGRAM_SHA256:?PROGRAM_SHA256 is required}"`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:11` — `expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:12` — `actual=$(sha256sum build/input/hword-rootfs.tar.gz | awk '{print $1}')`
@@ -668,7 +668,7 @@
 - `runtime/m4/build_closure.py:10` — `QPA plugins that do not appear in DT_NEEDED. Guest paths are normalized with`
 - `runtime/m6/augment_stack_hrtappkit.py:30` — `'static const char qt_platform[] = "QT_QPA_PLATFORM=offscreen";',`
 - `runtime/m6/augment_stack_hrtappkit.py:31` — `'static const char qt_platform[] = "QT_QPA_PLATFORM=hrtappkit";',`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:7` — `"qpa_source_tree": "841c2829de460781c085c0c9416e17ebe0f9a00d"`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:7` — `"qpa_source_tree": "ee888d386f52faa42718f123be7efd78c9ddada4"`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:16` — `"guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so",`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:17` — `"qpa_key": "hrtappkit",`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:7` — `: "${QPA_GUEST:?QPA_GUEST is required}"`
@@ -1007,9 +1007,9 @@
 - `runtime/m6/guest_window.c:103` — `"HRT M6 GUEST PASS: trapped Linux host call created a visible AppKit window\n";`
 - `runtime/m6/guest_window.c:107` — `"HRT M6 GUEST FAIL: AppKit window did not cross the visibility gate\n";`
 - `runtime/m6/guest_window.c:109` — `"HRT M6 GUEST FAIL: AppKit window capture failed\n";`
-- `runtime/m6/main.c:100` — `"hrt-m6: AppKit initialization failed with result %d\n",`
-- `runtime/m6/main.c:121` — `"hrt-m6: AppKit main run loop entered; guest-thread=%llu\n",`
-- `runtime/m6/main.c:127` — `"hrt-m6: AppKit main run loop returned before guest exit\n");`
+- `runtime/m6/main.c:130` — `"hrt-m6: AppKit initialization failed with result %d\n",`
+- `runtime/m6/main.c:151` — `"hrt-m6: AppKit main run loop entered; guest-thread=%llu\n",`
+- `runtime/m6/main.c:157` — `"hrt-m6: AppKit main run loop returned before guest exit\n");`
 - `runtime/m6/qpa/main.cpp:7` — `class QHrtAppKitIntegrationPlugin : public QPlatformIntegrationPlugin`
 - `runtime/m6/qpa/main.cpp:16` — `QPlatformIntegration *QHrtAppKitIntegrationPlugin::create(`
 - `runtime/m6/qpa/main.cpp:21` — `return new QHrtAppKitIntegration;`
@@ -1141,7 +1141,8 @@
 - `runtime/m6/appkit_window_probe.m:151` — `fflush(stdout);`
 - `runtime/m6/appkit_window_probe.m:162` — `fflush(stdout);`
 - `runtime/m6/hostcall_trampoline.c:56` — `fflush(stderr);`
-- `runtime/m6/main.c:123` — `fflush(stderr);`
+- `runtime/m6/main.c:41` — `fflush(stderr);`
+- `runtime/m6/main.c:153` — `fflush(stderr);`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:1` — `#include "qhrtappkitbackingstore.h"`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:47` — `QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:48` — `: QOffscreenBackingStore(window)`
