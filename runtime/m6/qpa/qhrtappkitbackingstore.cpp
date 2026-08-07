@@ -61,16 +61,52 @@ static void m10ActivateDeliveryWindow(QWindow *deliveryWindow,
     }
     QWindow *after = QGuiApplication::focusWindow();
     QObject *focusObject = QGuiApplication::focusObject();
+    const char *focusClass = focusObject != nullptr
+        ? focusObject->metaObject()->className() : "(null)";
+    const QByteArray focusName = focusObject != nullptr
+        ? focusObject->objectName().toUtf8() : QByteArray();
     const QByteArray title = deliveryWindow->title().toUtf8();
-    qWarning("HRT M10 QPA: activation phase=%s target=%p before=%p after=%p focus-object=%p active=%d visible=%d title=%s",
+    qWarning("HRT M10 QPA: activation phase=%s target=%p before=%p after=%p focus-object=%p focus-class=%s focus-name=%s active=%d visible=%d title=%s",
              phase,
              static_cast<void *>(deliveryWindow),
              static_cast<void *>(before),
              static_cast<void *>(after),
              static_cast<void *>(focusObject),
+             focusClass,
+             focusName.constData(),
              deliveryWindow->isActive() ? 1 : 0,
              deliveryWindow->isVisible() ? 1 : 0,
              title.constData());
+}
+
+static bool m10DeliverKeyToFocusObject(QEvent::Type type,
+                                       int key,
+                                       Qt::KeyboardModifiers modifiers,
+                                       const QString &text)
+{
+    QObject *receiver = QGuiApplication::focusObject();
+    if (receiver == nullptr) {
+        qWarning("HRT M10 QPA: direct key fallback skipped: no focus object");
+        return false;
+    }
+
+    QKeyEvent directEvent(type, key, modifiers, text, false, 1u);
+    directEvent.setAccepted(false);
+    const bool notified = QCoreApplication::sendEvent(receiver, &directEvent);
+    QCoreApplication::processEvents(QEventLoop::AllEvents, 2);
+    const bool accepted = directEvent.isAccepted();
+    const char *receiverClass = receiver->metaObject()->className();
+    const QByteArray receiverName = receiver->objectName().toUtf8();
+    qWarning("HRT M10 QPA: direct key fallback receiver=%p class=%s name=%s notified=%d accepted=%d type=%d key=0x%x text=%s",
+             static_cast<void *>(receiver),
+             receiverClass,
+             receiverName.constData(),
+             notified ? 1 : 0,
+             accepted ? 1 : 0,
+             int(type),
+             key,
+             text.toUtf8().constData());
+    return notified && accepted;
 }
 
 QHrtAppKitBackingStore::QHrtAppKitBackingStore(QWindow *window)
@@ -131,20 +167,29 @@ void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)
             if (length > HRT_M8_INPUT_TEXT_BYTES)
                 length = HRT_M8_INPUT_TEXT_BYTES;
             const QString text = QString::fromUtf8(event.utf8, int(length));
-            const bool accepted =
+            const bool windowAccepted =
                 QWindowSystemInterface::handleKeyEvent<
                     QWindowSystemInterface::SynchronousDelivery>(
                         deliveryWindow, type, int(event.logical_key),
                         modifiers, text, false, 1u);
-            QCoreApplication::processEvents(QEventLoop::AllEvents, 1);
+            const bool directAccepted = !windowAccepted
+                ? m10DeliverKeyToFocusObject(
+                      type, int(event.logical_key), modifiers, text)
+                : false;
+            const bool accepted = windowAccepted || directAccepted;
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 2);
             ++m_keyEventsDelivered;
             delivered = true;
-            qWarning("HRT M8 QPA: key event delivered sequence=%llu action=%u key=0x%x native=%u text=%s accepted=%d focus-window=%p focus-object=%p",
+            QObject *focusObject = QGuiApplication::focusObject();
+            const char *focusClass = focusObject != nullptr
+                ? focusObject->metaObject()->className() : "(null)";
+            qWarning("HRT M8 QPA: key event delivered sequence=%llu action=%u key=0x%x native=%u text=%s accepted=%d window-accepted=%d direct-accepted=%d focus-window=%p focus-object=%p focus-class=%s",
                      static_cast<unsigned long long>(event.sequence),
                      event.action, event.logical_key, event.native_key,
                      text.toUtf8().constData(), accepted ? 1 : 0,
+                     windowAccepted ? 1 : 0, directAccepted ? 1 : 0,
                      static_cast<void *>(QGuiApplication::focusWindow()),
-                     static_cast<void *>(QGuiApplication::focusObject()));
+                     static_cast<void *>(focusObject), focusClass);
             continue;
         }
 
@@ -178,12 +223,15 @@ void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)
             }
             ++m_mouseEventsDelivered;
             delivered = true;
-            qWarning("HRT M8 QPA: mouse event delivered sequence=%llu action=%u button=0x%x buttons=0x%x local=%d,%d global=%d,%d focus-window=%p focus-object=%p",
+            QObject *focusObject = QGuiApplication::focusObject();
+            const char *focusClass = focusObject != nullptr
+                ? focusObject->metaObject()->className() : "(null)";
+            qWarning("HRT M8 QPA: mouse event delivered sequence=%llu action=%u button=0x%x buttons=0x%x local=%d,%d global=%d,%d focus-window=%p focus-object=%p focus-class=%s",
                      static_cast<unsigned long long>(event.sequence),
                      event.action, event.button, event.buttons,
                      event.x, event.y, event.global_x, event.global_y,
                      static_cast<void *>(QGuiApplication::focusWindow()),
-                     static_cast<void *>(QGuiApplication::focusObject()));
+                     static_cast<void *>(focusObject), focusClass);
         }
     }
 
