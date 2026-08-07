@@ -308,16 +308,16 @@ void hrt_m8_input_inject_if_requested(void *window_pointer) {
         ? window.contentView.bounds : NSMakeRect(0.0, 0.0, 640.0, 480.0);
     NSPoint point = NSMakePoint(NSMidX(bounds), NSMidY(bounds));
     NSArray<NSEvent *> *events = @[
-        synthetic_key(NSEventTypeKeyDown, window),
-        synthetic_key(NSEventTypeKeyUp, window),
         synthetic_mouse(NSEventTypeMouseMoved, window, point, 8001),
         synthetic_mouse(NSEventTypeLeftMouseDown, window, point, 8002),
         synthetic_mouse(NSEventTypeLeftMouseUp, window, point, 8003),
+        synthetic_key(NSEventTypeKeyDown, window),
+        synthetic_key(NSEventTypeKeyUp, window),
     ];
     for (NSEvent *event in events)
         [NSApp postEvent:event atStart:NO];
     fprintf(stderr,
-            "HRT M8 APPKIT: posted deterministic synthetic key and mouse events window=%ld\n",
+            "HRT M8 APPKIT: posted deterministic focus click, key and mouse events window=%ld\n",
             (long)window.windowNumber);
     fflush(stderr);
 }
