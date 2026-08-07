@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "milestone": "M9-framework-culture-call",
+  "status": "PASS",
+  "workflow_run": "31172083492",
+  "commit": "5ef5bfa45b331a14323d3f159c1d95817cdc7ab6",
+  "artifact_id": "8991385328",
+  "artifact_sha256": "80d29cec05fccbcaf39f446b101d4bfc125d252deb332316fe0fa9a15c9952f7",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "framework_type": "HncOfficeUtil::OfficeFramework",
+  "get_site_method": {
+    "guest_path": "/opt/hnc/hoffice11/Bin/libHncOfficeEngine.so",
+    "virtual_address": "0x17d000",
+    "symbol": "HncOfficeUtil::OfficeFramework::GetSite() const"
+  },
+  "culture_method": {
+    "guest_path": "/opt/hnc/hoffice11/Bin/libHncFoundation.so",
+    "virtual_address": "0x77130",
+    "symbol": "Hnc::Framework::GetCulture() const"
+  },
+  "returned_utf16": "zh-CN",
+  "conclusion": "GetCulture is correct and non-empty. Continue at the CHwordUtilityEx wide-to-ANSI conversion call."
+}
