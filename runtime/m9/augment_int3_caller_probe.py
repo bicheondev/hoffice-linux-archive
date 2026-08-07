@@ -1,19 +1,30 @@
 #!/usr/bin/env python3
-"""Add a terminal INT3 caller probe to a mature M3/M6 bridge.
+"""Extend the locked M9 throw probe with provider-object diagnostics.
 
-Unlike the resumable M5 probe, this diagnostic stops at the first entry into
-an exact function, records the return address at ``[RSP]`` together with the
-format argument and nearby stack words, and exits with a dedicated status.
-The companion executable-mmap trace attributes the return address to an exact
-guest ELF object and file offset after the run.
+The exact HWord failure is thrown from a COfficeCore construction path after
+calling two virtual methods on the third constructor argument.  The first
+method writes a string that is immediately sliced at byte three.  This wrapper
+reuses the already-proven direct INT3 generator from commit 0a5f4b69 and adds a
+second, parser-independent line containing:
+
+* the preserved provider and constructor registers;
+* the provider vtable, RTTI name and virtual slots 0x130/0x138; and
+* the two std::string values produced by those virtual methods.
+
+The original ``HRT M9 THROW INT3`` line is unchanged, so the existing capture
+and attribution workflow remains fail-closed and backwards compatible.
 """
 from __future__ import annotations
 
 import argparse
-import json
-import os
+import importlib.util
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
-import shutil
+
+LOCKED_COMMIT = "0a5f4b69f989a1fc9b59e692fbc5754cb2af0b54"
+LOCKED_PATH = "runtime/m9/augment_int3_caller_probe.py"
 
 
 def replace_once(text: str, needle: str, replacement: str, label: str) -> str:
@@ -23,41 +34,35 @@ def replace_once(text: str, needle: str, replacement: str, label: str) -> str:
     return text.replace(needle, replacement, 1)
 
 
-def c_string(value: str) -> str:
-    return json.dumps(value)
+def run_locked_generator(source: Path, manifest: Path, output: Path,
+                         exit_status: int) -> None:
+    locked_source = subprocess.run(
+        ["git", "show", f"{LOCKED_COMMIT}:{LOCKED_PATH}"],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    ).stdout
 
+    with tempfile.TemporaryDirectory(prefix="hrt-m9-int3-") as temporary:
+        module_path = Path(temporary) / "locked_augment_int3_caller_probe.py"
+        module_path.write_text(locked_source, encoding="utf-8")
+        spec = importlib.util.spec_from_file_location(
+            "hrt_m9_locked_int3_probe", module_path)
+        if spec is None or spec.loader is None:
+            raise SystemExit("unable to load the locked INT3 probe generator")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
 
-def ensure_sha256sum_compat() -> None:
-    """Expose GNU-style sha256sum on GitHub's macOS runner.
-
-    The direct-probe workflow is shared with Linux jobs, but macOS ships only
-    ``shasum``.  Homebrew's prefix is writable by the hosted runner account, so
-    install a tiny argument-preserving wrapper only when CI needs it.  This is
-    deliberately performed by a generator already invoked in the same shell
-    step, making the immediately following reproducibility lock portable.
-    """
-    if shutil.which("sha256sum") is not None:
-        return
-    if os.environ.get("GITHUB_ACTIONS") != "true":
-        return
-
-    wrapper_text = '#!/bin/sh\nexec /usr/bin/shasum -a 256 "$@"\n'
-    errors: list[str] = []
-    for directory in (Path("/opt/homebrew/bin"), Path("/usr/local/bin")):
+        previous_argv = sys.argv
         try:
-            directory.mkdir(parents=True, exist_ok=True)
-            wrapper = directory / "sha256sum"
-            wrapper.write_text(wrapper_text, encoding="utf-8")
-            wrapper.chmod(0o755)
-            if shutil.which("sha256sum") is not None:
-                return
-            errors.append(f"{wrapper}: created but not visible in PATH")
-        except OSError as error:
-            errors.append(f"{directory}: {error}")
-    raise SystemExit(
-        "could not install the macOS sha256sum compatibility wrapper: "
-        + "; ".join(errors)
-    )
+            sys.argv = [
+                str(module_path), str(source), str(manifest), str(output),
+                "--exit-status", str(exit_status),
+            ]
+            module.main()
+        finally:
+            sys.argv = previous_argv
 
 
 def main() -> None:
@@ -67,173 +72,161 @@ def main() -> None:
     parser.add_argument("output", type=Path)
     parser.add_argument("--exit-status", type=int, default=191)
     args = parser.parse_args()
-
-    ensure_sha256sum_compat()
-
-    text = args.source.read_text(encoding="utf-8")
-    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-    original = bytes.fromhex(manifest["original_bytes_hex"])
-    patched = bytes.fromhex(manifest["patched_bytes_hex"])
-    if len(original) < 4 or len(original) != len(patched):
-        raise SystemExit("invalid INT3 manifest signature")
-    if patched[0] != 0xCC or patched[1:] != original[1:]:
-        raise SystemExit("manifest is not a first-byte INT3 patch")
-    if "m9_int3_caller_signal_handler(" in text:
-        raise SystemExit("M9 caller probe is already present")
     if not (1 <= args.exit_status <= 255):
         raise SystemExit("exit status must be in 1..255")
 
-    label = str(manifest["label"])
-    symbol = str(manifest["symbol"]["name"])
-    signature = ", ".join(f"0x{byte:02x}u" for byte in original)
+    with tempfile.TemporaryDirectory(prefix="hrt-m9-object-") as temporary:
+        locked_output = Path(temporary) / "locked-output.c"
+        run_locked_generator(
+            args.source, args.manifest, locked_output, args.exit_status)
+        text = locked_output.read_text(encoding="utf-8")
 
-    handler = f'''
-static const unsigned char g_m9_int3_original[] = {{{signature}}};
-static volatile sig_atomic_t g_m9_int3_caller_hit;
-
-static size_t m9_probe_append_char(char *buffer, size_t cursor,
-                                   size_t capacity, char value) {{
-    if (cursor < capacity) buffer[cursor] = value;
-    return cursor + 1u;
-}}
-
-static size_t m9_probe_append_literal(char *buffer, size_t cursor,
-                                      size_t capacity, const char *value) {{
-    if (value == NULL) value = "(null)";
-    for (size_t index = 0u; value[index] != '\\0'; ++index) {{
-        cursor = m9_probe_append_char(buffer, cursor, capacity, value[index]);
-    }}
-    return cursor;
-}}
-
-static size_t m9_probe_append_hex(char *buffer, size_t cursor,
-                                  size_t capacity, uint64_t value) {{
-    static const char digits[] = "0123456789abcdef";
-    cursor = m9_probe_append_literal(buffer, cursor, capacity, "0x");
-    int started = 0;
-    for (int shift = 60; shift >= 0; shift -= 4) {{
-        unsigned int nibble = (unsigned int)((value >> shift) & 0x0fu);
-        if (nibble != 0u || started != 0 || shift == 0) {{
-            cursor = m9_probe_append_char(buffer, cursor, capacity,
-                                          digits[nibble]);
-            started = 1;
-        }}
-    }}
-    return cursor;
-}}
-
-static size_t m9_probe_append_guest_string(char *buffer, size_t cursor,
-                                           size_t capacity,
-                                           const char *value,
-                                           size_t maximum) {{
-    if (value == NULL) {{
-        return m9_probe_append_literal(buffer, cursor, capacity, "(null)");
-    }}
-    for (size_t index = 0u; index < maximum; ++index) {{
-        unsigned char byte = (unsigned char)value[index];
-        if (byte == 0u) break;
-        char output = (byte >= 32u && byte <= 126u) ? (char)byte : '?';
-        cursor = m9_probe_append_char(buffer, cursor, capacity, output);
-    }}
-    return cursor;
-}}
-
-static int m9_int3_signature_matches(const unsigned char *site) {{
-    if (site == NULL || site[0] != 0xccu) return 0;
-    for (size_t index = 1u; index < sizeof(g_m9_int3_original); ++index) {{
-        if (site[index] != g_m9_int3_original[index]) return 0;
-    }}
-    return 1;
-}}
-
-static void m9_int3_caller_signal_handler(int signal_number,
-                                           siginfo_t *info,
-                                           void *context_pointer) {{
-    ucontext_t *context = (ucontext_t *)context_pointer;
-    x86_thread_state64_t *state = &context->uc_mcontext->__ss;
-    uintptr_t after = (uintptr_t)state->__rip;
-    unsigned char *site = after != 0u
-        ? (unsigned char *)(after - 1u) : NULL;
-    if (signal_number == SIGTRAP &&
-        m9_int3_signature_matches(site) != 0 &&
-        g_m9_int3_caller_hit == 0) {{
-        g_m9_int3_caller_hit = 1;
-        const uint64_t *stack = (const uint64_t *)(uintptr_t)state->__rsp;
-        uint64_t return_address = stack != NULL ? stack[0] : 0u;
-
-        char buffer[1536];
-        size_t cursor = 0u;
-        cursor = m9_probe_append_literal(buffer, cursor, sizeof(buffer),
-            "HRT M9 THROW INT3: label=");
-        cursor = m9_probe_append_literal(buffer, cursor, sizeof(buffer),
-            {c_string(label)});
-        cursor = m9_probe_append_literal(buffer, cursor, sizeof(buffer),
-            " symbol=");
-        cursor = m9_probe_append_literal(buffer, cursor, sizeof(buffer),
-            {c_string(symbol)});
-        cursor = m9_probe_append_literal(buffer, cursor, sizeof(buffer),
-            " site=");
-        cursor = m9_probe_append_hex(buffer, cursor, sizeof(buffer),
-            (uint64_t)(uintptr_t)site);
-        cursor = m9_probe_append_literal(buffer, cursor, sizeof(buffer),
-            " return=");
-        cursor = m9_probe_append_hex(buffer, cursor, sizeof(buffer),
-            return_address);
-        cursor = m9_probe_append_literal(buffer, cursor, sizeof(buffer),
-            " rsp=");
-        cursor = m9_probe_append_hex(buffer, cursor, sizeof(buffer),
-            state->__rsp);
-        cursor = m9_probe_append_literal(buffer, cursor, sizeof(buffer),
-            " rdi=");
-        cursor = m9_probe_append_hex(buffer, cursor, sizeof(buffer),
-            state->__rdi);
-        cursor = m9_probe_append_literal(buffer, cursor, sizeof(buffer),
-            " rsi=");
-        cursor = m9_probe_append_hex(buffer, cursor, sizeof(buffer),
-            state->__rsi);
-        cursor = m9_probe_append_literal(buffer, cursor, sizeof(buffer),
-            " format=");
-        cursor = m9_probe_append_guest_string(buffer, cursor, sizeof(buffer),
-            (const char *)(uintptr_t)state->__rdi, 192u);
-        for (size_t index = 0u; index < 8u; ++index) {{
-            cursor = m9_probe_append_literal(buffer, cursor, sizeof(buffer),
-                " stack");
-            cursor = m9_probe_append_char(buffer, cursor, sizeof(buffer),
-                (char)('0' + index));
-            cursor = m9_probe_append_char(buffer, cursor, sizeof(buffer), '=');
-            cursor = m9_probe_append_hex(buffer, cursor, sizeof(buffer),
-                stack != NULL ? stack[index] : 0u);
-        }}
-        cursor = m9_probe_append_char(buffer, cursor, sizeof(buffer), '\\n');
-        size_t written = cursor < sizeof(buffer) ? cursor : sizeof(buffer);
-        raw_write_literal(buffer, written);
+    anchor = f'''        raw_write_literal(buffer, written);
         raw_exit({args.exit_status});
-    }}
-    crash_signal_handler(signal_number, info, context_pointer);
-}}
-
 '''
+    replacement = f'''        raw_write_literal(buffer, written);
 
-    initialize_anchor = "void initialize_syscall_bridge("
-    count = text.count(initialize_anchor)
-    if count != 1:
-        raise SystemExit(
-            f"initialize bridge: expected one anchor, found {count}")
-    position = text.index(initialize_anchor)
-    text = text[:position] + handler + text[position:]
+        /*
+         * At the throw helper entry, RSP points at the return address.  The
+         * caller's stack frame therefore begins eight bytes above it.  In the
+         * exact COfficeCore path the two output std::string objects live at
+         * caller-RSP+0x70 and caller-RSP+0x90.  RBX remains the provider object
+         * whose virtual slots 0x130 and 0x138 populated those strings.
+         */
+        const uintptr_t caller_rsp =
+            (uintptr_t)state->__rsp + sizeof(uint64_t);
+        const uint64_t provider_object = state->__rbx;
+        const uint64_t provider_vtable = provider_object != 0u
+            ? *(const uint64_t *)(uintptr_t)provider_object : 0u;
+        const uint64_t provider_offset_to_top = provider_vtable != 0u
+            ? *((const uint64_t *)(uintptr_t)provider_vtable - 2) : 0u;
+        const uint64_t provider_typeinfo = provider_vtable != 0u
+            ? *((const uint64_t *)(uintptr_t)provider_vtable - 1) : 0u;
+        const uint64_t provider_type_name = provider_typeinfo != 0u
+            ? *((const uint64_t *)(uintptr_t)provider_typeinfo + 1) : 0u;
+        const uint64_t provider_method_130 = provider_vtable != 0u
+            ? *(const uint64_t *)(uintptr_t)(provider_vtable + 0x130u) : 0u;
+        const uint64_t provider_method_138 = provider_vtable != 0u
+            ? *(const uint64_t *)(uintptr_t)(provider_vtable + 0x138u) : 0u;
 
-    trap_block = '''    if (sigaction(SIGTRAP, &action, NULL) != 0) {
-        fatal("M3 sigaction(SIGTRAP)");
-    }
+        const uint64_t first_data =
+            *(const uint64_t *)(caller_rsp + 0x70u);
+        const uint64_t first_length =
+            *(const uint64_t *)(caller_rsp + 0x78u);
+        const uint64_t second_data =
+            *(const uint64_t *)(caller_rsp + 0x90u);
+        const uint64_t second_length =
+            *(const uint64_t *)(caller_rsp + 0x98u);
+        const size_t first_text_limit = first_length <= 4096u
+            ? (size_t)(first_length < 192u ? first_length : 192u) : 0u;
+        const size_t second_text_limit = second_length <= 4096u
+            ? (size_t)(second_length < 192u ? second_length : 192u) : 0u;
+
+        char object_buffer[2048];
+        size_t object_cursor = 0u;
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            "HRT M9 THROW OBJECT: rbx=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer), state->__rbx);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer), " r12=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer), state->__r12);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer), " r13=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer), state->__r13);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer), " r14=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer), state->__r14);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer), " r15=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer), state->__r15);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer), " rbp=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer), state->__rbp);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer), " vtable=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            provider_vtable);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            " offset-to-top=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            provider_offset_to_top);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer), " typeinfo=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            provider_typeinfo);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            " type-name-pointer=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            provider_type_name);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer), " type-name=");
+        object_cursor = m9_probe_append_guest_string(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            (const char *)(uintptr_t)provider_type_name, 160u);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            " method130=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            provider_method_130);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            " method138=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            provider_method_138);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            " first-data=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer), first_data);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            " first-length=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer), first_length);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer), " first=");
+        object_cursor = m9_probe_append_guest_string(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            (const char *)(uintptr_t)first_data, first_text_limit);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            " second-data=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer), second_data);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            " second-length=");
+        object_cursor = m9_probe_append_hex(
+            object_buffer, object_cursor, sizeof(object_buffer), second_length);
+        object_cursor = m9_probe_append_literal(
+            object_buffer, object_cursor, sizeof(object_buffer), " second=");
+        object_cursor = m9_probe_append_guest_string(
+            object_buffer, object_cursor, sizeof(object_buffer),
+            (const char *)(uintptr_t)second_data, second_text_limit);
+        object_cursor = m9_probe_append_char(
+            object_buffer, object_cursor, sizeof(object_buffer), '\\n');
+        const size_t object_written = object_cursor < sizeof(object_buffer)
+            ? object_cursor : sizeof(object_buffer);
+        raw_write_literal(object_buffer, object_written);
+        raw_exit({args.exit_status});
 '''
-    trap_replacement = '''    struct sigaction m9_trap_action = action;
-    m9_trap_action.sa_sigaction = m9_int3_caller_signal_handler;
-    if (sigaction(SIGTRAP, &m9_trap_action, NULL) != 0) {
-        fatal("M9 sigaction(SIGTRAP caller probe)");
-    }
-'''
-    text = replace_once(text, trap_block, trap_replacement,
-                        "SIGTRAP caller-probe installation")
+    text = replace_once(text, anchor, replacement,
+                        "terminal throw-probe object diagnostics")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(text, encoding="utf-8")
