@@ -23,7 +23,7 @@ env:
   ROOTFS_ARTIFACT_ID: '8968324706'
   ROOTFS_ARTIFACT_SHA256: 3e301d3c6269926c62804bff18671136fcf8c0b0b22b3952072e427a8fa9918a
   ROOTFS_ARCHIVE_SHA256: 322fcf228092b296a34edbfa7ee43f9a7b237d5bcedaee50109ac4bb44d9ca28
-  QPA_RUN_ID: '31166152504'
+  QPA_RUN_ID: '31225186394'
   ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
   RELEASE_TAG: linux-11.20-series
   PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
@@ -329,7 +329,7 @@ jobs:
           printf '%s\n' "$alive" >build/proof/alive-at-observation.txt
           printf '%s\n' "$delivered" >build/proof/input-delivered.txt
           printf '%s\n' "$post_capture" >build/proof/post-capture.txt
-          grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|hrt-m7-hostcall: presented BGRA|HRT M8 APPKIT|HRT M8 QPA|host-call opcode=262|HRT M10 APPKIT|fatal signal|basic_string::substr|terminate called|Caught exception' \
+          grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|hrt-m7-hostcall: presented BGRA|HRT M8 APPKIT|HRT M8 QPA|HRT M10 QPA|host-call opcode=262|HRT M10 APPKIT|fatal signal|basic_string::substr|terminate called|Caught exception' \
             build/proof/stderr.txt | tail -n 24000 \
             | tee build/proof/key-lines.txt || true
           tail -n 5000 build/proof/stderr.txt \
@@ -475,7 +475,7 @@ jobs:
               '# HWord M10 main-window input\n\n'
               f"- Classification: `{classification}`\n"
               f"- Windows: `{list(zip(titles,geometries))}`\n"
-              f"- Key events: `{len(key_lines)}` '
+              f"- Key events: `{len(key_lines)}` "
               f"(accepted `{len(accepted_key_lines)}`)\n"
               f"- Mouse events: `{len(mouse_lines)}`\n"
               f"- Maximum presented frame: `{max_frame}`\n"
