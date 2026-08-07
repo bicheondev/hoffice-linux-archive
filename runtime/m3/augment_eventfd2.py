@@ -19,6 +19,9 @@ surrounding bridge changes unexpectedly.
 from __future__ import annotations
 
 import argparse
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 
 
@@ -36,6 +39,46 @@ def main() -> None:
     args = parser.parse_args()
 
     text = args.source.read_text(encoding="utf-8")
+
+    # The deterministic directory-stream bridge owns close(2)
+    # interception, so the older pipe-backed eventfd transform
+    # cannot safely splice its cleanup into that function.
+    # Exact HWord's proven Qt/GLib path instead uses poll/ppoll
+    # plus kqueue-backed epoll and tgkill. Delegate to that chain
+    # and leave crash-signal injection to the next workflow stage.
+    if (
+        "host_getdents64_stream_bridge" in text
+        and "host_poll_bridge(" not in text
+        and "case LINUX_SYS_EVENTFD2:" not in text
+    ):
+        scripts = (
+            "augment_polling.py",
+            "augment_epoll.py",
+            "augment_tgkill.py",
+        )
+        script_directory = Path(__file__).resolve().parent
+        with tempfile.TemporaryDirectory(
+            prefix="hrt-mature-loop-"
+        ) as temp:
+            current = args.source
+            for index, script in enumerate(scripts, start=1):
+                output = Path(temp) / f"{index}.c"
+                subprocess.run(
+                    [
+                        sys.executable,
+                        str(script_directory / script),
+                        str(current),
+                        str(output),
+                    ],
+                    check=True,
+                )
+                current = output
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(
+                current.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+        return
 
     text = replace_once(
         text,

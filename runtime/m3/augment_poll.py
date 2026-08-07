@@ -28,6 +28,17 @@ def main() -> None:
 
     text = args.source.read_text(encoding="utf-8")
 
+    # Preserve a preceding mature poll/ppoll + epoll + tgkill
+    # translation rather than injecting the older poll-only
+    # variant a second time.
+    if (
+        "case LINUX_SYS_PPOLL:" in text
+        and "host_poll_bridge(" in text
+    ):
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(text, encoding="utf-8")
+        return
+
     text = replace_once(
         text,
         "#include <limits.h>\n",
