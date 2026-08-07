@@ -30,69 +30,74 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              assert count == 1, f'{label}: found {count}'
+              return text.replace(old, new, 1)
+
           path = Path('.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml')
           text = path.read_text()
 
-          old = """    paths:
-              - 'runtime/m6/prebuilt/**'
-          """
-          new = """    paths:
-              - 'runtime/m6/prebuilt/**'
-              - '.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml'
-          """
-          assert text.count(old) == 1, 'workflow path trigger anchor'
-          text = text.replace(old, new, 1)
+          text = replace_once(
+              text,
+              "      - 'runtime/m6/prebuilt/**'\n",
+              "      - 'runtime/m6/prebuilt/**'\n"
+              "      - '.github/workflows/hoffice-runtime-m6-hword-prebuilt-qpa.yml'\n",
+              'workflow path trigger',
+          )
 
-          old = """          test -s proofs/m6-linux-guest-appkit-window.json
-                    grep -F '\"status\": \"PASS\"' proofs/m6-linux-guest-appkit-window.json
-                    test -s runtime/m6/prebuilt/libqhrtappkit.so
-                    test -s runtime/m6/prebuilt/libqhrtappkit.lock.json
-          """
-          new = """          test -s proofs/m6-linux-guest-appkit-window.json
-                    grep -F '\"status\": \"PASS\"' proofs/m6-linux-guest-appkit-window.json
-                    test -s proofs/rtti-v3/m6-flush.json
-                    python3 - <<'PYPROOF'
-                    import json
-                    from pathlib import Path
-                    proof = json.loads(Path('proofs/rtti-v3/m6-flush.json').read_text())
-                    assert proof.get('selected_symbol_entered') is True, proof
-                    PYPROOF
-                    test -s runtime/m6/prebuilt/libqhrtappkit.so.xz
-                    test -s runtime/m6/prebuilt/libqhrtappkit.lock.json
-          """
-          assert text.count(old) == 1, 'predecessor and payload anchor'
-          text = text.replace(old, new, 1)
+          old = (
+              "          test -s proofs/m6-linux-guest-appkit-window.json\n"
+              "          grep -F '\"status\": \"PASS\"' proofs/m6-linux-guest-appkit-window.json\n"
+              "          test -s runtime/m6/prebuilt/libqhrtappkit.so\n"
+              "          test -s runtime/m6/prebuilt/libqhrtappkit.lock.json\n"
+          )
+          new = (
+              "          test -s proofs/m6-linux-guest-appkit-window.json\n"
+              "          grep -F '\"status\": \"PASS\"' proofs/m6-linux-guest-appkit-window.json\n"
+              "          test -s proofs/rtti-v3/m6-flush.json\n"
+              "          python3 - <<'PYPROOF'\n"
+              "          import json\n"
+              "          from pathlib import Path\n"
+              "          proof = json.loads(Path('proofs/rtti-v3/m6-flush.json').read_text())\n"
+              "          assert proof.get('selected_symbol_entered') is True, proof\n"
+              "          PYPROOF\n"
+              "          test -s runtime/m6/prebuilt/libqhrtappkit.so.xz\n"
+              "          test -s runtime/m6/prebuilt/libqhrtappkit.lock.json\n"
+          )
+          text = replace_once(text, old, new, 'predecessor and payload')
 
-          old = """          mkdir -p \"$root$(dirname \"$PLUGIN_GUEST\")\"
-                    cp /tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.so \\
-                      \"$root$PLUGIN_GUEST\"
-                    chmod 0755 \"$root$PLUGIN_GUEST\"
-          """
-          new = """          mkdir -p \"$root$(dirname \"$PLUGIN_GUEST\")\"
-                    prebuilt=/tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.so.xz
-                    lock=/tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.lock.json
-                    python3 - \"$prebuilt\" \"$lock\" \"$root$PLUGIN_GUEST\" <<'PYQPA'
-                    import hashlib
-                    import json
-                    import lzma
-                    import pathlib
-                    import sys
-
-                    source = pathlib.Path(sys.argv[1])
-                    lock = json.loads(pathlib.Path(sys.argv[2]).read_text())
-                    destination = pathlib.Path(sys.argv[3])
-                    compressed = source.read_bytes()
-                    assert hashlib.sha256(compressed).hexdigest() == \\
-                        lock['plugin']['xz_sha256'], lock
-                    plugin = lzma.decompress(compressed)
-                    assert hashlib.sha256(plugin).hexdigest() == \\
-                        lock['plugin']['sha256_after_prepatch'], lock
-                    destination.write_bytes(plugin)
-                    PYQPA
-                    chmod 0755 \"$root$PLUGIN_GUEST\"
-          """
-          assert text.count(old) == 1, 'prebuilt decompression anchor'
-          text = text.replace(old, new, 1)
+          old = (
+              "          mkdir -p \"$root$(dirname \"$PLUGIN_GUEST\")\"\n"
+              "          cp /tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.so \\\n"
+              "            \"$root$PLUGIN_GUEST\"\n"
+              "          chmod 0755 \"$root$PLUGIN_GUEST\"\n"
+          )
+          new = (
+              "          mkdir -p \"$root$(dirname \"$PLUGIN_GUEST\")\"\n"
+              "          prebuilt=/tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.so.xz\n"
+              "          lock=/tmp/hrt-m6-repository/runtime/m6/prebuilt/libqhrtappkit.lock.json\n"
+              "          python3 - \"$prebuilt\" \"$lock\" \"$root$PLUGIN_GUEST\" <<'PYQPA'\n"
+              "          import hashlib\n"
+              "          import json\n"
+              "          import lzma\n"
+              "          import pathlib\n"
+              "          import sys\n"
+              "\n"
+              "          source = pathlib.Path(sys.argv[1])\n"
+              "          lock = json.loads(pathlib.Path(sys.argv[2]).read_text())\n"
+              "          destination = pathlib.Path(sys.argv[3])\n"
+              "          compressed = source.read_bytes()\n"
+              "          assert hashlib.sha256(compressed).hexdigest() == \\\n"
+              "              lock['plugin']['xz_sha256'], lock\n"
+              "          plugin = lzma.decompress(compressed)\n"
+              "          assert hashlib.sha256(plugin).hexdigest() == \\\n"
+              "              lock['plugin']['sha256_after_prepatch'], lock\n"
+              "          destination.write_bytes(plugin)\n"
+              "          PYQPA\n"
+              "          chmod 0755 \"$root$PLUGIN_GUEST\"\n"
+          )
+          text = replace_once(text, old, new, 'prebuilt decompression')
 
           path.write_text(text)
           PY
