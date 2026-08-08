@@ -6,12 +6,20 @@
 _hrt_m10_enter_clone_child:
     /*
      * Enter this leaf while the new pthread still owns its normal host GS.
-     * Preserve the call-entry host stack before switching to Linux memory; the
-     * exit trampoline later restores this exact stack before pthread cleanup.
+     * Save every Darwin x86-64 callee-saved register, the call-entry stack and
+     * the host floating-point/vector image before any Linux state is applied.
+     * The exit trampoline restores this complete ABI frame and returns to the
+     * ordinary pthread start callback; no pthread cleanup runs on guest memory.
      */
+    movq %rsp, HRT_M10_CLONE_HOST_RSP_OFFSET(%rdi)
+    movq %rbp, HRT_M10_CLONE_HOST_RBP_OFFSET(%rdi)
+    movq %rbx, HRT_M10_CLONE_HOST_RBX_OFFSET(%rdi)
+    movq %r12, HRT_M10_CLONE_HOST_R12_OFFSET(%rdi)
+    movq %r13, HRT_M10_CLONE_HOST_R13_OFFSET(%rdi)
+    movq %r14, HRT_M10_CLONE_HOST_R14_OFFSET(%rdi)
+    movq %r15, HRT_M10_CLONE_HOST_R15_OFFSET(%rdi)
+    fxsave64 HRT_M10_CLONE_HOST_FXSAVE_OFFSET(%rdi)
     movq %rdi, %r12
-    movq %rsp, HRT_M10_CLONE_HOST_RSP_OFFSET(%r12)
-    movq %rbp, HRT_M10_CLONE_HOST_RBP_OFFSET(%r12)
 
     movabsq $0x2000004, %rax
     movq $2, %rdi
@@ -31,7 +39,7 @@ _hrt_m10_enter_clone_child:
     movq $(.Lclone_trace_gs_end-.Lclone_trace_gs), %rdx
     syscall
 
-    /* Restore the parent's floating-point and vector state. */
+    /* Restore the Linux parent's floating-point and vector state. */
     fxrstor64 HRT_M10_CLONE_FXSAVE_OFFSET(%r12)
 
     movabsq $0x2000004, %rax
@@ -75,15 +83,14 @@ _hrt_m10_exit_clone_child:
     /*
      * RDI=context and RSI=Linux exit status.  Signal return enters here with
      * guest GS and an arbitrary guest/alternate stack.  Restore host TLS and
-     * the original pthread stack without calling any Mach-O code in between.
+     * the complete original call frame, then return normally from
+     * hrt_m10_enter_clone_child into m10_clone_thread_start.
      */
     movq %rdi, %r12
-    movq %rsi, %r13
+    movq %rsi, HRT_M10_CLONE_EXIT_STATUS_OFFSET(%r12)
     movq HRT_M10_THREAD_HOST_GS_OFFSET(%r12), %rdi
     movabsq $0x03000003, %rax
     syscall
-    movq HRT_M10_CLONE_HOST_RSP_OFFSET(%r12), %rsp
-    movq HRT_M10_CLONE_HOST_RBP_OFFSET(%r12), %rbp
 
     movabsq $0x2000004, %rax
     movq $2, %rdi
@@ -91,9 +98,16 @@ _hrt_m10_exit_clone_child:
     movq $(.Lclone_trace_exit_stack_end-.Lclone_trace_exit_stack), %rdx
     syscall
 
-    movq %r12, %rdi
-    movq %r13, %rsi
-    jmp _hrt_m10_finish_clone_thread
+    fxrstor64 HRT_M10_CLONE_HOST_FXSAVE_OFFSET(%r12)
+    movq HRT_M10_CLONE_HOST_RSP_OFFSET(%r12), %rsp
+    movq HRT_M10_CLONE_HOST_RBP_OFFSET(%r12), %rbp
+    movq HRT_M10_CLONE_HOST_RBX_OFFSET(%r12), %rbx
+    movq HRT_M10_CLONE_HOST_R13_OFFSET(%r12), %r13
+    movq HRT_M10_CLONE_HOST_R14_OFFSET(%r12), %r14
+    movq HRT_M10_CLONE_HOST_R15_OFFSET(%r12), %r15
+    movq HRT_M10_CLONE_HOST_R12_OFFSET(%r12), %r12
+    xorl %eax, %eax
+    retq
 
 .section __TEXT,__const
 .Lclone_trace_enter:
@@ -109,5 +123,5 @@ _hrt_m10_exit_clone_child:
     .ascii "HRT M10 CLONE ASM: guest-stack-ready\n"
 .Lclone_trace_stack_end:
 .Lclone_trace_exit_stack:
-    .ascii "HRT M10 CLONE ASM: host-exit-stack-ready\n"
+    .ascii "HRT M10 CLONE ASM: host-return-frame-ready\n"
 .Lclone_trace_exit_stack_end:
