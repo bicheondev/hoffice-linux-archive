@@ -1,5 +1,5 @@
 
-Dynamic section at offset 0x2fc10 contains 36 entries:
+Dynamic section at offset 0x30bf0 contains 36 entries:
   Tag        Type                         Name/Value
  0x0000000000000001 (NEEDED)             Shared library: [libgthread-2.0.so.0]
  0x0000000000000001 (NEEDED)             Shared library: [libglib-2.0.so.0]
@@ -15,25 +15,25 @@ Dynamic section at offset 0x2fc10 contains 36 entries:
  0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
  0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
  0x000000000000000c (INIT)               0x13000
- 0x000000000000000d (FINI)               0x27d50
- 0x0000000000000019 (INIT_ARRAY)         0x2f7d8
+ 0x000000000000000d (FINI)               0x28b60
+ 0x0000000000000019 (INIT_ARRAY)         0x307b8
  0x000000000000001b (INIT_ARRAYSZ)       32 (bytes)
- 0x000000000000001a (FINI_ARRAY)         0x2f7f8
+ 0x000000000000001a (FINI_ARRAY)         0x307d8
  0x000000000000001c (FINI_ARRAYSZ)       8 (bytes)
  0x000000006ffffef5 (GNU_HASH)           0x260
- 0x0000000000000005 (STRTAB)             0x4f68
- 0x0000000000000006 (SYMTAB)             0xb10
- 0x000000000000000a (STRSZ)              27797 (bytes)
+ 0x0000000000000005 (STRTAB)             0x5048
+ 0x0000000000000006 (SYMTAB)             0xb18
+ 0x000000000000000a (STRSZ)              28182 (bytes)
  0x000000000000000b (SYMENT)             24 (bytes)
- 0x0000000000000003 (PLTGOT)             0x31000
- 0x0000000000000002 (PLTRELSZ)           8808 (bytes)
+ 0x0000000000000003 (PLTGOT)             0x32000
+ 0x0000000000000002 (PLTRELSZ)           8976 (bytes)
  0x0000000000000014 (PLTREL)             RELA
- 0x0000000000000017 (JMPREL)             0x10108
- 0x0000000000000007 (RELA)               0xc2e0
- 0x0000000000000008 (RELASZ)             15912 (bytes)
+ 0x0000000000000017 (JMPREL)             0x103b0
+ 0x0000000000000007 (RELA)               0xc558
+ 0x0000000000000008 (RELASZ)             15960 (bytes)
  0x0000000000000009 (RELAENT)            24 (bytes)
- 0x000000006ffffffe (VERNEED)            0xc1b0
+ 0x000000006ffffffe (VERNEED)            0xc428
  0x000000006fffffff (VERNEEDNUM)         6
- 0x000000006ffffff0 (VERSYM)             0xbbfe
+ 0x000000006ffffff0 (VERSYM)             0xbe5e
  0x000000006ffffff9 (RELACOUNT)          174
  0x0000000000000000 (NULL)               0x0
