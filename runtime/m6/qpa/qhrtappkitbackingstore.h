@@ -7,9 +7,10 @@
 
 QT_BEGIN_NAMESPACE
 
-// M11 diagnostic builds add delayed editor-focus repair in the generated
-// backing-store source; the stable class ABI remains unchanged here.  This
-// revision retries the complete fail-closed generator and type include audit.
+// M11 diagnostic builds add delayed editor-focus repair and a printable
+// QInputMethodEvent fallback in the generated backing-store source; the stable
+// class ABI remains unchanged here.  This revision triggers the locked Qt
+// 5.11.3 plugin rebuild for that fifth transform.
 class QHrtAppKitBackingStore : public QOffscreenBackingStore
 {
 public:
