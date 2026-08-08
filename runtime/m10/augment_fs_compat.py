@@ -4,7 +4,7 @@
 Run 31245615859 proved flock, link, chmod and fstatfs.  Run 31245803508 then
 proved atomic rename and left eventfd2 as the only unsupported Linux syscall.
 This wrapper executes the immutable first filesystem generator from commit
-81e56f4e, adds guest-root-confined rename, and finally applies the mature
+81e56f4e, adds guest-root-confined rename, and applies the compile-safe mature
 pipe-backed eventfd2 bridge that cooperates with directory and epoll close
 bookkeeping.
 """
