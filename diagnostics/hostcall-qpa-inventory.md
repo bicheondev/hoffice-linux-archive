@@ -1,6 +1,6 @@
 # Custom QPA and host-call inventory
 
-- Commit: `0a3c6484f472558c7d6c92d7412dbd77d90ce507`
+- Commit: `3876caf851111a0278c1253f2f46c6c2aaedc0ea`
 - Matching files: `175`
 
 - `opcode_256`: `1185` matches
