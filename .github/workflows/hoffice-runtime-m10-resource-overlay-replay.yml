@@ -1,0 +1,425 @@
+name: HOffice runtime M10 exact resource-overlay replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'diagnostics/m10-fs-path-trace-latest.json'
+      - '.github/workflows/hoffice-runtime-m10-resource-overlay-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m10-resource-overlay-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TARGET_BRANCH: codex/hoffice-runtime-from-scratch
+  PREPARED_RUN_ID: '31235068358'
+  PREPARED_ARTIFACT: hrt-m9-bootstrap-prepared-guest
+  PREPARED_ARCHIVE: hword-m9-prepared-rootfs.tar.zst
+  SOURCE_ARTIFACT: hrt-m10-hword-fs-compat-proof
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+
+jobs:
+  restore-and-replay:
+    runs-on: macos-14
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve the exact restoration plan
+        id: plan
+        run: |
+          set -euxo pipefail
+          test -s diagnostics/m10-fs-path-trace-latest.json
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          data = json.loads(Path(
+              'diagnostics/m10-fs-path-trace-latest.json').read_text())
+          paths = data.get(
+              'package_resources_missing_from_prepared_guest') or []
+          if not isinstance(paths, list):
+              raise SystemExit('restoration paths are not a list')
+          paths = sorted({str(path) for path in paths
+                          if str(path).startswith('/')})
+          source_run = str(data.get('source_workflow_run') or '')
+          active = data.get('frontier') == \
+              'PACKAGE_RESOURCES_MISSING_FROM_PREPARED_GUEST' and bool(paths)
+
+          Path('build').mkdir(exist_ok=True)
+          Path('build/restoration-paths.json').write_text(
+              json.dumps(paths, indent=2) + '\n')
+          Path('build/source-run-id.txt').write_text(source_run + '\n')
+          with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
+              output.write(f'active={str(active).lower()}\n')
+              output.write(f'source_run={source_run}\n')
+              output.write(f'path_count={len(paths)}\n')
+          print(json.dumps({
+              'active': active,
+              'source_run': source_run,
+              'paths': paths,
+          }, indent=2))
+          PY
+
+      - name: Record a no-op result for non-resource frontiers
+        if: steps.plan.outputs.active != 'true'
+        run: |
+          set -euxo pipefail
+          mkdir -p diagnostics build/proof
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          source = json.loads(Path(
+              'diagnostics/m10-fs-path-trace-latest.json').read_text())
+          result = {
+              'schema': 1,
+              'milestone': 'M10-resource-overlay',
+              'status': 'SKIPPED',
+              'classification': 'NO_EXACT_PACKAGE_RESOURCE_OVERLAY_REQUIRED',
+              'workflow_run': os.environ['GITHUB_RUN_ID'],
+              'source_frontier': source.get('frontier'),
+              'source_workflow_run': source.get('source_workflow_run'),
+          }
+          payload = json.dumps(result, indent=2) + '\n'
+          Path('build/proof/summary.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Download the locked prepared guest
+        if: steps.plan.outputs.active == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PREPARED_ARTIFACT }}
+          path: build/input/prepared
+          repository: ${{ github.repository }}
+          run-id: ${{ env.PREPARED_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download the source filesystem host proof
+        if: steps.plan.outputs.active == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.SOURCE_ARTIFACT }}
+          path: build/input/source
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.plan.outputs.source_run }}
+          github-token: ${{ github.token }}
+
+      - name: Download and verify the exact HOffice package
+        if: steps.plan.outputs.active == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/deb build/host build/proof
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" \
+            --dir build/input/deb
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/input/deb/$ASSET_NAME" | shasum -a 256 -c -
+
+      - name: Reconstruct the case-sensitive guest and restore exact resources
+        if: steps.plan.outputs.active == 'true'
+        run: |
+          set -euxo pipefail
+          archive=$(find build/input/prepared -type f \
+            -name "$PREPARED_ARCHIVE" -print -quit)
+          test -n "$archive"
+
+          image="$RUNNER_TEMP/hrt-m10-resource-overlay.sparsebundle"
+          root="/tmp/h10o-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"; mkdir -p "$root"
+          if ! hdiutil create -quiet -size 14g -fs APFSX \
+               -volname HRTM10O -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 14g -fs HFSX \
+              -volname HRTM10O -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >>"$GITHUB_ENV"
+          echo "HRT_IMAGE=$image" >>"$GITHUB_ENV"
+          zstd -dc "$archive" | tar -xf - -C "$root"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          paths = json.loads(Path('build/restoration-paths.json').read_text())
+          Path('build/restore-members.txt').write_text(
+              ''.join('./' + path.lstrip('/') + '\n' for path in paths))
+          PY
+
+          deb="build/input/deb/$ASSET_NAME"
+          data_member=$(ar t "$deb" | awk '/^data\.tar/{print; exit}')
+          test -n "$data_member"
+          ar p "$deb" "$data_member" >"build/input/deb/$data_member"
+          tar -xf "build/input/deb/$data_member" -C "$root" \
+            -T build/restore-members.txt
+
+          python3 - "$root" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+          root = pathlib.Path(sys.argv[1])
+          paths = json.loads(pathlib.Path(
+              'build/restoration-paths.json').read_text())
+          restored = []
+          for guest in paths:
+              path = root / guest.lstrip('/')
+              assert path.exists() or path.is_symlink(), guest
+              entry = {
+                  'guest_path': guest,
+                  'type': 'symlink' if path.is_symlink()
+                          else 'directory' if path.is_dir()
+                          else 'file',
+              }
+              if path.is_file() and not path.is_symlink():
+                  data = path.read_bytes()
+                  entry['size'] = len(data)
+                  entry['sha256'] = hashlib.sha256(data).hexdigest()
+              if path.is_symlink():
+                  entry['target'] = str(path.readlink())
+              restored.append(entry)
+          pathlib.Path('build/proof/restored-resources.json').write_text(
+              json.dumps(restored, indent=2) + '\n')
+          print(json.dumps(restored, indent=2))
+          PY
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+          grep -F 'Case-sensitive' build/proof/guest-volume.txt
+
+      - name: Select and sign the exact source host
+        if: steps.plan.outputs.active == 'true'
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import os
+          import pathlib
+          import shutil
+
+          candidates = []
+          for path in pathlib.Path('build/input/source').rglob('*'):
+              if not path.is_file():
+                  continue
+              try:
+                  head = path.read_bytes()[:4]
+              except OSError:
+                  continue
+              if head == bytes.fromhex('cffaedfe'):
+                  candidates.append(path)
+          if not candidates:
+              raise SystemExit('no x86-64 Mach-O host in source proof artifact')
+          candidates.sort(key=lambda path: (
+              'generated' in str(path), -path.stat().st_size, str(path)))
+          selected = candidates[0]
+          destination = pathlib.Path('build/host/hrt-m10-resource-overlay')
+          destination.parent.mkdir(parents=True, exist_ok=True)
+          shutil.copy2(selected, destination)
+          os.chmod(destination, 0o755)
+          pathlib.Path('build/proof/source-host.txt').write_text(
+              str(selected) + '\n')
+          print(selected)
+          PY
+          codesign --force --sign - --timestamp=none \
+            build/host/hrt-m10-resource-overlay
+          codesign --verify --strict build/host/hrt-m10-resource-overlay
+          file build/host/hrt-m10-resource-overlay \
+            | tee build/proof/host-file.txt
+          shasum -a 256 build/host/hrt-m10-resource-overlay \
+            | tee build/proof/host-sha256.txt
+
+      - name: Replay exact HWord with the resource overlay
+        if: steps.plan.outputs.active == 'true'
+        run: |
+          set -uxo pipefail
+          export HRT_M6_CAPTURE_PATH="$PWD/build/proof/pre-frame-window.png"
+          export HRT_M7_CAPTURE_PATH="$PWD/build/proof/hword-resource-overlay.png"
+          : >build/proof/stdout.txt; : >build/proof/stderr.txt
+          /usr/bin/arch -x86_64 build/host/hrt-m10-resource-overlay \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          observed=0
+          for _ in $(jot 1200); do
+            if grep -q 'HRT M6 QPA: CREATE .*title=Word ' \
+                 build/proof/stderr.txt 2>/dev/null; then
+              observed=1; sleep 2; break
+            fi
+            if grep -q 'HRT M6 QPA: CREATE .*title=Exception ' \
+                 build/proof/stderr.txt 2>/dev/null; then
+              observed=2; sleep 1; break
+            fi
+            if grep -q 'fatal signal' build/proof/stderr.txt 2>/dev/null; then
+              observed=3; break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 0.05
+          done
+          alive=0
+          if kill -0 "$pid" 2>/dev/null; then
+            alive=1
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+              >build/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$pid" 2 1 -file build/proof/sample.txt \
+              >/dev/null 2>&1 || true
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.3
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e; wait "$pid"; raw_status=$?; set -e
+          printf '%s\n' "$raw_status" >build/proof/raw-exit-status.txt
+          printf '%s\n' "$alive" >build/proof/alive-at-observation.txt
+          printf '%s\n' "$observed" >build/proof/observed-boundary.txt
+          grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|HRT M9 PATH:|Linux syscall ENOSYS|fatal signal|Exception|error|failed' \
+            build/proof/stderr.txt | tail -n 30000 \
+            | tee build/proof/key-lines.txt || true
+          tail -n 10000 build/proof/stderr.txt >build/proof/stderr-tail.txt
+          cat build/proof/key-lines.txt
+
+      - name: Classify the resource-overlay result
+        if: steps.plan.outputs.active == 'true'
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          stderr = Path('build/proof/stderr.txt').read_text(errors='replace')
+          stdout = Path('build/proof/stdout.txt').read_text(errors='replace')
+          titles = re.findall(
+              r'HRT M6 QPA: CREATE .*? title=(.*?) handle=', stderr)
+          unsupported = sorted({
+              int(match.group(1))
+              for line in stderr.splitlines()
+              if (match := re.search(
+                  r'Linux syscall ENOSYS\s+([0-9]+)', line))
+          })
+          fatal = 'fatal signal' in stderr
+          word = any(title == 'Word' for title in titles)
+          exception = any(title == 'Exception' for title in titles)
+          frame = Path('build/proof/hword-resource-overlay.png')
+          frame_present = frame.is_file() and frame.stat().st_size > 0
+
+          if word and not exception and not fatal:
+              classification = 'HWORD_MAIN_WINDOW_AFTER_RESOURCE_OVERLAY'
+          elif exception:
+              classification = 'EXCEPTION_REMAINS_AFTER_RESOURCE_OVERLAY'
+          elif fatal:
+              classification = 'FATAL_AFTER_RESOURCE_OVERLAY'
+          else:
+              classification = 'NO_DECISIVE_WINDOW_AFTER_RESOURCE_OVERLAY'
+          status = 'PASS' if classification == \
+              'HWORD_MAIN_WINDOW_AFTER_RESOURCE_OVERLAY' else 'DIAGNOSTIC'
+
+          result = {
+              'schema': 1,
+              'milestone': 'M10-resource-overlay',
+              'status': status,
+              'classification': classification,
+              'workflow_run': os.environ['GITHUB_RUN_ID'],
+              'commit': os.environ['GITHUB_SHA'],
+              'source_workflow_run': Path(
+                  'build/source-run-id.txt').read_text().strip(),
+              'program': os.environ['PROGRAM'],
+              'program_sha256': os.environ['PROGRAM_SHA256'],
+              'package_sha256': os.environ['PACKAGE_SHA256'],
+              'window_titles': titles,
+              'restored_resources': json.loads(Path(
+                  'build/proof/restored-resources.json').read_text()),
+              'unsupported_syscalls': unsupported,
+              'fatal_signal_observed': fatal,
+              'frame_present': frame_present,
+              'frame_sha256': hashlib.sha256(frame.read_bytes()).hexdigest()
+                  if frame_present else None,
+              'alive_at_observation': bool(int(Path(
+                  'build/proof/alive-at-observation.txt').read_text())),
+              'raw_exit_status': int(Path(
+                  'build/proof/raw-exit-status.txt').read_text()),
+              'stdout_tail': stdout[-4000:],
+              'stderr_tail': stderr[-12000:],
+          }
+          Path('diagnostics').mkdir(exist_ok=True)
+          payload = json.dumps(result, indent=2) + '\n'
+          Path(f"diagnostics/m10-resource-overlay-{os.environ['GITHUB_RUN_ID']}.json").write_text(payload)
+          Path('diagnostics/m10-resource-overlay-latest.json').write_text(payload)
+          Path('diagnostics/m10-resource-overlay-latest.md').write_text(
+              '# HWord M10 exact resource-overlay replay\n\n'
+              f'- Classification: `{classification}`\n'
+              f'- Windows: `{titles}`\n'
+              f'- Restored resources: `{len(result["restored_resources"])}`\n'
+              f'- Unsupported syscalls: `{unsupported}`\n'
+              f'- Frame present: `{frame_present}`\n'
+          )
+          Path('build/proof/summary.json').write_text(payload)
+          if status == 'PASS':
+              Path('proofs').mkdir(exist_ok=True)
+              Path('proofs/m10-hword-resource-overlay.json').write_text(payload)
+              Path('runtime/m10').mkdir(exist_ok=True)
+              Path('runtime/m10/resource-overlay.json').write_text(
+                  json.dumps({
+                      'schema': 1,
+                      'package_sha256': os.environ['PACKAGE_SHA256'],
+                      'paths': json.loads(Path(
+                          'build/restoration-paths.json').read_text()),
+                      'proof_workflow_run': os.environ['GITHUB_RUN_ID'],
+                  }, indent=2) + '\n')
+          print(payload)
+          PY
+
+      - name: Commit the durable overlay result
+        if: steps.plan.outputs.active == 'true'
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m10-resource-overlay-*.json \
+                  diagnostics/m10-resource-overlay-latest.md
+          if test -f proofs/m10-hword-resource-overlay.json; then
+            git add proofs/m10-hword-resource-overlay.json \
+                    runtime/m10/resource-overlay.json
+          fi
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: classify exact HWord resource overlay'
+          for attempt in $(seq 1 20); do
+            if git push origin "HEAD:$TARGET_BRANCH"; then exit 0; fi
+            git fetch origin "$TARGET_BRANCH"
+            git rebase "origin/$TARGET_BRANCH"
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m10-resource-overlay-proof
+          path: |
+            build/host/hrt-m10-resource-overlay
+            build/proof
+            diagnostics/m10-resource-overlay-*.json
+            diagnostics/m10-resource-overlay-latest.md
+            proofs/m10-hword-resource-overlay.json
+            runtime/m10/resource-overlay.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach the exact guest
+        if: always() && steps.plan.outputs.active == 'true'
+        run: hdiutil detach -quiet "$HRT_ROOT" || true
