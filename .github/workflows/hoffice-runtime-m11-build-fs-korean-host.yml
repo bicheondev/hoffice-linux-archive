@@ -1,0 +1,224 @@
+name: Build filesystem-complete Korean-title HWord input host
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m11/augment_appkit_korean_input_capture.py'
+      - 'runtime/m10/augment_appkit_input_capture.py'
+      - 'runtime/m10/route_synthetic_events_directly.py'
+      - 'runtime/m10/augment_fs_compat.py'
+      - 'runtime/m9/augment_stack_locale.py'
+      - 'runtime/m8/appkit_input.m'
+      - 'runtime/m8/augment_appkit_adapter_input.py'
+      - '.github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hrt-m11-build-fs-korean-host-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-host:
+    runs-on: macos-14
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate the Korean-title AppKit adapter and filesystem-complete bridge
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          mkdir -p build/generated build/objects build/output
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/output/x86-page-size.txt
+          sw_vers | tee build/output/sw-vers.txt
+
+          python3 runtime/m8/augment_appkit_adapter_input.py \
+            runtime/m6/appkit_adapter.m \
+            build/generated/appkit_adapter_m8.m
+          python3 runtime/m11/augment_appkit_korean_input_capture.py \
+            build/generated/appkit_adapter_m8.m \
+            build/generated/appkit_adapter_m11.m
+
+          grep -F 'isEqualToString:@"한워드"' runtime/m8/appkit_input.m
+          grep -F 'HRT M10 APPKIT: staged toolbar new-document click' \
+            runtime/m8/appkit_input.m
+          grep -F 'HRT M10 APPKIT: staged document focus click' \
+            runtime/m8/appkit_input.m
+          grep -F 'HRT M10 APPKIT: staged text input after focus' \
+            runtime/m8/appkit_input.m
+          grep -F 'HRT M10 APPKIT: pre-input capture' \
+            build/generated/appkit_adapter_m11.m
+          grep -F 'HRT M10 APPKIT: post-input capture' \
+            build/generated/appkit_adapter_m11.m
+
+          python3 runtime/m6/augment_stack_hrtappkit.py \
+            runtime/m3/stack.c build/generated/stack-m6.c
+          python3 runtime/m9/augment_stack_locale.py \
+            build/generated/stack-m6.c build/generated/stack.c
+          grep -F 'LANG=ko_KR.UTF-8' build/generated/stack.c
+          grep -F 'LC_ALL=ko_KR.UTF-8' build/generated/stack.c
+
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m10/augment_fs_compat.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage9.c build/generated/stage10.c
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+            build/generated/stage10.c build/generated/stage11.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage11.c build/generated/syscall_bridge.c
+
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('build/generated/syscall_bridge.c')
+          text = path.read_text(encoding='utf-8')
+          anchor = '#define M3_TRACE_LIMIT 256u'
+          if text.count(anchor) != 1:
+              raise SystemExit(
+                  f'trace-limit anchor: expected one, found {text.count(anchor)}')
+          path.write_text(
+              text.replace(anchor, '#define M3_TRACE_LIMIT 12000u'),
+              encoding='utf-8')
+          PY
+
+          grep -F 'case LINUX_SYS_FLOCK:' build/generated/syscall_bridge.c
+          grep -F 'case LINUX_SYS_RENAME:' build/generated/syscall_bridge.c
+          grep -F 'case LINUX_SYS_LINK:' build/generated/syscall_bridge.c
+          grep -F 'case LINUX_SYS_CHMOD:' build/generated/syscall_bridge.c
+          grep -F 'case LINUX_SYS_FSTATFS:' build/generated/syscall_bridge.c
+          grep -F 'case LINUX_SYS_EVENTFD2:' build/generated/syscall_bridge.c
+          grep -F '#define M3_TRACE_LIMIT 12000u' \
+            build/generated/syscall_bridge.c
+          shasum -a 256 build/generated/syscall_bridge.c \
+            >build/output/generated-bridge.sha256
+          shasum -a 256 build/generated/appkit_adapter_m11.m \
+            >build/output/generated-appkit-adapter.sha256
+          shasum -a 256 runtime/m8/appkit_input.m \
+            >build/output/generated-appkit-input.sha256
+
+      - name: Compile, sign, and lock the x86-64 host
+        run: |
+          set -euxo pipefail
+          common=(-arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1)
+          index=0
+          for source in \
+            runtime/m6/main.c \
+            runtime/m6/hostcall_trampoline.c \
+            runtime/m1/common.c \
+            runtime/m3/elf_map.c \
+            build/generated/stack.c \
+            runtime/m3/patch.c \
+            build/generated/syscall_bridge.c; do
+            clang "${common[@]}" -c "$source" \
+              -o "build/objects/c-${index}.o"
+            index=$((index + 1))
+          done
+
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Iruntime/m8 -Iruntime/m6 \
+            -c build/generated/appkit_adapter_m11.m \
+            -o build/objects/appkit-adapter.o
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Iruntime/m8 -Iruntime/m6 \
+            -c runtime/m8/appkit_input.m \
+            -o build/objects/appkit-input.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S \
+            -o build/objects/enter-guest.o
+          clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \
+            -o build/objects/hostcall-trampoline.o
+
+          output=build/output/hrt-m10-hword-main-input
+          clang -arch x86_64 build/objects/*.o \
+            -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO \
+            -o "$output"
+          chmod 0755 "$output"
+          file "$output" | tee build/output/host-file.txt
+          lipo -info "$output" | tee build/output/host-arch.txt
+          codesign --force --sign - --timestamp=none "$output"
+          codesign --verify --strict "$output"
+          shasum -a 256 "$output" | tee build/output/host-sha256.txt
+
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          binary = Path('build/output/hrt-m10-hword-main-input')
+          bridge = Path('build/generated/syscall_bridge.c').read_text(
+              encoding='utf-8')
+          input_source = Path('runtime/m8/appkit_input.m').read_text(
+              encoding='utf-8')
+          lock = {
+              'schema': 1,
+              'workflow_run': os.environ['GITHUB_RUN_ID'],
+              'commit': os.environ['GITHUB_SHA'],
+              'binary': str(binary),
+              'binary_sha256': hashlib.sha256(binary.read_bytes()).hexdigest(),
+              'architecture': 'x86_64',
+              'locale_stack': 'ko_KR.UTF-8',
+              'korean_title_staging':
+                  'isEqualToString:@"한워드"' in input_source,
+              'toolbar_stage':
+                  'staged toolbar new-document click' in input_source,
+              'document_focus_stage':
+                  'staged document focus click' in input_source,
+              'text_stage':
+                  'staged text input after focus' in input_source,
+              'filesystem_syscalls': {
+                  'flock': 'case LINUX_SYS_FLOCK:' in bridge,
+                  'rename': 'case LINUX_SYS_RENAME:' in bridge,
+                  'link': 'case LINUX_SYS_LINK:' in bridge,
+                  'chmod': 'case LINUX_SYS_CHMOD:' in bridge,
+                  'fstatfs': 'case LINUX_SYS_FSTATFS:' in bridge,
+                  'eventfd2': 'case LINUX_SYS_EVENTFD2:' in bridge,
+              },
+              'trace_limit': 12000,
+          }
+          assert lock['korean_title_staging']
+          assert lock['toolbar_stage']
+          assert lock['document_focus_stage']
+          assert lock['text_stage']
+          assert all(lock['filesystem_syscalls'].values())
+          Path('build/output/fs-korean-host-lock.json').write_text(
+              json.dumps(lock, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(lock, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m10-hword-main-window-input-proof
+          path: build/output
+          if-no-files-found: error
+          retention-days: 14
