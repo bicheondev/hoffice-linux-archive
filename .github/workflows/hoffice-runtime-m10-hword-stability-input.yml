@@ -1,0 +1,327 @@
+name: HOffice runtime M10 HWord stability and input
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'proofs/m9-hword-normal-bootstrap.json'
+      - 'proofs/m9-hword-provider-override-bootstrap.json'
+      - '.github/workflows/hoffice-runtime-m10-hword-stability-input.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m10-hword-stability-input-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  QPA_RUN_ID: '31166152504'
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  stability-and-input:
+    runs-on: macos-14
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select the credited M9 runtime path
+        id: mode
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          normal=Path('proofs/m9-hword-normal-bootstrap.json')
+          override=Path('proofs/m9-hword-provider-override-bootstrap.json')
+          if normal.is_file():
+              proof=json.loads(normal.read_text())
+              mode='normal'; runnable='true'; experimental='false'
+          elif override.is_file():
+              proof=json.loads(override.read_text())
+              mode='override'; runnable='true'; experimental='true'
+          else:
+              proof={}; mode='none'; runnable='false'; experimental='false'
+          with open(os.environ['GITHUB_OUTPUT'],'a') as output:
+              output.write(f'mode={mode}\n')
+              output.write(f'runnable={runnable}\n')
+              output.write(f'experimental={experimental}\n')
+              output.write(f'source_run={proof.get("workflow_run","")}\n')
+          print(json.dumps({'mode':mode,'runnable':runnable,'proof':proof},indent=2))
+          PY
+
+      - name: Record a non-runnable frontier without over-crediting it
+        if: steps.mode.outputs.runnable != 'true'
+        run: |
+          mkdir -p diagnostics
+          cat >diagnostics/m10-hword-stability-input-latest.json <<JSON
+          {
+            "schema": 1,
+            "milestone": "M10",
+            "status": "BLOCKED",
+            "classification": "M9_BOOTSTRAP_PROOF_NOT_PRESENT",
+            "workflow_run": "$GITHUB_RUN_ID",
+            "commit": "$GITHUB_SHA"
+          }
+          JSON
+
+      - name: Download the credited M9 runtime and prepared guest
+        if: steps.mode.outputs.runnable == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: hrt-m9-bootstrap-*
+          path: build/input/m9
+          merge-multiple: false
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.mode.outputs.source_run }}
+          github-token: ${{ github.token }}
+
+      - name: Download the exact Qt 5.11.3 AppKit QPA
+        if: steps.mode.outputs.runnable == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m8-qt5113-hrtappkit-input-qpa
+          path: build/input/qpa
+          repository: ${{ github.repository }}
+          run-id: ${{ env.QPA_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Reconstruct the credited case-sensitive guest and runtime
+        if: steps.mode.outputs.runnable == 'true'
+        run: |
+          set -euxo pipefail
+          mkdir -p build/proof diagnostics proofs
+          prepared=$(find build/input/m9 -type f \
+            -name hword-m9-prepared-rootfs.tar.zst -print -quit)
+          checksum=$(find build/input/m9 -type f \
+            -name hword-m9-prepared-rootfs.tar.zst.sha256 -print -quit)
+          test -n "$prepared"; test -n "$checksum"
+          expected=$(awk '{print $1; exit}' "$checksum")
+          actual=$(shasum -a 256 "$prepared" | awk '{print $1}')
+          test "$actual" = "$expected"
+
+          image="$RUNNER_TEMP/hrt-m10.sparsebundle"
+          root="/tmp/h10-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"; mkdir -p "$root"
+          if ! hdiutil create -quiet -size 12g -fs APFSX \
+               -volname HRTM10 -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 12g -fs HFSX \
+              -volname HRTM10 -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >>"$GITHUB_ENV"
+          echo "HRT_IMAGE=$image" >>"$GITHUB_ENV"
+          zstd -dc "$prepared" | tar -xf - -C "$root"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+          test -s "$root/usr/lib/locale/locale-archive"
+
+          mkdir -p "$root$(dirname "$PLUGIN_GUEST")"
+          python3 - build/input/qpa/libqhrtappkit.so.xz \
+            build/input/qpa/lock.json "$root$PLUGIN_GUEST" <<'PY'
+          import hashlib,json,lzma,pathlib,sys
+          compressed=pathlib.Path(sys.argv[1]).read_bytes()
+          lock=json.loads(pathlib.Path(sys.argv[2]).read_text())
+          assert lock['toolchain']['qt_version']=='5.11.3'
+          assert hashlib.sha256(compressed).hexdigest()==lock['plugin']['xz_sha256']
+          plugin=lzma.decompress(compressed)
+          assert hashlib.sha256(plugin).hexdigest()==lock['plugin']['sha256_after_prepatch']
+          pathlib.Path(sys.argv[3]).write_bytes(plugin)
+          pathlib.Path('build/proof/qpa-lock.json').write_text(
+              json.dumps(lock,indent=2)+'\n')
+          PY
+          chmod 0755 "$root$PLUGIN_GUEST"
+
+          mode='${{ steps.mode.outputs.mode }}'
+          if [ "$mode" = normal ]; then
+            runtime=$(find build/input/m9 -type f \
+              -name hrt-m9-baseline -print -quit)
+          else
+            runtime=$(find build/input/m9 -type f \
+              -name hrt-m9-provider-override -print -quit)
+            diagnosis=$(find build/input/m9 -type f \
+              -name provider-diagnosis.json -print -quit)
+            test -n "$diagnosis"
+            python3 runtime/m9/patch_provider_methods.py \
+              --root "$root" --diagnosis "$diagnosis" \
+              --manifest build/proof/provider-patch-manifest.json
+          fi
+          test -n "$runtime"; test -f "$runtime"
+          cp "$runtime" build/hrt-m10-hword
+          chmod 0755 build/hrt-m10-hword
+          codesign --verify --strict build/hrt-m10-hword
+          file build/hrt-m10-hword | tee build/proof/runtime-file.txt
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+          grep -F 'Case-sensitive' build/proof/guest-volume.txt
+
+      - name: Run HWord for a sustained event-loop and input interval
+        if: steps.mode.outputs.runnable == 'true'
+        run: |
+          set -uxo pipefail
+          export HRT_M6_CAPTURE_PATH="$PWD/build/proof/pre-frame-window.png"
+          export HRT_M7_CAPTURE_PATH="$PWD/build/proof/hword-m10-frame.png"
+          export HRT_M8_SYNTHETIC_INPUT=1
+          : >build/proof/stdout.txt; : >build/proof/stderr.txt
+          /usr/bin/arch -x86_64 build/hrt-m10-hword \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          start=$(date +%s)
+          survived_30=0
+          survived_45=0
+          while kill -0 "$pid" 2>/dev/null; do
+            now=$(date +%s)
+            elapsed=$((now-start))
+            if [ "$elapsed" -ge 30 ]; then survived_30=1; fi
+            if [ "$elapsed" -ge 45 ]; then survived_45=1; break; fi
+            sleep 0.25
+          done
+          if kill -0 "$pid" 2>/dev/null; then
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+              >build/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$pid" 2 1 -file build/proof/sample.txt \
+              >/dev/null 2>&1 || true
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.25
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e; wait "$pid"; raw_status=$?; set -e
+          printf '%s\n' "$raw_status" >build/proof/raw-exit-status.txt
+          printf '%s\n' "$survived_30" >build/proof/survived-30.txt
+          printf '%s\n' "$survived_45" >build/proof/survived-45.txt
+          grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA: BGRA frame accepted|HRT M8|input|Initialization Error|out_of_range|fatal signal|Linux syscall ENOSYS' \
+            build/proof/stderr.txt | tail -n 20000 \
+            | tee build/proof/key-lines.txt || true
+          cat build/proof/key-lines.txt
+
+      - name: Classify stable rendering and input transport
+        if: steps.mode.outputs.runnable == 'true'
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,re
+          from pathlib import Path
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          titles=[]; geometries=[]
+          for line in re.findall(r'HRT M6 QPA: CREATE .*',stderr):
+              title=re.search(r' title=(.*?) handle=',line)
+              geometry=re.search(r' geometry=(\d+)x(\d+)',line)
+              if title: titles.append(title.group(1))
+              if geometry: geometries.append([
+                  int(geometry.group(1)),int(geometry.group(2))])
+          frames=[line for line in stderr.splitlines()
+                  if 'HRT M7 QPA: BGRA frame accepted' in line]
+          input_lines=[line for line in stderr.splitlines()
+                       if ('HRT M8' in line or
+                           re.search(r'(?i)(synthetic|mouse|key).*input',line))]
+          survived30=bool(int(Path('build/proof/survived-30.txt').read_text()))
+          survived45=bool(int(Path('build/proof/survived-45.txt').read_text()))
+          frame=Path('build/proof/hword-m10-frame.png')
+          frame_present=frame.is_file() and frame.stat().st_size>0
+          init_error='Initialization Error' in titles
+          throw_seen=('__pos (which is' in stderr or 'std::out_of_range' in stderr)
+          fatal=('fatal signal' in stderr)
+          if not titles: classification='NO_NATIVE_QT_WINDOW'
+          elif init_error: classification='INITIALIZATION_ERROR'
+          elif throw_seen: classification='CXX_EXCEPTION'
+          elif fatal: classification='FATAL_SIGNAL'
+          elif not survived30: classification='EVENT_LOOP_DIED_BEFORE_30_SECONDS'
+          elif not frame_present: classification='NO_CAPTURED_FRAME'
+          elif len(frames)<2: classification='REPEATED_FRAMES_NOT_OBSERVED'
+          elif not input_lines: classification='INPUT_TRANSPORT_NOT_OBSERVED'
+          elif survived45: classification='STABLE_45S_REPEATED_FRAMES_AND_INPUT'
+          else: classification='STABLE_30S_REPEATED_FRAMES_AND_INPUT'
+          passed=classification in (
+              'STABLE_45S_REPEATED_FRAMES_AND_INPUT',
+              'STABLE_30S_REPEATED_FRAMES_AND_INPUT')
+          experimental=os.environ.get('M10_EXPERIMENTAL','false')=='true'
+          result={
+              'schema':1,'milestone':'M10',
+              'status':'EXPERIMENTAL_PASS' if passed and experimental
+                       else ('PASS' if passed else 'DIAGNOSTIC'),
+              'classification':classification,
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'mode':os.environ.get('M10_MODE'),
+              'experimental_provider_override':experimental,
+              'source_m9_run':os.environ.get('M10_SOURCE_RUN'),
+              'program':os.environ['PROGRAM'],
+              'program_sha256':os.environ['PROGRAM_SHA256'],
+              'window_titles':titles,'window_geometries':geometries,
+              'frame_count':len(frames),'input_marker_count':len(input_lines),
+              'input_markers':input_lines[-100:],
+              'survived_30_seconds':survived30,
+              'survived_45_seconds':survived45,
+              'frame_present':frame_present,
+              'frame_sha256':hashlib.sha256(frame.read_bytes()).hexdigest()
+                  if frame_present else None,
+              'initialization_error_observed':init_error,
+              'cxx_exception_observed':throw_seen,
+              'fatal_signal_observed':fatal,
+              'raw_exit_status':int(Path('build/proof/raw-exit-status.txt').read_text()),
+          }
+          payload=json.dumps(result,indent=2)+'\n'
+          Path('diagnostics/m10-hword-stability-input-latest.json').write_text(payload)
+          Path(f"diagnostics/m10-hword-stability-input-{os.environ['GITHUB_RUN_ID']}.json").write_text(payload)
+          Path('diagnostics/m10-hword-stability-input-latest.md').write_text(
+              '# HWord M10 stability and input\n\n'
+              f"- Status: `{result['status']}`\n"
+              f"- Classification: `{classification}`\n"
+              f"- Mode: `{result['mode']}`\n"
+              f"- 30-second survival: `{survived30}`\n"
+              f"- 45-second survival: `{survived45}`\n"
+              f"- BGRA frame markers: `{len(frames)}`\n"
+              f"- Input markers: `{len(input_lines)}`\n")
+          if result['status']=='PASS':
+              Path('proofs/m10-hword-stable-event-loop-input.json').write_text(payload)
+          elif result['status']=='EXPERIMENTAL_PASS':
+              Path('proofs/m10-hword-stable-event-loop-input-experimental.json').write_text(payload)
+          print(payload)
+          PY
+        env:
+          M10_MODE: ${{ steps.mode.outputs.mode }}
+          M10_EXPERIMENTAL: ${{ steps.mode.outputs.experimental }}
+          M10_SOURCE_RUN: ${{ steps.mode.outputs.source_run }}
+
+      - name: Commit the durable M10 frontier
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git add diagnostics/m10-hword-stability-input-*.json \
+                  diagnostics/m10-hword-stability-input-latest.md 2>/dev/null || true
+          if test -f proofs/m10-hword-stable-event-loop-input.json; then
+            git add proofs/m10-hword-stable-event-loop-input.json
+          fi
+          if test -f proofs/m10-hword-stable-event-loop-input-experimental.json; then
+            git add proofs/m10-hword-stable-event-loop-input-experimental.json
+          fi
+          if ! git diff --cached --quiet; then
+            git commit -m 'diagnostic: classify HWord M10 stability and input'
+            git push origin HEAD:codex/hoffice-runtime-from-scratch
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m10-hword-stability-input-proof
+          path: |
+            build/proof
+            diagnostics/m10-hword-stability-input-*.json
+            diagnostics/m10-hword-stability-input-latest.md
+            proofs/m10-hword-stable-event-loop-input*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach the exact HWord guest
+        if: always() && steps.mode.outputs.runnable == 'true'
+        run: hdiutil detach -quiet "$HRT_ROOT" || true
