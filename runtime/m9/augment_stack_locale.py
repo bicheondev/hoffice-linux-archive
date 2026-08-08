@@ -77,3 +77,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+# Trigger note: the prepared artifact is now flattened through an intermediate
+# directory symlink so the workflow receives regular archive/report files.
