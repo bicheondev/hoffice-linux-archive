@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "milestone": "M10-clone-chdir",
+  "status": "PASS",
+  "workflow_run": "31272935592",
+  "commit": "7d24835de76031f54febd5bcbcd12c07e7c73c2b",
+  "runner": "macos-14-arm64-rosetta-x86_64",
+  "clone_flags": "0x3d0f00",
+  "assembly_tls_switch": true,
+  "child_resumed": true,
+  "child_clear_tid_observed": true,
+  "guest_chdir": "/opt/hrt/subdir",
+  "clone_enosys": false,
+  "chdir_enosys": false,
+  "stdout_sha256": "0366e2e1de75fb7bae5846cb3083315a5beefb8b8a2c095bc19b1aa535896cbd",
+  "stderr_sha256": "10162db69b5e4d89ccd1d375e2034dc10c802a7526b5c02b7a2c05448863a367",
+  "exit_status": 0
+}
