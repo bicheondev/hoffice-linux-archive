@@ -4,7 +4,21 @@
 .hidden _start
 .type _start,@function
 _start:
-    /* Verify guest-root-confined chdir and getcwd first. */
+    /*
+     * GitHub artifacts do not retain empty directories.  Create the probe
+     * directory through the Linux mkdir bridge before validating confined
+     * chdir/getcwd.  EEXIST remains acceptable for local reruns.
+     */
+    movq $83, %rax
+    leaq .Ldirectory(%rip), %rdi
+    movq $0755, %rsi
+    syscall
+    testq %rax, %rax
+    jz .Ldirectory_ready
+    cmpq $-17, %rax
+    jne .Lfailure
+
+.Ldirectory_ready:
     movq $80, %rax
     leaq .Ldirectory(%rip), %rdi
     syscall
