@@ -1,6 +1,6 @@
 # Custom QPA and host-call inventory
 
-- Commit: `cb242181d08a0f7e965380543c2ac873a7cc337f`
+- Commit: `dd6c9929928a9e7914c1afd6cb3c87345577f32e`
 - Matching files: `175`
 
 - `opcode_256`: `1185` matches
@@ -9,7 +9,7 @@
 - `custom_qpa`: `1000` matches
 - `appkit`: `178` matches
 - `rendering`: `262` matches
-- `input_ime`: `2813` matches
+- `input_ime`: `2814` matches
 
 ## opcode_256
 
@@ -1080,8 +1080,8 @@
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:159` — `void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:286` — `void QHrtAppKitBackingStore::flush(QWindow *target,`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:293` — `const qint64 hostWindow = QHrtAppKitWindow::hostWindowFor(topLevel);`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:13` — `class QHrtAppKitBackingStore : public QOffscreenBackingStore`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:16` — `explicit QHrtAppKitBackingStore(QWindow *window);`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:14` — `class QHrtAppKitBackingStore : public QOffscreenBackingStore`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:17` — `explicit QHrtAppKitBackingStore(QWindow *window);`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:9` — `QHrtAppKitIntegration::QHrtAppKitIntegration()`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:15` — `QPlatformWindow *QHrtAppKitIntegration::createPlatformWindow(QWindow *window) const`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:17` — `QPlatformWindow *platformWindow = new QHrtAppKitWindow(window);`
@@ -1254,10 +1254,10 @@
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:297` — `QPaintDevice *device = paintDevice();`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:1` — `#ifndef QHRTAPPKITBACKINGSTORE_H`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:2` — `#define QHRTAPPKITBACKINGSTORE_H`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:11` — `// backing-store source; the stable class ABI remains unchanged here.  This`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:13` — `class QHrtAppKitBackingStore : public QOffscreenBackingStore`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:16` — `explicit QHrtAppKitBackingStore(QWindow *window);`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:18` — `void flush(QWindow *window,`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:11` — `// QInputMethodEvent fallback in the generated backing-store source; the stable`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:14` — `class QHrtAppKitBackingStore : public QOffscreenBackingStore`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:17` — `explicit QHrtAppKitBackingStore(QWindow *window);`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:19` — `void flush(QWindow *window,`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:2` — `#include "qhrtappkitbackingstore.h"`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:22` — `QPlatformBackingStore *`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:23` — `QHrtAppKitIntegration::createPlatformBackingStore(QWindow *window) const`
@@ -1525,8 +1525,9 @@
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:267` — `++m_mouseEventsDelivered;`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:282` — `static_cast<unsigned long long>(m_keyEventsDelivered),`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:283` — `static_cast<unsigned long long>(m_mouseEventsDelivered));`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:26` — `quint64 m_keyEventsDelivered;`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:27` — `quint64 m_mouseEventsDelivered;`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:11` — `// QInputMethodEvent fallback in the generated backing-store source; the stable`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:27` — `quint64 m_keyEventsDelivered;`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:28` — `quint64 m_mouseEventsDelivered;`
 - `.github/workflows/hoffice-legacy-openssl-audit.yml:5` — `branches: [codex/hoffice-runtime-from-scratch]`
 - `.github/workflows/hoffice-legacy-openssl-audit.yml:21` — `timeout-minutes: 10`
 - `.github/workflows/hoffice-runtime-abi-lock.yml:1` — `name: HOffice runtime ABI lock`
@@ -1777,5 +1778,4 @@
 - `.github/workflows/hoffice-runtime-m1-v2.yml:8` — `- '.github/workflows/hoffice-runtime-m1-v2.yml'`
 - `.github/workflows/hoffice-runtime-m1-v2.yml:24` — `clang -c -nostdlib -fPIC runtime/m1/test_interp.S \`
 - `.github/workflows/hoffice-runtime-m1-v2.yml:29` — `clang -c -nostdlib -fPIE runtime/m1/test_main.S \`
-- `.github/workflows/hoffice-runtime-m1-v2.yml:66` — `runtime/m1/main.c runtime/m1/common.c runtime/m1/elf_map.c \`
-- … 2513 more matches in JSON
+- … 2514 more matches in JSON

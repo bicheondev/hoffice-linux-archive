@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "commit": "cb242181d08a0f7e965380543c2ac873a7cc337f",
-  "workflow_run": "31269470130",
+  "commit": "dd6c9929928a9e7914c1afd6cb3c87345577f32e",
+  "workflow_run": "31269516976",
   "file_count": 175,
   "match_counts": {
     "opcode_256": 1185,
@@ -10,7 +10,7 @@
     "custom_qpa": 1000,
     "appkit": 178,
     "rendering": 262,
-    "input_ime": 2813
+    "input_ime": 2814
   },
   "files": [
     {
@@ -177,8 +177,8 @@
     },
     {
       "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-      "sha256": "e707ef31f1d2ddf3c9b9e4070c2a02dbdd8e57bd5d105b9087359a24508d7fbb",
-      "size": 841,
+      "sha256": "fec6ed38dd758d65bc432dc674731e6653f5da4ccf6973bafe244ff1923ad617",
+      "size": 891,
       "groups": [
         "appkit",
         "input_ime",
@@ -16543,12 +16543,12 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 13,
+        "line": 14,
         "text": "class QHrtAppKitBackingStore : public QOffscreenBackingStore"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 16,
+        "line": 17,
         "text": "explicit QHrtAppKitBackingStore(QWindow *window);"
       },
       {
@@ -17401,21 +17401,21 @@
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
         "line": 11,
-        "text": "// backing-store source; the stable class ABI remains unchanged here.  This"
+        "text": "// QInputMethodEvent fallback in the generated backing-store source; the stable"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 13,
+        "line": 14,
         "text": "class QHrtAppKitBackingStore : public QOffscreenBackingStore"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 16,
+        "line": 17,
         "text": "explicit QHrtAppKitBackingStore(QWindow *window);"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 18,
+        "line": 19,
         "text": "void flush(QWindow *window,"
       },
       {
@@ -18742,12 +18742,17 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 26,
-        "text": "quint64 m_keyEventsDelivered;"
+        "line": 11,
+        "text": "// QInputMethodEvent fallback in the generated backing-store source; the stable"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
         "line": 27,
+        "text": "quint64 m_keyEventsDelivered;"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
+        "line": 28,
         "text": "quint64 m_mouseEventsDelivered;"
       },
       {
