@@ -1,0 +1,132 @@
+name: Promote verified M10 filesystem compatibility
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'diagnostics/m10-fs-eventfd2-orchestrated-latest.json'
+      - 'diagnostics/m10-fs-path-trace-latest.json'
+      - 'diagnostics/m10-resource-overlay-latest.json'
+      - '.github/workflows/hoffice-runtime-m10-promote-fs-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hrt-m10-promote-fs-proof-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TARGET_BRANCH: codex/hoffice-runtime-from-scratch
+
+jobs:
+  promote:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select only a fully demonstrated filesystem PASS
+        id: proof
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          candidates = [
+              Path('diagnostics/m10-resource-overlay-latest.json'),
+              Path('diagnostics/m10-fs-path-trace-latest.json'),
+              Path('diagnostics/m10-fs-eventfd2-orchestrated-latest.json'),
+          ]
+          accepted = []
+          for path in candidates:
+              if not path.is_file():
+                  continue
+              try:
+                  data = json.loads(path.read_text())
+              except Exception:
+                  continue
+              classification = str(
+                  data.get('classification') or data.get('frontier') or '')
+              windows = data.get('window_titles') or []
+              pass_boundary = (
+                  data.get('status') == 'PASS' and
+                  (
+                      classification in {
+                          'HWORD_MAIN_WINDOW_AFTER_RESOURCE_OVERLAY',
+                          'FILESYSTEM_PATH_TRACE_PASS',
+                          'FILESYSTEM_COMPATIBILITY_PASS',
+                          'HWORD_WINDOW_AFTER_FS_COMPAT',
+                      }
+                      or 'Word' in windows
+                  ) and
+                  not data.get('fatal_signal_observed', False) and
+                  82 not in (data.get('unsupported_syscalls') or []) and
+                  290 not in (data.get('unsupported_syscalls') or [])
+              )
+              if pass_boundary:
+                  accepted.append((path, data))
+
+          if not accepted:
+              with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
+                  output.write('promote=false\n')
+              print('No qualifying M10 filesystem PASS is present.')
+              raise SystemExit(0)
+
+          source_path, source = accepted[0]
+          proof = {
+              'schema': 1,
+              'milestone': 'M10-filesystem-compatibility',
+              'status': 'PASS',
+              'source_diagnostic': str(source_path),
+              'source_workflow_run': source.get(
+                  'workflow_run', source.get('source_workflow_run')),
+              'source_commit': source.get('commit', source.get('source_commit')),
+              'program': source.get(
+                  'program', '/opt/hnc/hoffice11/Bin/hword'),
+              'program_sha256': source.get(
+                  'program_sha256',
+                  '55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb'),
+              'package_sha256': source.get(
+                  'package_sha256',
+                  '23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46'),
+              'classification': source.get(
+                  'classification', source.get('frontier')),
+              'window_titles': source.get('window_titles'),
+              'unsupported_syscalls': source.get('unsupported_syscalls'),
+              'resource_overlay': source.get('restored_resources'),
+              'proof': (
+                  'Exact HWord advanced beyond filesystem bootstrap with '
+                  'atomic rename and eventfd2 translated, no fatal signal, '
+                  'and a real Word window observed.'
+              ),
+          }
+          Path('proofs').mkdir(exist_ok=True)
+          Path('proofs/m10-hword-filesystem-compatibility.json').write_text(
+              json.dumps(proof, indent=2) + '\n')
+          with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
+              output.write('promote=true\n')
+          print(json.dumps(proof, indent=2))
+          PY
+
+      - name: Commit the durable M10 proof
+        if: steps.proof.outputs.promote == 'true'
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add proofs/m10-hword-filesystem-compatibility.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'proof: verify M10 exact HWord filesystem compatibility'
+          for attempt in $(seq 1 20); do
+            if git push origin "HEAD:$TARGET_BRANCH"; then exit 0; fi
+            git fetch origin "$TARGET_BRANCH"
+            git rebase "origin/$TARGET_BRANCH"
+            sleep "$attempt"
+          done
+          exit 1
