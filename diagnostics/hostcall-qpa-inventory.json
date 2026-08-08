@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "commit": "98dce8f4a04f6646a526e3611439369f9b5d775f",
-  "workflow_run": "31268595215",
+  "commit": "b2682ce28cf9bbe41b5d643d168bf46eef3e066d",
+  "workflow_run": "31268780541",
   "file_count": 175,
   "match_counts": {
     "opcode_256": 1185,
@@ -177,8 +177,8 @@
     },
     {
       "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-      "sha256": "f68703bee2adbdeb68a54744ed093451b4aafe7713c450a9af80be5853477f13",
-      "size": 756,
+      "sha256": "c500fa31e6bab67c711d521c108c3b49fbc8744da51ab5bd9561c6567faa46ea",
+      "size": 842,
       "groups": [
         "appkit",
         "input_ime",
@@ -16538,12 +16538,12 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 12,
+        "line": 13,
         "text": "class QHrtAppKitBackingStore : public QOffscreenBackingStore"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 15,
+        "line": 16,
         "text": "explicit QHrtAppKitBackingStore(QWindow *window);"
       },
       {
@@ -17396,21 +17396,21 @@
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
         "line": 11,
-        "text": "// backing-store source; the stable class ABI remains unchanged here."
+        "text": "// backing-store source; the stable class ABI remains unchanged here.  This"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 12,
+        "line": 13,
         "text": "class QHrtAppKitBackingStore : public QOffscreenBackingStore"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 15,
+        "line": 16,
         "text": "explicit QHrtAppKitBackingStore(QWindow *window);"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 17,
+        "line": 18,
         "text": "void flush(QWindow *window,"
       },
       {
@@ -18737,12 +18737,12 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 25,
+        "line": 26,
         "text": "quint64 m_keyEventsDelivered;"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 26,
+        "line": 27,
         "text": "quint64 m_mouseEventsDelivered;"
       },
       {
