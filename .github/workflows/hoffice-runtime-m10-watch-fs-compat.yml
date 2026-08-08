@@ -1,0 +1,236 @@
+name: Watch M10 filesystem replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-watch-fs-compat.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m10-watch-fs-compat-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TARGET_BRANCH: codex/hoffice-runtime-from-scratch
+  TARGET_WORKFLOW: hoffice-runtime-m10-hword-fs-compat.yml
+  ARTIFACT_NAME: hrt-m10-hword-fs-compat-proof
+
+jobs:
+  persist-frontier:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Wait for the latest exact-HWord filesystem replay
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input build/report
+          workflow_url="repos/$GITHUB_REPOSITORY/actions/workflows/$TARGET_WORKFLOW/runs"
+
+          run_id=
+          for attempt in $(seq 1 90); do
+            response=$(gh api "$workflow_url" \
+              -f branch="$TARGET_BRANCH" -f per_page=10)
+            run_id=$(printf '%s' "$response" | jq -r \
+              '.workflow_runs | map(select(.event == "workflow_dispatch" or .event == "push")) | .[0].id // empty')
+            status=$(printf '%s' "$response" | jq -r \
+              '.workflow_runs | map(select(.event == "workflow_dispatch" or .event == "push")) | .[0].status // empty')
+            conclusion=$(printf '%s' "$response" | jq -r \
+              '.workflow_runs | map(select(.event == "workflow_dispatch" or .event == "push")) | .[0].conclusion // empty')
+            echo "attempt=$attempt run=$run_id status=$status conclusion=$conclusion"
+            if test -n "$run_id" && test "$status" = completed; then
+              break
+            fi
+            sleep 20
+          done
+          test -n "$run_id"
+          test "$status" = completed
+          printf '%s\n' "$run_id" >build/report/source-run-id.txt
+          printf '%s\n' "$conclusion" >build/report/source-conclusion.txt
+
+          gh run download "$run_id" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "$ARTIFACT_NAME" \
+            --dir build/input
+          find build/input -type f -maxdepth 8 -print | LC_ALL=C sort \
+            | tee build/report/artifact-files.txt
+
+      - name: Normalize the durable replay diagnosis
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          root = Path('build/input')
+          run_id = Path('build/report/source-run-id.txt').read_text().strip()
+          conclusion = Path('build/report/source-conclusion.txt').read_text().strip()
+
+          candidates = list(root.rglob('summary.json'))
+          candidates += list(root.rglob('m10-hword-fs-compat-*.json'))
+          parsed = []
+          for path in candidates:
+              try:
+                  value = json.loads(path.read_text(errors='replace'))
+              except Exception:
+                  continue
+              if isinstance(value, dict):
+                  parsed.append((path, value))
+
+          source_path = None
+          source = {}
+          for path, value in parsed:
+              if value.get('milestone') in {
+                  'M10-fs-compat', 'M10-filesystem-compatibility'
+              } or 'classification' in value:
+                  source_path, source = path, value
+                  break
+          if source_path is None and parsed:
+              source_path, source = parsed[0]
+
+          stderr_paths = list(root.rglob('stderr.txt'))
+          stderr = stderr_paths[0].read_text(errors='replace') \
+              if stderr_paths else ''
+          stdout_paths = list(root.rglob('stdout.txt'))
+          stdout = stdout_paths[0].read_text(errors='replace') \
+              if stdout_paths else ''
+
+          unsupported = sorted({
+              int(match.group(1))
+              for line in stderr.splitlines()
+              if (match := re.search(
+                  r'Linux syscall ENOSYS\s+([0-9]+)', line))
+          })
+          source_unsupported = source.get('unsupported_syscalls')
+          if isinstance(source_unsupported, list):
+              unsupported = sorted({
+                  *unsupported,
+                  *(int(item) for item in source_unsupported
+                    if str(item).lstrip('-').isdigit()),
+              })
+
+          windows = source.get('window_titles') or re.findall(
+              r'HRT M6 QPA: CREATE .*? title=(.*?) handle=', stderr)
+          classification = source.get('classification')
+          if not classification:
+              if any(title == 'Exception' for title in windows):
+                  classification = 'EXCEPTION_DIALOG_REMAINS'
+              elif any(title == 'Word' for title in windows):
+                  classification = 'HWORD_MAIN_WINDOW_REACHED'
+              elif 'fatal signal' in stderr:
+                  classification = 'FATAL_SIGNAL'
+              else:
+                  classification = 'UNCLASSIFIED'
+
+          eventfd2_called = bool(re.search(
+              r'(?:syscall|opcode)[ =]290\b|LINUX_SYS_EVENTFD2', stderr))
+          eventfd2_enosys = 290 in unsupported
+          rename_enosys = 82 in unsupported
+          failed_paths = []
+          for line in stderr.splitlines():
+              if any(token in line.lower() for token in (
+                  'no such file', 'permission denied', 'read-only',
+                  'fontconfig', 'cache', 'rename', 'exception')):
+                  failed_paths.append(line[-1200:])
+          failed_paths = failed_paths[-300:]
+
+          if eventfd2_enosys:
+              frontier = 'EVENTFD2_WRAPPER_NOT_ACTIVE'
+          elif rename_enosys:
+              frontier = 'ATOMIC_RENAME_STILL_UNSUPPORTED'
+          elif classification in {
+              'HWORD_MAIN_WINDOW_REACHED',
+              'HWORD_WINDOW_AFTER_FS_COMPAT',
+          }:
+              frontier = 'FILESYSTEM_COMPATIBILITY_PASS'
+          elif any(title == 'Exception' for title in windows):
+              frontier = 'EXCEPTION_AFTER_EVENTFD2_AND_RENAME'
+          else:
+              frontier = classification
+
+          result = {
+              'schema': 1,
+              'milestone': 'M10-fs-eventfd2-followup',
+              'status': 'PASS' if frontier == 'FILESYSTEM_COMPATIBILITY_PASS'
+                                 else 'DIAGNOSTIC',
+              'frontier': frontier,
+              'source_workflow_run': run_id,
+              'source_workflow_conclusion': conclusion,
+              'source_summary_path': str(source_path) if source_path else None,
+              'source_summary': source,
+              'classification': classification,
+              'window_titles': windows,
+              'unsupported_syscalls': unsupported,
+              'eventfd2_called': eventfd2_called,
+              'eventfd2_enosys': eventfd2_enosys,
+              'rename_enosys': rename_enosys,
+              'fatal_signal_observed': 'fatal signal' in stderr,
+              'failed_path_lines': failed_paths,
+              'stdout_tail': stdout[-4000:],
+              'stderr_tail': stderr[-12000:],
+          }
+
+          Path('diagnostics').mkdir(exist_ok=True)
+          payload = json.dumps(result, indent=2) + '\n'
+          Path(f'diagnostics/m10-fs-eventfd2-followup-{run_id}.json').write_text(
+              payload)
+          Path('diagnostics/m10-fs-eventfd2-followup-latest.json').write_text(
+              payload)
+          Path('diagnostics/m10-fs-eventfd2-followup-latest.md').write_text(
+              '# HWord M10 filesystem/eventfd2 frontier\n\n'
+              f'- Source run: `{run_id}`\n'
+              f'- Source conclusion: `{conclusion}`\n'
+              f'- Frontier: `{frontier}`\n'
+              f'- Classification: `{classification}`\n'
+              f'- Windows: `{windows}`\n'
+              f'- Unsupported syscalls: `{unsupported}`\n'
+              f'- eventfd2 ENOSYS: `{eventfd2_enosys}`\n'
+              f'- rename ENOSYS: `{rename_enosys}`\n'
+          )
+          Path('build/report/normalized-summary.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Commit the normalized frontier with retry
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m10-fs-eventfd2-followup-*.json \
+                  diagnostics/m10-fs-eventfd2-followup-latest.md
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'diagnostic: persist M10 filesystem eventfd2 frontier'
+          for attempt in $(seq 1 16); do
+            if git push origin "HEAD:$TARGET_BRANCH"; then
+              exit 0
+            fi
+            git fetch origin "$TARGET_BRANCH"
+            git rebase "origin/$TARGET_BRANCH"
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m10-fs-eventfd2-followup
+          path: |
+            build/report
+            diagnostics/m10-fs-eventfd2-followup-*.json
+            diagnostics/m10-fs-eventfd2-followup-latest.md
+          if-no-files-found: warn
+          retention-days: 14
