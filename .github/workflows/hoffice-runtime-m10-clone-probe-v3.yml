@@ -80,7 +80,9 @@ jobs:
           grep -q 'case LINUX_SYS_CLONE:' build/generated/syscall_bridge.c
           grep -q 'case LINUX_SYS_CHDIR:' build/generated/syscall_bridge.c
           grep -q 'pthread_create(' build/generated/syscall_bridge.c
-          grep -q 'Guest GS is switched by the already-entered assembly leaf' \
+          grep -q 'The assembly leaf owns both the guest TLS switch' \
+            build/generated/syscall_bridge.c
+          grep -q 'Normal return now executes on the original pthread stack' \
             build/generated/syscall_bridge.c
           ! grep -F '(void)raw_set_gs(context->guest_gs);' \
             build/generated/syscall_bridge.c
