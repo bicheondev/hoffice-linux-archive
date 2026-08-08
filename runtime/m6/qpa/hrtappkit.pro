@@ -17,15 +17,18 @@ system(ln -sf /usr/lib/x86_64-linux-gnu/libfontconfig.so.1 $$HRT_COMPAT_LIBDIR/l
 system(ln -sf /usr/lib/x86_64-linux-gnu/libfreetype.so.6 $$HRT_COMPAT_LIBDIR/libfreetype.so)
 QMAKE_LIBDIR += $$HRT_COMPAT_LIBDIR
 
-# Generate the QWidget-aware backing-store variant in the build directory so
-# the stable M7/M8 implementation remains auditable and the M10 additions stay
-# exact-anchor/fail-closed.
+# Generate the QWidget-aware variant in two fail-closed passes.  The first pass
+# adds hit testing and focus-object delivery; the second guarantees that the
+# HWord New QToolButton emits its application signal and records every visible
+# focus candidate beneath the document point.
+HRT_M10_WIDGET_BASE = $$OUT_PWD/qhrtappkitbackingstore_widget.cpp
 HRT_M10_BACKINGSTORE = $$OUT_PWD/qhrtappkitbackingstore_m10.cpp
-system(python3 $$PWD/../../m10/augment_qpa_widget_input.py $$PWD/qhrtappkitbackingstore.cpp $$HRT_M10_BACKINGSTORE)
+system(python3 $$PWD/../../m10/augment_qpa_widget_input.py $$PWD/qhrtappkitbackingstore.cpp $$HRT_M10_WIDGET_BASE)
+system(python3 $$PWD/../../m10/augment_qpa_button_focus.py $$HRT_M10_WIDGET_BASE $$HRT_M10_BACKINGSTORE)
 exists($$HRT_M10_BACKINGSTORE) {
-    message(Building QWidget-aware M10 backing store: $$HRT_M10_BACKINGSTORE)
+    message(Building deterministic QWidget-aware M10 backing store: $$HRT_M10_BACKINGSTORE)
 } else {
-    error(Failed to generate QWidget-aware M10 backing store)
+    error(Failed to generate deterministic QWidget-aware M10 backing store)
 }
 
 SOURCES += $$PWD/main.cpp
