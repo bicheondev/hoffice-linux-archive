@@ -35,13 +35,14 @@ def main() -> None:
     if "HRT M11 IME:" in text:
         raise SystemExit("M11 input-method fallback is already present")
 
-    include_anchor = '''#include <QtCore/qstring.h>
-#include <QtGui/qevent.h>
-'''
-    include_replacement = '''#include <QtCore/qstring.h>
-#include <QtCore/qvariant.h>
-#include <QtGui/qevent.h>
-'''
+    # Earlier QWidget transforms insert their own include block between
+    # qstring.h and qevent.h.  Anchor only the stable qstring include so this
+    # final transform remains ordered but independent of that expanded block.
+    include_anchor = '#include <QtCore/qstring.h>\n'
+    include_replacement = (
+        '#include <QtCore/qstring.h>\n'
+        '#include <QtCore/qvariant.h>\n'
+    )
     text = replace_once(text, include_anchor, include_replacement,
                         "QVariant include")
 
@@ -171,6 +172,7 @@ static bool m10DeliverKeyToFocusObject(QEvent::Type type,
         "inputMethodEvent.setCommitString(text);": 1,
         "ime-accepted=%d": 1,
         "type == QEvent::KeyPress": 1,
+        "#include <QtCore/qvariant.h>": 1,
     }
     for marker, expected in required.items():
         actual = text.count(marker)
