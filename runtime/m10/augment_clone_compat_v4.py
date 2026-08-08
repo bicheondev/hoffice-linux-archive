@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
-"""Move clone-child GS switching into assembly and unblock guest traps.
+"""Make pthread-backed Linux clone entry and exit safe under Rosetta.
 
-The v2 generator establishes a real pthread-backed Linux clone context.  Two
-host-runtime details must be handled before guest execution:
+The v2 generator establishes a real shared-memory clone context.  This wrapper
+handles three host-runtime boundaries:
 
-* GS is switched only after entering the already-bound assembly trampoline, so
-  no Mach-O call executes with Linux TLS; and
-* pthread_create is invoked from the SIGILL syscall handler.  POSIX threads
-  inherit the creator's signal mask, including SIGILL's automatic handler-time
-  block.  The child must therefore unblock the synchronous guest trap signals
-  before its first patched Linux syscall.
+* clone children inherit SIGILL blocked because pthread_create runs inside the
+  Linux-syscall SIGILL handler, so synchronous guest trap signals are unblocked
+  before guest entry;
+* GS is switched only after entering the already-bound assembly trampoline; and
+* Linux thread exit is not completed from the signal alternate stack.  The
+  handler instead schedules an assembly exit trampoline, which restores host
+  GS and the original pthread stack before calling pthread_exit.
 
-The wrapper runs v2 unchanged, adds one host-GS signal-mask helper, checks it in
-the child callback, removes the old pre-call raw_set_gs operation, and requires
-the trampoline to own the TLS switch.  Every edit is exact-anchor and
-fail-closed.
+The process main thread still maps Linux exit/exit_group directly to process
+exit.  Every source edit is exact-anchor and fail-closed.
 """
 from __future__ import annotations
 
@@ -95,6 +94,83 @@ static void *m10_clone_thread_start(void *opaque) {
         "pre-trampoline guest GS switch",
     )
 
+    old_exit = '''static void m10_exit_current_guest_thread(int status)
+    __attribute__((noreturn));
+
+static void m10_exit_current_guest_thread(int status) {
+    HrtM10CloneContext *context = m10_current_thread_state();
+    if (context == &g_m10_main_thread) raw_exit(status);
+
+    const uint64_t tid = context->linux_tid;
+    const uint64_t clear_address = context->clear_child_tid;
+    uintptr_t guest = switch_to_host_context();
+    if (clear_address != 0u) {
+        __atomic_store_n((uint32_t *)(uintptr_t)clear_address,
+                         0u, __ATOMIC_RELEASE);
+    }
+    context->active = 0u;
+    m10_trace_thread("child-exit", status, context->flags, tid,
+                     context->guest_rsp, context->guest_gs);
+    (void)guest;
+    pthread_exit(NULL);
+    __builtin_unreachable();
+}
+'''
+    new_exit = r'''void hrt_m10_finish_clone_thread(HrtM10CloneContext *context,
+                                    int status)
+    __attribute__((noreturn, visibility("hidden")));
+
+void hrt_m10_finish_clone_thread(HrtM10CloneContext *context,
+                                 int status) {
+    const uint64_t tid = context->linux_tid;
+    const uint64_t clear_address = context->clear_child_tid;
+    if (clear_address != 0u) {
+        __atomic_store_n((uint32_t *)(uintptr_t)clear_address,
+                         0u, __ATOMIC_RELEASE);
+    }
+    m10_trace_thread("child-exit", status, context->flags, tid,
+                     context->guest_rsp, context->guest_gs);
+    context->active = 0u;
+    pthread_exit(NULL);
+    __builtin_unreachable();
+}
+
+static void m10_schedule_clone_thread_exit(x86_thread_state64_t *state,
+                                            int status) {
+    HrtM10CloneContext *context = m10_current_thread_state();
+    if (context == &g_m10_main_thread) raw_exit(status);
+
+    /*
+     * Signal return enters an assembly leaf.  It needs only the context and
+     * status; the leaf restores host GS and the saved pthread stack before
+     * transferring to hrt_m10_finish_clone_thread.
+     */
+    state->__rip = (uint64_t)(uintptr_t)hrt_m10_exit_clone_child;
+    state->__rdi = (uint64_t)(uintptr_t)context;
+    state->__rsi = (uint64_t)(unsigned int)status;
+    state->__rax = 0u;
+    context->in_handler = 0u;
+}
+'''
+    text = replace_once(text, old_exit, new_exit,
+                        "deferred clone-thread exit")
+
+    old_dispatch = '''        case LINUX_SYS_EXIT:
+            m10_exit_current_guest_thread(
+                (int)(state->__rdi & 0xffu));
+        case LINUX_SYS_EXIT_GROUP:
+            raw_exit((int)(state->__rdi & 0xffu));
+'''
+    new_dispatch = '''        case LINUX_SYS_EXIT:
+            m10_schedule_clone_thread_exit(
+                state, (int)(state->__rdi & 0xffu));
+            return;
+        case LINUX_SYS_EXIT_GROUP:
+            raw_exit((int)(state->__rdi & 0xffu));
+'''
+    text = replace_once(text, old_dispatch, new_dispatch,
+                        "deferred Linux thread-exit dispatch")
+
     required = {
         "hrt_m10_enter_clone_child(context);": 1,
         "Guest GS is switched by the already-entered assembly leaf": 1,
@@ -103,9 +179,14 @@ static void *m10_clone_thread_start(void *opaque) {
         "pthread_sigmask(SIG_UNBLOCK": 1,
         "SIGILL, SIGTRAP, SIGSEGV, SIGBUS, SIGABRT, SIGFPE": 1,
         "trap_mask_result != 0": 1,
+        "hrt_m10_finish_clone_thread(": 3,
+        "hrt_m10_exit_clone_child": 1,
+        "m10_schedule_clone_thread_exit(": 2,
+        "context->in_handler = 0u": 1,
         "case LINUX_SYS_CLONE:": 1,
         "case LINUX_SYS_CHDIR:": 1,
         "pthread_create(": 1,
+        "pthread_exit(NULL)": 1,
     }
     for marker, expected in required.items():
         actual = text.count(marker)
