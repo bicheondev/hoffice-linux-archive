@@ -53,11 +53,10 @@ jobs:
               uintptr_t gs_zero = read_gs_zero();
               printf("%s pthread_self=0x%" PRIxPTR
                      " gs_zero=0x%" PRIxPTR
-                     " thread_get_state=%d gsbase=0x%llx fsbase=0x%llx"
+                     " thread_get_state=%d gsbase=0x%llx"
                      " self_eq_gs0=%d self_eq_gsbase=%d gs0_eq_gsbase=%d\n",
                      label, self, gs_zero, kr,
                      (unsigned long long)state.__gsbase,
-                     (unsigned long long)state.__fsbase,
                      self == gs_zero,
                      self == (uintptr_t)state.__gsbase,
                      gs_zero == (uintptr_t)state.__gsbase);
@@ -88,6 +87,7 @@ jobs:
             | tee build/gs-probe/output.txt
           grep -F 'main pthread_self=' build/gs-probe/output.txt
           grep -F 'child pthread_self=' build/gs-probe/output.txt
+          grep -F 'gs0_eq_gsbase=1' build/gs-probe/output.txt
 
       - uses: actions/upload-artifact@v4
         with:
