@@ -1,0 +1,127 @@
+name: HOffice runtime M9 resolution dispatcher
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m9/augment_int3_caller_probe.py'
+      - '.github/workflows/hoffice-runtime-m9-resolution-dispatch.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: hrt-m9-resolution-dispatch-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wait-and-dispatch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for a complete direct-probe artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/candidates build/selected
+          python3 - <<'PY'
+          import json
+          import os
+          import pathlib
+          import shutil
+          import subprocess
+          import time
+          import zipfile
+
+          repository=os.environ['GITHUB_REPOSITORY']
+          selected=None
+          for attempt in range(80):
+              response=subprocess.run([
+                  'gh','api','--method','GET',
+                  f'repos/{repository}/actions/artifacts',
+                  '-f','name=hrt-m9-hword-throw-int3-caller',
+                  '-f','per_page=100'],check=True,text=True,
+                  stdout=subprocess.PIPE).stdout
+              artifacts=json.loads(response)['artifacts']
+              candidates=[item for item in artifacts
+                  if not item['expired'] and
+                     item.get('workflow_run',{}).get('head_branch')==
+                        'codex/hoffice-runtime-from-scratch']
+              candidates.sort(key=lambda item:item['created_at'],reverse=True)
+              for item in candidates[:8]:
+                  candidate=pathlib.Path('build/candidates')/str(item['id'])
+                  marker=candidate/'checked.json'
+                  if marker.exists():
+                      verdict=json.loads(marker.read_text())
+                      if verdict.get('complete'):
+                          selected=item
+                          break
+                      continue
+                  shutil.rmtree(candidate,ignore_errors=True)
+                  candidate.mkdir(parents=True)
+                  archive=candidate/'artifact.zip'
+                  try:
+                      with archive.open('wb') as output:
+                          subprocess.run([
+                              'gh','api',
+                              f'repos/{repository}/actions/artifacts/{item["id"]}/zip'],
+                              check=True,stdout=output)
+                      with zipfile.ZipFile(archive) as zipped:
+                          zipped.extractall(candidate/'expanded')
+                      stderr_files=list((candidate/'expanded').rglob('stderr.txt'))
+                      attribution=list((candidate/'expanded').rglob(
+                          'caller-attribution.json'))
+                      objects=list((candidate/'expanded').rglob('libHwordApp.so'))
+                      complete=False
+                      if len(stderr_files)==len(attribution)==len(objects)==1:
+                          text=stderr_files[0].read_text(errors='replace')
+                          complete=all(token in text for token in (
+                              'HRT M9 THROW INT3:',
+                              'HRT M9 THROW OBJECT:',
+                              'HRT M9 THROW ARGS:',
+                              'HRT M9 MAP:',
+                          ))
+                      marker.write_text(json.dumps({
+                          'artifact_id':item['id'],
+                          'workflow_run':item['workflow_run']['id'],
+                          'complete':complete,
+                      },indent=2)+'\n')
+                      if complete:
+                          selected=item
+                          break
+                  except Exception as error:
+                      marker.write_text(json.dumps({
+                          'artifact_id':item['id'],
+                          'complete':False,
+                          'error':repr(error),
+                      },indent=2)+'\n')
+              if selected is not None:
+                  break
+              time.sleep(10)
+          if selected is None:
+              raise SystemExit('complete direct-probe artifact did not appear')
+          pathlib.Path('build/selected/artifact.json').write_text(
+              json.dumps(selected,indent=2)+'\n')
+          print(json.dumps(selected,indent=2))
+          PY
+
+      - name: Dispatch the integrated locale-first M9 resolution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          gh workflow run hoffice-runtime-m9-bootstrap-resolution.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref codex/hoffice-runtime-from-scratch
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m9-resolution-dispatch-lock
+          path: build/selected/artifact.json
+          if-no-files-found: error
+          retention-days: 14
