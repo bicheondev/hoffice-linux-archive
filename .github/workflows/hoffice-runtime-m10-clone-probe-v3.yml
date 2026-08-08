@@ -1,0 +1,194 @@
+name: HOffice runtime M10 clone and chdir probe v3
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m10/clone_trampoline.h'
+      - 'runtime/m10/clone_trampoline.S'
+      - 'runtime/m10/augment_clone_compat_v2.py'
+      - 'runtime/m10/augment_clone_compat_v4.py'
+      - '.github/workflows/hoffice-runtime-m10-clone-probe-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m10-clone-probe-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_ROOTFS_RUN_ID: '31248099460'
+
+jobs:
+  execute-on-apple-silicon:
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download the verified Linux clone guest
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m10-clone-v2-linux-rootfs
+          path: build/rootfs
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_ROOTFS_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Ensure Rosetta and generate the assembly-owned TLS bridge
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          mkdir -p build/generated build/host build/proof proofs
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+          git cat-file -e 81e56f4eaaa8a2f68142c8d05856796877412f33^{commit}
+          git cat-file -e 4f699526cf213a7c38df34faafeda1049bb06a19^{commit}
+
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m10/augment_fs_compat.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage9.c build/generated/stage10.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage10.c build/generated/stage11.c
+          python3 runtime/m10/augment_clone_compat_v4.py \
+            build/generated/stage11.c build/generated/syscall_bridge.c
+
+          grep -q 'case LINUX_SYS_CLONE:' build/generated/syscall_bridge.c
+          grep -q 'case LINUX_SYS_CHDIR:' build/generated/syscall_bridge.c
+          grep -q 'pthread_create(' build/generated/syscall_bridge.c
+          grep -q 'Guest GS is switched by the already-entered assembly leaf' \
+            build/generated/syscall_bridge.c
+          ! grep -F '(void)raw_set_gs(context->guest_gs);' \
+            build/generated/syscall_bridge.c
+          grep -F 'HRT M10 CLONE ASM: guest-gs-set' \
+            runtime/m10/clone_trampoline.S
+          shasum -a 256 build/generated/syscall_bridge.c \
+            >build/proof/generated-bridge.sha256
+
+      - name: Compile and sign the x86-64 clone runtime
+        run: |
+          set -euxo pipefail
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer -mfsgsbase \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m10 -Iruntime/m3 -Iruntime/m1 \
+            runtime/m3/main.c runtime/m1/common.c \
+            runtime/m3/elf_map.c runtime/m3/stack.c runtime/m3/patch.c \
+            build/generated/syscall_bridge.c runtime/m1/enter_guest.S \
+            runtime/m10/clone_trampoline.S \
+            -Wl,-pagezero_size,0x1000 -o build/host/hrt-m10-clone-v3
+          file build/host/hrt-m10-clone-v3 | tee build/proof/host-file.txt
+          lipo -info build/host/hrt-m10-clone-v3 \
+            | tee build/proof/host-arch.txt
+          codesign --force --sign - --timestamp=none \
+            build/host/hrt-m10-clone-v3
+          codesign --verify --strict build/host/hrt-m10-clone-v3
+
+      - name: Execute chdir and pthread-style clone
+        run: |
+          set -uxo pipefail
+          set +e
+          /usr/bin/arch -x86_64 build/host/hrt-m10-clone-v3 \
+            --root "$PWD/build/rootfs" --program /opt/hrt/main \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt
+          status=$?
+          set -e
+          printf '%s\n' "$status" >build/proof/exit-status.txt
+          cat build/proof/stderr.txt
+          cat build/proof/stdout.txt
+          echo "exit-status=$status"
+          test "$status" -eq 0
+          grep -Fx 'HRT M10 CLONE GUEST: cwd=/opt/hrt/subdir' \
+            build/proof/stdout.txt
+          grep -Fx 'HRT M10 CLONE GUEST: child resumed and exited' \
+            build/proof/stdout.txt
+          grep -Fx 'HRT M10 CLONE GUEST: parent observed CHILD_CLEARTID' \
+            build/proof/stdout.txt
+          grep -F 'HRT M10 CLONE ASM: enter' build/proof/stderr.txt
+          grep -F 'HRT M10 CLONE ASM: guest-gs-set' build/proof/stderr.txt
+          grep -F 'HRT M10 CLONE ASM: fx-restored' build/proof/stderr.txt
+          grep -F 'HRT M10 CLONE ASM: guest-stack-ready' \
+            build/proof/stderr.txt
+          grep -F 'HRT M10 CLONE: stage=child-exit result=0' \
+            build/proof/stderr.txt
+          ! grep -F 'Linux syscall ENOSYS 56' build/proof/stderr.txt
+          ! grep -F 'Linux syscall ENOSYS 80' build/proof/stderr.txt
+
+      - name: Commit the durable clone proof
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          stdout=Path('build/proof/stdout.txt').read_text(errors='replace')
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          proof={
+              'schema':1,
+              'milestone':'M10-clone-chdir',
+              'status':'PASS',
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'runner':'macos-14-arm64-rosetta-x86_64',
+              'clone_flags':'0x3d0f00',
+              'assembly_tls_switch':True,
+              'child_resumed':'HRT M10 CLONE GUEST: child resumed and exited' in stdout,
+              'child_clear_tid_observed':'HRT M10 CLONE GUEST: parent observed CHILD_CLEARTID' in stdout,
+              'guest_chdir':'/opt/hrt/subdir',
+              'clone_enosys':'Linux syscall ENOSYS 56' in stderr,
+              'chdir_enosys':'Linux syscall ENOSYS 80' in stderr,
+              'stdout_sha256':hashlib.sha256(Path('build/proof/stdout.txt').read_bytes()).hexdigest(),
+              'stderr_sha256':hashlib.sha256(Path('build/proof/stderr.txt').read_bytes()).hexdigest(),
+              'exit_status':int(Path('build/proof/exit-status.txt').read_text()),
+          }
+          assert proof['child_resumed'] and proof['child_clear_tid_observed']
+          assert not proof['clone_enosys'] and not proof['chdir_enosys']
+          Path('proofs/m10-clone-chdir.json').write_text(
+              json.dumps(proof,indent=2)+'\n')
+          print(json.dumps(proof,indent=2))
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git add proofs/m10-clone-chdir.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'proof: verify M10 assembly-owned clone TLS and chdir'
+            git push origin HEAD:codex/hoffice-runtime-from-scratch
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m10-clone-chdir-v3-proof
+          path: |
+            build/host/hrt-m10-clone-v3
+            build/generated/syscall_bridge.c
+            build/rootfs
+            build/proof
+            proofs/m10-clone-chdir.json
+          if-no-files-found: warn
+          retention-days: 14
