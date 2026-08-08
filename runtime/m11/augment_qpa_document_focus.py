@@ -44,9 +44,11 @@ def main() -> None:
 '''
     include_replacement = '''#include <QtWidgets/qwidget.h>
 #include <QtWidgets/qabstractscrollarea.h>
+#include <QtWidgets/qmainwindow.h>
 #include <QtWidgets/qstackedwidget.h>
 #include <QtWidgets/qtabbar.h>
 #include <QtWidgets/qtabwidget.h>
+#include <QtWidgets/qtoolbar.h>
 #include <limits>
 #include <qpa/qwindowsysteminterface.h>
 '''
@@ -272,7 +274,7 @@ static bool m10DeliverMouseToWidget(QWindow *deliveryWindow,
         "g_m11DocumentPointValid": 3,
         "target->setFocusPolicy(Qt::StrongFocus);": 1,
         "QEvent::MouseButtonPress": 4,
-        "qobject_cast<QAbstractButton *>(receiver)": 1,
+        "qobject_cast<QAbstractButton *>(receiver)": 2,
     }
     for marker, expected in required.items():
         actual = text.count(marker)
