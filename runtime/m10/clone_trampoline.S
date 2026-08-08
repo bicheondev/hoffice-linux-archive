@@ -5,10 +5,11 @@
 .globl _hrt_m10_enter_clone_child
 _hrt_m10_enter_clone_child:
     /*
-     * RDI is the host-side HrtM10CloneContext pointer.  Darwin syscall
-     * clobbers R11, so keep the context in R12 until the guest R12 value is
-     * restored.  The three raw-write markers are diagnostic and avoid libc,
-     * allocation, Mach-O TLS and the Linux syscall trap.
+     * Enter this leaf while the new pthread still owns its normal host GS.
+     * Calling a Mach-O symbol for the first time after changing GS can enter
+     * dyld or pthread code that expects host TLS.  Keep the context in R12,
+     * enter the already-bound assembly symbol first, and perform the raw
+     * Darwin SET_GS syscall here with no intervening C runtime operation.
      */
     movq %rdi, %r12
 
@@ -18,7 +19,19 @@ _hrt_m10_enter_clone_child:
     movq $(.Lclone_trace_enter_end-.Lclone_trace_enter), %rdx
     syscall
 
-    /* Restore the parent's floating-point and vector state first. */
+    /* The Linux clone TLS argument is the guest R8 value. */
+    movq HRT_M10_CLONE_R8_OFFSET(%r12), %rdi
+    movq %rdi, HRT_M10_THREAD_GUEST_GS_OFFSET(%r12)
+    movabsq $0x03000003, %rax
+    syscall
+
+    movabsq $0x2000004, %rax
+    movq $2, %rdi
+    leaq .Lclone_trace_gs(%rip), %rsi
+    movq $(.Lclone_trace_gs_end-.Lclone_trace_gs), %rdx
+    syscall
+
+    /* Restore the parent's floating-point and vector state. */
     fxrstor64 HRT_M10_CLONE_FXSAVE_OFFSET(%r12)
 
     movabsq $0x2000004, %rax
@@ -56,10 +69,13 @@ _hrt_m10_enter_clone_child:
     xorl %eax, %eax
     retq
 
-.section __TEXT,__cstring,cstring_literals
+.section __TEXT,__const
 .Lclone_trace_enter:
     .ascii "HRT M10 CLONE ASM: enter\n"
 .Lclone_trace_enter_end:
+.Lclone_trace_gs:
+    .ascii "HRT M10 CLONE ASM: guest-gs-set\n"
+.Lclone_trace_gs_end:
 .Lclone_trace_fx:
     .ascii "HRT M10 CLONE ASM: fx-restored\n"
 .Lclone_trace_fx_end:
