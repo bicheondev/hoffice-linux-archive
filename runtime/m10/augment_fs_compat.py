@@ -2,7 +2,7 @@
 """Compose the locked M10 filesystem, eventfd2, and path bridges.
 
 All three augmenter implementations are materialized in the current
-tree.  The target workflow therefore needs no historical Git objects
+tree. The target workflow therefore needs no historical Git objects
 and remains reproducible under actions/checkout's shallow default.
 """
 from __future__ import annotations
@@ -14,7 +14,7 @@ import subprocess
 import sys
 import tempfile
 
-HRT_M10_FS_SELF_CONTAINED_TRACE_V4 = True
+HRT_M10_FS_SELF_CONTAINED_TRACE_V5 = True
 
 
 def run_module(path: Path, argv: list[str]) -> None:
@@ -74,6 +74,7 @@ def main() -> int:
         'm9_trace_path("open"': 1,
         'm9_trace_path("fstatat"': 1,
         'm9_trace_path("readlink"': 1,
+        'm9_trace_path("readlinkat"': 1,
     }
     for marker, minimum in requirements.items():
         count = final.count(marker)
