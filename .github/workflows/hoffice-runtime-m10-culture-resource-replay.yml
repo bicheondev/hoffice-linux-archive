@@ -1,0 +1,354 @@
+name: Exact HWord M10 culture and resource replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-culture-resource-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m10-culture-resource-replay-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TARGET_BRANCH: codex/hoffice-runtime-from-scratch
+  PREPARED_RUN_ID: '31235068358'
+  SOURCE_RUN_ID: '31254233337'
+  QPA_RUN_ID: '31166152504'
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  replay:
+    runs-on: macos-14
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download the locale-complete prepared guest
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m9-bootstrap-prepared-guest
+          path: build/input/prepared
+          repository: ${{ github.repository }}
+          run-id: ${{ env.PREPARED_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download the exact filesystem-complete host
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m10-hword-fs-compat-proof
+          path: build/input/source
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download the exact Qt 5.11.3 hrtappkit QPA
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m8-qt5113-hrtappkit-input-qpa
+          path: build/input/qpa
+          repository: ${{ github.repository }}
+          run-id: ${{ env.QPA_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download and verify the exact HOffice package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/deb build/host build/proof diagnostics proofs
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" \
+            --dir build/input/deb
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/input/deb/$ASSET_NAME" | shasum -a 256 -c -
+
+      - name: Reconstruct the exact guest and restore bootstrap resources
+        run: |
+          set -euxo pipefail
+          prepared=build/input/prepared/hword-m9-prepared-rootfs.tar.zst
+          checksum=build/input/prepared/report/hword-m9-prepared-rootfs.tar.zst.sha256
+          test -s "$prepared"; test -s "$checksum"
+          expected=$(awk '{print $1; exit}' "$checksum")
+          actual=$(shasum -a 256 "$prepared" | awk '{print $1}')
+          test "$actual" = "$expected"
+
+          image="$RUNNER_TEMP/hrt-m10-culture-resource.sparsebundle"
+          root="/tmp/h10cr-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"; mkdir -p "$root"
+          if ! hdiutil create -quiet -size 14g -fs APFSX \
+               -volname HRTM10CR -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 14g -fs HFSX \
+              -volname HRTM10CR -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >>"$GITHUB_ENV"
+          echo "HRT_IMAGE=$image" >>"$GITHUB_ENV"
+          zstd -dc "$prepared" | tar -xf - -C "$root"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+          test -f "$root$HWORD_APP_GUEST"
+          test "$(readlink "$root/opt/hnc/hoffice1")" = hoffice11
+
+          deb="build/input/deb/$ASSET_NAME"
+          data_member=$(ar t "$deb" | awk '/^data\.tar/{print; exit}')
+          test -n "$data_member"
+          ar p "$deb" "$data_member" >"build/input/deb/$data_member"
+          tar -xf "build/input/deb/$data_member" -C "$root" \
+            ./opt/hnc/hoffice11/Bin/Code \
+            ./opt/hnc/hoffice11/Bin/HwordAction.so \
+            ./opt/hnc/hoffice11/Bin/libHncImm.KOR.res \
+            ./opt/hnc/hoffice11/Bin/libHncOfficeFramework.KOR.res \
+            ./opt/hnc/hoffice11/Bin/libHncOfficeFramework.res \
+            ./opt/hnc/hoffice11/Bin/optionInfo.xml \
+            ./opt/hnc/hoffice11/Bin/themeInfo.xml \
+            ./opt/hnc/hoffice11/Bin/qt/translations/qt_en.qm \
+            ./opt/hnc/hoffice11/Bin/qt/translations/qt_ko.qm
+
+          printf '%s  %s\n' \
+            e6de430ac740865928cf3947d1a7a90bf7e5df37d609e85a86051d99d3949cbc \
+            "$root/opt/hnc/hoffice11/Bin/HwordAction.so" \
+            | shasum -a 256 -c -
+          find "$root/opt/hnc/hoffice11/Bin/Code" -type f \
+            | LC_ALL=C sort >build/proof/restored-code-files.txt
+          test "$(wc -l <build/proof/restored-code-files.txt | tr -d ' ')" -ge 17
+
+      - name: Install the locked hrtappkit QPA and culture redirect
+        run: |
+          set -euxo pipefail
+          mkdir -p "$HRT_ROOT$(dirname "$PLUGIN_GUEST")"
+          python3 - build/input/qpa/libqhrtappkit.so.xz \
+            build/input/qpa/lock.json "$HRT_ROOT$PLUGIN_GUEST" <<'PY'
+          import hashlib,json,lzma,pathlib,sys
+          compressed=pathlib.Path(sys.argv[1]).read_bytes()
+          lock=json.loads(pathlib.Path(sys.argv[2]).read_text())
+          assert lock['toolchain']['qt_version']=='5.11.3',lock
+          assert hashlib.sha256(compressed).hexdigest()==lock['plugin']['xz_sha256']
+          plugin=lzma.decompress(compressed)
+          assert hashlib.sha256(plugin).hexdigest()==lock['plugin']['sha256_after_prepatch']
+          pathlib.Path(sys.argv[3]).write_bytes(plugin)
+          pathlib.Path('build/proof/qpa-lock.json').write_text(
+              json.dumps(lock,indent=2)+'\n')
+          PY
+          chmod 0755 "$HRT_ROOT$PLUGIN_GUEST"
+
+          printf '%s  %s\n' "$HWORD_APP_SHA256" \
+            "$HRT_ROOT$HWORD_APP_GUEST" | shasum -a 256 -c -
+          python3 runtime/m9/patch_hword_utility_culture_redirect.py \
+            "$HRT_ROOT$HWORD_APP_GUEST" \
+            --expected-sha256 "$HWORD_APP_SHA256" \
+            --expected-output-sha256 "$HWORD_APP_PATCHED_SHA256" \
+            --manifest build/proof/culture-redirect-patch.json
+          printf '%s  %s\n' "$HWORD_APP_PATCHED_SHA256" \
+            "$HRT_ROOT$HWORD_APP_GUEST" | shasum -a 256 -c -
+          diskutil info "$HRT_ROOT" | tee build/proof/guest-volume.txt
+          grep -F 'Case-sensitive' build/proof/guest-volume.txt
+
+      - name: Select and sign the exact filesystem-complete host
+        run: |
+          set -euxo pipefail
+          host=$(find build/input/source -type f \
+            -name hrt-m10-hword-fs -print -quit)
+          test -n "$host"; test -f "$host"
+          cp "$host" build/host/hrt-m10-culture-resource
+          chmod 0755 build/host/hrt-m10-culture-resource
+          codesign --force --sign - --timestamp=none \
+            build/host/hrt-m10-culture-resource
+          codesign --verify --strict build/host/hrt-m10-culture-resource
+          file build/host/hrt-m10-culture-resource \
+            | tee build/proof/host-file.txt
+          shasum -a 256 build/host/hrt-m10-culture-resource \
+            | tee build/proof/host-sha256.txt
+
+      - name: Run exact HWord through the repaired bootstrap
+        run: |
+          set -uxo pipefail
+          export HRT_M6_CAPTURE_PATH="$PWD/build/proof/pre-frame-window.png"
+          export HRT_M7_CAPTURE_PATH="$PWD/build/proof/hword-culture-resource.png"
+          unset HRT_M8_SYNTHETIC_INPUT
+          : >build/proof/stdout.txt; : >build/proof/stderr.txt
+          /usr/bin/arch -x86_64 build/host/hrt-m10-culture-resource \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          observed=0
+          for _ in $(jot 1800); do
+            if grep -q 'HRT M6 QPA: CREATE .*title=Word ' \
+                 build/proof/stderr.txt 2>/dev/null; then
+              observed=1; sleep 8; break
+            fi
+            if grep -q 'HRT M6 QPA: CREATE .*title=Exception ' \
+                 build/proof/stderr.txt 2>/dev/null; then
+              observed=2; sleep 3; break
+            fi
+            if grep -q 'fatal signal' build/proof/stderr.txt 2>/dev/null; then
+              observed=3; break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 0.05
+          done
+          alive=0
+          if kill -0 "$pid" 2>/dev/null; then
+            alive=1
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+              >build/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$pid" 2 1 -file build/proof/sample.txt \
+              >/dev/null 2>&1 || true
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.3
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e; wait "$pid"; raw_status=$?; set -e
+          printf '%s\n' "$raw_status" >build/proof/raw-exit-status.txt
+          printf '%s\n' "$alive" >build/proof/alive-at-observation.txt
+          printf '%s\n' "$observed" >build/proof/observed-boundary.txt
+          grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|HRT M9 PATH:|HRT M10 FS:|Linux syscall ENOSYS|fatal signal|Exception|basic_string::substr|out_of_range|failed|error' \
+            build/proof/stderr.txt | tail -n 35000 \
+            | tee build/proof/key-lines.txt || true
+          tail -n 16000 build/proof/stderr.txt >build/proof/stderr-tail.txt
+          cat build/proof/key-lines.txt
+
+      - name: Classify the exact culture-and-resource frontier
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,re,struct
+          from pathlib import Path
+
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          titles=[]; geometries=[]
+          for line in re.findall(r'HRT M6 QPA: CREATE .*',stderr):
+              title=re.search(r' title=(.*?) handle=',line)
+              geometry=re.search(r' geometry=(\d+)x(\d+)',line)
+              if title: titles.append(title.group(1))
+              if geometry: geometries.append([
+                  int(geometry.group(1)),int(geometry.group(2))])
+          unsupported=sorted({int(match.group(1))
+              for line in stderr.splitlines()
+              if (match:=re.search(
+                  r'Linux syscall ENOSYS\s+([0-9]+)',line))})
+          fatal='fatal signal' in stderr
+          substring=any(token in stderr for token in (
+              'basic_string::substr','std::out_of_range','__pos (which is'))
+          word=any(title=='Word' for title in titles)
+          exception=any(title=='Exception' for title in titles)
+          alive=bool(int(Path(
+              'build/proof/alive-at-observation.txt').read_text()))
+          frame=Path('build/proof/hword-culture-resource.png')
+          frame_info=None
+          if frame.is_file() and frame.stat().st_size>0:
+              data=frame.read_bytes()
+              width,height=struct.unpack('>II',data[16:24])
+              frame_info={'path':str(frame),'width':width,'height':height,
+                  'size':len(data),'sha256':hashlib.sha256(data).hexdigest()}
+
+          if word and not exception and not fatal and not substring and alive:
+              classification='HWORD_MAIN_WINDOW_AFTER_CULTURE_AND_RESOURCE_REPAIR'
+          elif exception and substring:
+              classification='SUBSTR_EXCEPTION_REMAINS_AFTER_CULTURE_PATCH'
+          elif exception:
+              classification='OTHER_EXCEPTION_AFTER_CULTURE_AND_RESOURCE_REPAIR'
+          elif fatal:
+              classification='FATAL_AFTER_CULTURE_AND_RESOURCE_REPAIR'
+          else:
+              classification='NO_DECISIVE_WINDOW_AFTER_CULTURE_AND_RESOURCE_REPAIR'
+          status='PASS' if classification.startswith('HWORD_MAIN_WINDOW') \
+              else 'DIAGNOSTIC'
+          result={
+              'schema':1,
+              'milestone':'M10-culture-resource-window',
+              'status':status,
+              'classification':classification,
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'source_workflow_run':os.environ['SOURCE_RUN_ID'],
+              'qpa_run':os.environ['QPA_RUN_ID'],
+              'program':os.environ['PROGRAM'],
+              'program_sha256':os.environ['PROGRAM_SHA256'],
+              'package_sha256':os.environ['PACKAGE_SHA256'],
+              'culture_redirect_patch':json.loads(Path(
+                  'build/proof/culture-redirect-patch.json').read_text()),
+              'window_titles':titles,
+              'window_geometries':geometries,
+              'unsupported_syscalls':unsupported,
+              'sendfile_fallback_observed':40 in unsupported,
+              'fatal_signal_observed':fatal,
+              'substr_exception_observed':substring,
+              'frame':frame_info,
+              'alive_at_observation':alive,
+              'raw_exit_status':int(Path(
+                  'build/proof/raw-exit-status.txt').read_text()),
+              'stderr_tail':stderr[-24000:],
+          }
+          payload=json.dumps(result,indent=2)+'\n'
+          Path(f"diagnostics/m10-culture-resource-{os.environ['GITHUB_RUN_ID']}.json").write_text(payload)
+          Path('diagnostics/m10-culture-resource-latest.json').write_text(payload)
+          Path('diagnostics/m10-culture-resource-latest.md').write_text(
+              '# Exact HWord culture and resource replay\n\n'
+              f"- Status: `{status}`\n"
+              f"- Classification: `{classification}`\n"
+              f"- Windows: `{list(zip(titles,geometries))}`\n"
+              f"- Unsupported syscalls: `{unsupported}`\n"
+              f"- Substr exception: `{substring}`\n"
+              f"- Fatal signal: `{fatal}`\n"
+              f"- Alive: `{alive}`\n")
+          Path('build/proof/summary.json').write_text(payload)
+          if status=='PASS':
+              Path('proofs/m10-hword-culture-resource-window.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Commit the durable M10 result
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m10-culture-resource-*.json \
+                  diagnostics/m10-culture-resource-latest.md
+          if test -f proofs/m10-hword-culture-resource-window.json; then
+            git add proofs/m10-hword-culture-resource-window.json
+          fi
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: classify exact HWord culture-resource replay'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m10-culture-resource-proof
+          path: |
+            build/host/hrt-m10-culture-resource
+            build/proof
+            diagnostics/m10-culture-resource-*.json
+            diagnostics/m10-culture-resource-latest.md
+            proofs/m10-hword-culture-resource-window.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach the exact guest
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true
