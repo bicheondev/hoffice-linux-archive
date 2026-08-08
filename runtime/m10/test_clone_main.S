@@ -67,8 +67,12 @@ _start:
     js .Lfailure
     jz .Lchild
 
-    /* Parent waits for CLONE_CHILD_CLEARTID to become zero. */
-    movq $500000000, %rcx
+    /*
+     * Rosetta may need to translate the new pthread's first x86-64 block
+     * before it reaches the Linux continuation.  Keep the parent alive long
+     * enough to distinguish a real child-entry failure from scheduler delay.
+     */
+    movabsq $5000000000, %rcx
 .Lwait_for_child:
     cmpl $0, .Ltid_word(%rip)
     je .Lparent_complete
