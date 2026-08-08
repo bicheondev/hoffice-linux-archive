@@ -265,3 +265,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+# Keeps the macOS resolution workflow rerunnable after normalizing the
+# multi-root prepared-artifact layout with repository symlink shims.
