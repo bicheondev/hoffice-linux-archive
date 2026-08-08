@@ -74,8 +74,7 @@ static void *m10_clone_thread_start(void *opaque) {
                         "clone child signal-mask helper")
 
     setup_anchor = '''    context->host_gs = capture_host_gs_base();
-    if (context->host_gs == 0u ||
-        m10_install_thread_altstack(context) != 0) {
+    if (context->host_gs == 0u || m10_install_thread_altstack(context) != 0) {
 '''
     setup_replacement = '''    context->host_gs = capture_host_gs_base();
     const int trap_mask_result = m10_unblock_guest_trap_signals();
