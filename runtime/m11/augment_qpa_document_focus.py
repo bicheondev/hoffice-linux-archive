@@ -271,7 +271,7 @@ static bool m10DeliverMouseToWidget(QWindow *deliveryWindow,
         "m11BestDocumentWidget(": 2,
         "g_m11DocumentPointValid": 3,
         "target->setFocusPolicy(Qt::StrongFocus);": 1,
-        "QEvent::MouseButtonPress": 2,
+        "QEvent::MouseButtonPress": 4,
         "qobject_cast<QAbstractButton *>(receiver)": 1,
     }
     for marker, expected in required.items():
