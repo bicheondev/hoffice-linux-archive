@@ -50,9 +50,9 @@ jobs:
               "      - '.github/workflows/hoffice-runtime-m10-run10-resource-overlay-v3.yml'",
               'workflow trigger path')
           replace_once(
-              '  group: hrt-m10-run10-resource-overlay-v2-${{ github.ref }}',
-              '  group: hrt-m10-run10-resource-overlay-v3-${{ github.ref }}',
-              'concurrency group')
+              '  group: hrt-m10-run10-resource-overlay-v2-',
+              '  group: hrt-m10-run10-resource-overlay-v3-',
+              'concurrency group prefix')
           replace_once(
               '  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so\n',
               '  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so\n'
