@@ -2,12 +2,12 @@
 """Inject bounded path diagnostics into the mature macOS syscall bridge.
 
 The HWord bootstrap currently reaches a rendered ``Initialization Error``
-dialog.  Static analysis ties that branch to the HncBaseDraw font database
-(``FontMap.dat`` and ``fontinfo.dat``).  This generator records all failed path
+dialog. Static analysis ties that branch to the HncBaseDraw font database
+(``FontMap.dat`` and ``fontinfo.dat``). This generator records all failed path
 operations plus successful operations whose paths mention the font database.
 
 The trace executes while the bridge has restored the host GS base and emits
-only through the existing raw Darwin ``write`` syscall.  No stdio, allocation,
+only through the existing raw Darwin ``write`` syscall. No stdio, allocation,
 or Objective-C operation occurs from the SIGILL path.
 """
 from __future__ import annotations
@@ -33,10 +33,10 @@ def inject_once_in_function(
 ) -> str:
     """Replace one anchor inside one named C function only.
 
-    The mature filesystem/eventfd composition may insert unrelated helper code
-    elsewhere in the translation unit.  Limiting the search to the readlink
-    function keeps the transform fail-closed without depending on the exact
-    text immediately preceding the next function.
+    Mature syscall composition can insert adjacent helper functions. Restricting
+    each replacement to a single named function prevents a matching statement
+    in ``readlinkat`` from being mistaken for one in ``readlink`` (and vice
+    versa) while retaining fail-closed source-shape validation.
     """
     start_count = text.count(function_start)
     if start_count != 1:
@@ -276,22 +276,32 @@ static int64_t host_readlink_bridge''',
     text = inject_once_in_function(
         text,
         "static int64_t host_readlink_bridge(const char *guest_path,\n",
-        "static int64_t host_mmap_bridge(",
+        "static int64_t host_readlinkat_bridge(",
         "    int saved_errno = errno;\n",
         "    int saved_errno = errno;\n"
         "    m9_trace_path(\"readlink\", guest_path, path,\n"
         "                  (int64_t)result, saved_errno);\n",
         "readlink path trace",
     )
+    text = inject_once_in_function(
+        text,
+        "static int64_t host_readlinkat_bridge(",
+        "static int64_t host_mmap_bridge(",
+        "    int saved_errno = errno;\n",
+        "    int saved_errno = errno;\n"
+        "    m9_trace_path(\"readlinkat\", guest_path, path,\n"
+        "                  (int64_t)result, saved_errno);\n",
+        "readlinkat path trace",
+    )
 
     required = {
         'HRT M9 PATH:': 1,
         'm9_trace_path("open"': 1,
-        'm9_trace_path("stat"': 0,
         'm9_trace_path(follow ? "stat" : "lstat"': 1,
         'm9_trace_path("fstatat"': 1,
         'm9_trace_path("access"': 1,
         'm9_trace_path("readlink"': 1,
+        'm9_trace_path("readlinkat"': 1,
     }
     for marker, expected in required.items():
         actual = text.count(marker)
