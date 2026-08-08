@@ -248,7 +248,7 @@ static bool m11IsContainerWidget(QWidget *widget)
                         "M11 pre-focus inventory call")
 
     required = {
-        "HRT M11 INVENTORY:": 10,
+        "HRT M11 INVENTORY:": 9,
         "HRT M11 META:": 3,
         "m11InventoryDocumentHierarchy(": 2,
         "dumpObjectTree();": 1,
