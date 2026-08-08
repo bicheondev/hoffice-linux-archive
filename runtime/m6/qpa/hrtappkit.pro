@@ -17,27 +17,29 @@ system(ln -sf /usr/lib/x86_64-linux-gnu/libfontconfig.so.1 $$HRT_COMPAT_LIBDIR/l
 system(ln -sf /usr/lib/x86_64-linux-gnu/libfreetype.so.6 $$HRT_COMPAT_LIBDIR/libfreetype.so)
 QMAKE_LIBDIR += $$HRT_COMPAT_LIBDIR
 
-# Generate the QWidget-aware variant in five fail-closed passes.  The first
+# Generate the QWidget-aware variant in six fail-closed passes.  The first
 # adds hit testing and focus-object delivery; the second guarantees that the
 # HWord New QToolButton emits its application signal; the third yields after
 # each mouse-up so a later stage cannot overtake document construction; the
-# fourth repairs focus immediately before key delivery; the fifth preserves
-# the ordinary key path and adds a single QInputMethodEvent commit only when a
-# printable KeyPress is rejected by the focused HWord document object.
+# fourth repairs focus immediately before key delivery; the fifth adds a
+# printable input-method fallback; and the sixth gives that fallback the
+# preedit-to-commit lifecycle expected by composition-oriented editors.
 HRT_M10_WIDGET_BASE = $$OUT_PWD/qhrtappkitbackingstore_widget.cpp
 HRT_M10_BUTTON_FOCUS = $$OUT_PWD/qhrtappkitbackingstore_button_focus.cpp
 HRT_M11_STAGE_BOUNDARIES = $$OUT_PWD/qhrtappkitbackingstore_stage_boundaries.cpp
 HRT_M11_DELAYED_FOCUS = $$OUT_PWD/qhrtappkitbackingstore_delayed_focus.cpp
+HRT_M11_IME_FALLBACK = $$OUT_PWD/qhrtappkitbackingstore_ime_fallback.cpp
 HRT_M11_BACKINGSTORE = $$OUT_PWD/qhrtappkitbackingstore_m11.cpp
 system(python3 $$PWD/../../m10/augment_qpa_widget_input.py $$PWD/qhrtappkitbackingstore.cpp $$HRT_M10_WIDGET_BASE)
 system(python3 $$PWD/../../m10/augment_qpa_button_focus.py $$HRT_M10_WIDGET_BASE $$HRT_M10_BUTTON_FOCUS)
 system(python3 $$PWD/../../m11/augment_qpa_stage_boundaries.py $$HRT_M10_BUTTON_FOCUS $$HRT_M11_STAGE_BOUNDARIES)
 system(python3 $$PWD/../../m11/augment_qpa_document_focus.py $$HRT_M11_STAGE_BOUNDARIES $$HRT_M11_DELAYED_FOCUS)
-system(python3 $$PWD/../../m11/augment_qpa_input_method_fallback.py $$HRT_M11_DELAYED_FOCUS $$HRT_M11_BACKINGSTORE)
+system(python3 $$PWD/../../m11/augment_qpa_input_method_fallback.py $$HRT_M11_DELAYED_FOCUS $$HRT_M11_IME_FALLBACK)
+system(python3 $$PWD/../../m11/augment_qpa_preedit_commit.py $$HRT_M11_IME_FALLBACK $$HRT_M11_BACKINGSTORE)
 exists($$HRT_M11_BACKINGSTORE) {
-    message(Building input-method-aware QWidget M11 backing store: $$HRT_M11_BACKINGSTORE)
+    message(Building composition-aware QWidget M11 backing store: $$HRT_M11_BACKINGSTORE)
 } else {
-    error(Failed to generate input-method-aware QWidget M11 backing store)
+    error(Failed to generate composition-aware QWidget M11 backing store)
 }
 
 SOURCES += $$PWD/main.cpp
