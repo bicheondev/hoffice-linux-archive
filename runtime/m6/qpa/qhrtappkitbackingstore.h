@@ -10,7 +10,7 @@ QT_BEGIN_NAMESPACE
 // M11 diagnostic builds add delayed editor-focus repair and a printable
 // QInputMethodEvent fallback in the generated backing-store source; the stable
 // class ABI remains unchanged here.  This revision triggers the Qt 5.11.3
-// rebuild with a cursor-bearing preedit followed by a commit event.
+// rebuild with a one-shot materialized document QObject/QWidget inventory.
 class QHrtAppKitBackingStore : public QOffscreenBackingStore
 {
 public:
