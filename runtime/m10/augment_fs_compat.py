@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Compose the locked M10 filesystem bridge with eventfd2 support.
+"""Compose M10 filesystem, eventfd2, and path-failure tracing.
 
-``augment_fs_compat_base.py`` is the exact bridge present when this
-wrapper was installed.  It already contains the verified flock,
-link, chmod, fstatfs, and atomic rename translations.  This wrapper
-runs that implementation first and then applies the independently
-proven Linux eventfd2 bridge used by the mature HWord runtime.
+The base file is the exact rename-capable filesystem bridge preserved
+before composition.  The mature eventfd2 implementation is applied
+next, followed by the M9 bounded path tracer.  Failed path operations
+are always recorded; successful operations are limited to the known
+HOffice font/resource families.
 """
 from __future__ import annotations
 
@@ -16,20 +16,19 @@ import subprocess
 import sys
 import tempfile
 
-HRT_M10_FS_EVENTFD2_WRAPPER_V1 = True
+HRT_M10_FS_PATH_TRACE_WRAPPER_V2 = True
 
 
-def run_base(source: Path, output: Path) -> None:
-    base = Path(__file__).with_name('augment_fs_compat_base.py')
+def run_python_module(module_path: Path, argv: list[str]) -> None:
     spec = importlib.util.spec_from_file_location(
-        'hrt_m10_fs_compat_base', base)
+        'hrt_dynamic_' + module_path.stem, module_path)
     if spec is None or spec.loader is None:
-        raise SystemExit('unable to load augment_fs_compat_base.py')
+        raise SystemExit(f'unable to load {module_path}')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     previous = sys.argv
     try:
-        sys.argv = [str(base), str(source), str(output)]
+        sys.argv = [str(module_path), *argv]
         module.main()
     finally:
         sys.argv = previous
@@ -42,37 +41,56 @@ def main() -> int:
 
     source = Path(sys.argv[1])
     output = Path(sys.argv[2])
-    eventfd = (Path(__file__).resolve().parents[1] /
-               'm3' / 'augment_eventfd2.py')
-    if not eventfd.is_file():
-        raise SystemExit(f'missing proven eventfd2 augmenter: {eventfd}')
+    here = Path(__file__).resolve()
+    base = here.with_name('augment_fs_compat_base.py')
+    eventfd = here.parents[1] / 'm3' / 'augment_eventfd2.py'
+    path_trace = here.parents[1] / 'm9' / 'augment_path_trace.py'
+    for required in (base, eventfd, path_trace):
+        if not required.is_file():
+            raise SystemExit(f'missing composed augmenter: {required}')
 
-    with tempfile.TemporaryDirectory(prefix='hrt-m10-fs-') as tmp:
-        base_output = Path(tmp) / 'fs-base.c'
-        run_base(source, base_output)
-        text = base_output.read_text(encoding='utf-8')
-        if ('case LINUX_SYS_EVENTFD2:' in text and
-            'host_eventfd2_bridge' in text):
-            shutil.copy2(base_output, output)
+    with tempfile.TemporaryDirectory(prefix='hrt-m10-fs-trace-') as tmp:
+        tmpdir = Path(tmp)
+        stage1 = tmpdir / 'filesystem.c'
+        stage2 = tmpdir / 'eventfd2.c'
+        run_python_module(base, [str(source), str(stage1)])
+
+        stage1_text = stage1.read_text(encoding='utf-8')
+        if ('case LINUX_SYS_EVENTFD2:' in stage1_text and
+            'host_eventfd2_bridge' in stage1_text):
+            shutil.copy2(stage1, stage2)
         else:
             subprocess.run(
                 [sys.executable, str(eventfd),
-                 str(base_output), str(output)],
+                 str(stage1), str(stage2)],
                 check=True,
             )
 
-    generated = output.read_text(encoding='utf-8')
-    required = {
+        stage2_text = stage2.read_text(encoding='utf-8')
+        if 'HRT M9 PATH:' in stage2_text:
+            shutil.copy2(stage2, output)
+        else:
+            subprocess.run(
+                [sys.executable, str(path_trace),
+                 str(stage2), str(output)],
+                check=True,
+            )
+
+    final = output.read_text(encoding='utf-8')
+    required_markers = {
+        'case LINUX_SYS_RENAME:': 1,
         'case LINUX_SYS_EVENTFD2:': 1,
         'host_eventfd2_bridge': 2,
-        'case LINUX_SYS_RENAME:': 1,
+        'HRT M9 PATH:': 1,
+        'm9_trace_path("open"': 1,
+        'm9_trace_path("fstatat"': 1,
     }
-    for marker, minimum in required.items():
-        count = generated.count(marker)
+    for marker, minimum in required_markers.items():
+        count = final.count(marker)
         if count < minimum:
             raise SystemExit(
-                f'filesystem compatibility marker {marker!r}: '
-                f'expected at least {minimum}, found {count}')
+                f'composed marker {marker!r}: expected at least '
+                f'{minimum}, found {count}')
     return 0
 
 
