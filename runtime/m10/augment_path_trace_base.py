@@ -23,6 +23,41 @@ def replace_once(text: str, needle: str, replacement: str, label: str) -> str:
     return text.replace(needle, replacement, 1)
 
 
+def inject_once_in_function(
+    text: str,
+    function_start: str,
+    next_function_start: str,
+    needle: str,
+    replacement: str,
+    label: str,
+) -> str:
+    """Replace one anchor inside one named C function only.
+
+    The mature filesystem/eventfd composition may insert unrelated helper code
+    elsewhere in the translation unit.  Limiting the search to the readlink
+    function keeps the transform fail-closed without depending on the exact
+    text immediately preceding the next function.
+    """
+    start_count = text.count(function_start)
+    if start_count != 1:
+        raise SystemExit(
+            f"{label}: expected one function start, found {start_count}")
+    start = text.index(function_start)
+    end = text.find(next_function_start, start + len(function_start))
+    if end < 0:
+        raise SystemExit(f"{label}: next function anchor not found")
+
+    function_text = text[start:end]
+    needle_count = function_text.count(needle)
+    if needle_count != 1:
+        excerpt = function_text[-1800:].replace("\n", "\\n")
+        raise SystemExit(
+            f"{label}: expected exactly one in-function anchor, "
+            f"found {needle_count}; function-tail={excerpt}")
+    function_text = function_text.replace(needle, replacement, 1)
+    return text[:start] + function_text + text[end:]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("source", type=Path)
@@ -234,28 +269,36 @@ static int64_t host_readlink_bridge''',
 static int64_t host_readlink_bridge''',
             "access path trace",
         ),
-        (
-            '''    ssize_t result = readlink(path, buffer, size);
-    int saved_errno = errno;
-    restore_guest_context(guest);
-    return linux_host_result((int64_t)result, saved_errno);
-}
-
-static int64_t host_mmap_bridge''',
-            '''    ssize_t result = readlink(path, buffer, size);
-    int saved_errno = errno;
-    m9_trace_path("readlink", guest_path, path,
-                  (int64_t)result, saved_errno);
-    restore_guest_context(guest);
-    return linux_host_result((int64_t)result, saved_errno);
-}
-
-static int64_t host_mmap_bridge''',
-            "readlink path trace",
-        ),
     ]
     for needle, replacement, label in replacements:
         text = replace_once(text, needle, replacement, label)
+
+    text = inject_once_in_function(
+        text,
+        "static int64_t host_readlink_bridge(const char *guest_path,\n",
+        "static int64_t host_mmap_bridge(",
+        "    int saved_errno = errno;\n",
+        "    int saved_errno = errno;\n"
+        "    m9_trace_path(\"readlink\", guest_path, path,\n"
+        "                  (int64_t)result, saved_errno);\n",
+        "readlink path trace",
+    )
+
+    required = {
+        'HRT M9 PATH:': 1,
+        'm9_trace_path("open"': 1,
+        'm9_trace_path("stat"': 0,
+        'm9_trace_path(follow ? "stat" : "lstat"': 1,
+        'm9_trace_path("fstatat"': 1,
+        'm9_trace_path("access"': 1,
+        'm9_trace_path("readlink"': 1,
+    }
+    for marker, expected in required.items():
+        actual = text.count(marker)
+        if actual != expected:
+            raise SystemExit(
+                f"path trace marker count mismatch for {marker!r}: "
+                f"expected {expected}, found {actual}")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(text, encoding="utf-8")
