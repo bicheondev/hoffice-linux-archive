@@ -8,8 +8,12 @@ wrapper patches the locked generator's one named replacement operation: when
 its exact old body is absent, the unique function is replaced by balanced C
 function boundaries using the locked replacement text itself.
 
-All other locked anchors remain strict.  The two emitted C++ ``static_assert``
-tokens are then normalized to C17 ``_Static_assert``.
+All other locked anchors remain strict.  One diagnostic invariant in the
+original generator counted ``m10_clone_thread_start(`` twice, although the
+emitted C contains one definition and passes the callback to pthread_create
+without an opening parenthesis.  That exact invariant is corrected from two to
+one before execution.  The two emitted C++ ``static_assert`` tokens are then
+normalized to C17 ``_Static_assert``.
 """
 from __future__ import annotations
 
@@ -103,6 +107,12 @@ def main() -> None:
         stderr=subprocess.PIPE,
         text=True,
     ).stdout
+    old_invariant = '        "m10_clone_thread_start(": 2,\n'
+    new_invariant = '        "m10_clone_thread_start(": 1,\n'
+    if locked_source.count(old_invariant) != 1:
+        raise SystemExit("locked clone callback invariant changed unexpectedly")
+    locked_source = locked_source.replace(
+        old_invariant, new_invariant, 1)
 
     with tempfile.TemporaryDirectory(prefix="hrt-m10-clone-") as temporary:
         module_path = Path(temporary) / "locked_clone_generator.py"
