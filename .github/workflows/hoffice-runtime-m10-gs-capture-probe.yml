@@ -1,0 +1,97 @@
+name: Probe Rosetta pthread GS capture
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-gs-capture-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: macos-14
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile and execute the x86-64 GS probe
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          mkdir -p build/gs-probe
+          cat >build/gs-probe/probe.c <<'EOF'
+          #define _DARWIN_C_SOURCE 1
+          #include <inttypes.h>
+          #include <mach/i386/thread_status.h>
+          #include <mach/mach.h>
+          #include <pthread.h>
+          #include <stdint.h>
+          #include <stdio.h>
+          #include <string.h>
+
+          static uintptr_t read_gs_zero(void) {
+              uintptr_t value = 0;
+              __asm__ volatile("movq %%gs:0, %0" : "=r"(value));
+              return value;
+          }
+
+          static void report(const char *label) {
+              x86_thread_full_state64_t state;
+              mach_msg_type_number_t count = x86_THREAD_FULL_STATE64_COUNT;
+              memset(&state, 0, sizeof(state));
+              mach_port_t thread = mach_thread_self();
+              kern_return_t kr = thread_get_state(
+                  thread, x86_THREAD_FULL_STATE64,
+                  (thread_state_t)&state, &count);
+              mach_port_deallocate(mach_task_self(), thread);
+              uintptr_t self = (uintptr_t)pthread_self();
+              uintptr_t gs_zero = read_gs_zero();
+              printf("%s pthread_self=0x%" PRIxPTR
+                     " gs_zero=0x%" PRIxPTR
+                     " thread_get_state=%d gsbase=0x%llx fsbase=0x%llx"
+                     " self_eq_gs0=%d self_eq_gsbase=%d gs0_eq_gsbase=%d\n",
+                     label, self, gs_zero, kr,
+                     (unsigned long long)state.__gsbase,
+                     (unsigned long long)state.__fsbase,
+                     self == gs_zero,
+                     self == (uintptr_t)state.__gsbase,
+                     gs_zero == (uintptr_t)state.__gsbase);
+              fflush(stdout);
+          }
+
+          static void *child(void *unused) {
+              (void)unused;
+              report("child");
+              return NULL;
+          }
+
+          int main(void) {
+              report("main");
+              pthread_t thread;
+              int result = pthread_create(&thread, NULL, child, NULL);
+              if (result != 0) return 10 + result;
+              result = pthread_join(thread, NULL);
+              if (result != 0) return 20 + result;
+              return 0;
+          }
+          EOF
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -Wall -Wextra -Werror -Wpedantic \
+            build/gs-probe/probe.c -o build/gs-probe/probe
+          codesign --force --sign - --timestamp=none build/gs-probe/probe
+          /usr/bin/arch -x86_64 build/gs-probe/probe \
+            | tee build/gs-probe/output.txt
+          grep -F 'main pthread_self=' build/gs-probe/output.txt
+          grep -F 'child pthread_self=' build/gs-probe/output.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m10-rosetta-gs-capture-probe
+          path: build/gs-probe
+          if-no-files-found: error
+          retention-days: 14
