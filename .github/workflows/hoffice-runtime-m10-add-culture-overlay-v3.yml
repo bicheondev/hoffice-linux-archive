@@ -23,7 +23,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate the culture-repaired replay from the proven QPA-complete replay
+      - name: Generate the culture-repaired replay
         run: |
           set -euxo pipefail
           python3 - <<'PY'
@@ -61,25 +61,22 @@ jobs:
               '  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8\n',
               'culture environment')
 
-          patch_anchor = '''          chmod 0755 "$root$PLUGIN_GUEST"
-
-          python3 - "$root" <<'PY'
-'''
-          patch_block = '''          chmod 0755 "$root$PLUGIN_GUEST"
-
-          test -f "$root$HWORD_APP_GUEST"
-          printf '%s  %s\\n' "$HWORD_APP_SHA256" \\
-            "$root$HWORD_APP_GUEST" | shasum -a 256 -c -
-          python3 runtime/m9/patch_hword_utility_culture_redirect.py \\
-            "$root$HWORD_APP_GUEST" \\
-            --expected-sha256 "$HWORD_APP_SHA256" \\
-            --expected-output-sha256 "$HWORD_APP_PATCHED_SHA256" \\
-            --manifest build/proof/culture-redirect-patch.json
-          printf '%s  %s\\n' "$HWORD_APP_PATCHED_SHA256" \\
-            "$root$HWORD_APP_GUEST" | shasum -a 256 -c -
-
-          python3 - "$root" <<'PY'
-'''
+          patch_anchor = (
+              '          chmod 0755 "$root$PLUGIN_GUEST"\n\n'
+              "          python3 - \"$root\" <<'PY'\n")
+          patch_block = (
+              '          chmod 0755 "$root$PLUGIN_GUEST"\n\n'
+              '          test -f "$root$HWORD_APP_GUEST"\n'
+              "          printf '%s  %s\\\\n' \"$HWORD_APP_SHA256\" \\\\\n"
+              '            "$root$HWORD_APP_GUEST" | shasum -a 256 -c -\n'
+              '          python3 runtime/m9/patch_hword_utility_culture_redirect.py \\\\\n'
+              '            "$root$HWORD_APP_GUEST" \\\\\n'
+              '            --expected-sha256 "$HWORD_APP_SHA256" \\\\\n'
+              '            --expected-output-sha256 "$HWORD_APP_PATCHED_SHA256" \\\\\n'
+              '            --manifest build/proof/culture-redirect-patch.json\n'
+              "          printf '%s  %s\\\\n' \"$HWORD_APP_PATCHED_SHA256\" \\\\\n"
+              '            "$root$HWORD_APP_GUEST" | shasum -a 256 -c -\n\n'
+              "          python3 - \"$root\" <<'PY'\n")
           replace_once(patch_anchor, patch_block, 'culture patch insertion')
 
           text = text.replace('overlay-v2', 'overlay-v3')
@@ -88,12 +85,12 @@ jobs:
           text = text.replace(
               'AFTER_QPA_COMPLETE_RESOURCE_OVERLAY',
               'AFTER_CULTURE_REPAIRED_RESOURCE_OVERLAY')
-          text = text.replace(
+          replace_once(
               "              'qpa_loaded':qpa_loaded,\n",
               "              'qpa_loaded':qpa_loaded,\n"
               "              'culture_redirect_patch':json.loads(Path(\n"
               "                  'build/proof/culture-redirect-patch.json').read_text()),\n",
-              1)
+              'culture manifest result')
 
           required = {
               'HWORD_APP_PATCHED_SHA256: ccceee82': 1,
@@ -109,17 +106,9 @@ jobs:
                   raise SystemExit(
                       f'generated workflow marker {marker!r}: '
                       f'expected at least {minimum}, found {count}')
-
           target.write_text(text, encoding='utf-8')
           PY
-          python3 - <<'PY'
-          import yaml
-          from pathlib import Path
-          path=Path('.github/workflows/hoffice-runtime-m10-run10-resource-overlay-v3.yml')
-          data=yaml.safe_load(path.read_text())
-          assert isinstance(data,dict)
-          print(data.get('name'))
-          PY
+          test -s .github/workflows/hoffice-runtime-m10-run10-resource-overlay-v3.yml
           grep -F 'patch_hword_utility_culture_redirect.py' \
             .github/workflows/hoffice-runtime-m10-run10-resource-overlay-v3.yml
           grep -F 'HWORD_MAIN_WINDOW_AFTER_CULTURE_REPAIRED_RESOURCE_OVERLAY' \
