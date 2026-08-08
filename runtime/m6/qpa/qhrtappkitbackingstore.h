@@ -9,7 +9,7 @@ QT_BEGIN_NAMESPACE
 
 // M11 diagnostic builds add delayed editor-focus repair in the generated
 // backing-store source; the stable class ABI remains unchanged here.  This
-// revision retries the fail-closed generator after its inherited marker audit.
+// revision retries the complete fail-closed generator and type include audit.
 class QHrtAppKitBackingStore : public QOffscreenBackingStore
 {
 public:
