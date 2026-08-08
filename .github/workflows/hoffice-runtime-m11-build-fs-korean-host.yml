@@ -1,4 +1,4 @@
-name: Build filesystem-complete Korean-title HWord input host
+name: Build clone-capable filesystem-complete Korean-title HWord input host
 
 on:
   push:
@@ -8,6 +8,11 @@ on:
       - 'runtime/m10/augment_appkit_input_capture.py'
       - 'runtime/m10/route_synthetic_events_directly.py'
       - 'runtime/m10/augment_fs_compat.py'
+      - 'runtime/m10/augment_clone_compat_v2.py'
+      - 'runtime/m10/augment_clone_compat_v4.py'
+      - 'runtime/m10/augment_clone_compat_v6.py'
+      - 'runtime/m10/clone_trampoline.h'
+      - 'runtime/m10/clone_trampoline.S'
       - 'runtime/m9/augment_stack_locale.py'
       - 'runtime/m8/appkit_input.m'
       - 'runtime/m8/augment_appkit_adapter_input.py'
@@ -24,13 +29,13 @@ concurrency:
 jobs:
   build-host:
     runs-on: macos-14
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Generate the Korean-title AppKit adapter and filesystem-complete bridge
+      - name: Generate the Korean-title AppKit adapter and clone-capable bridge
         run: |
           set -euxo pipefail
           if ! /usr/bin/arch -x86_64 /usr/bin/true; then
@@ -90,7 +95,9 @@ jobs:
           python3 runtime/m6/augment_appkit_hostcall_deferred.py \
             build/generated/stage10.c build/generated/stage11.c
           python3 runtime/m3/augment_darwin_syscall_abi.py \
-            build/generated/stage11.c build/generated/syscall_bridge.c
+            build/generated/stage11.c build/generated/stage12.c
+          python3 runtime/m10/augment_clone_compat_v4.py \
+            build/generated/stage12.c build/generated/syscall_bridge.c
 
           python3 - <<'PY'
           from pathlib import Path
@@ -101,7 +108,7 @@ jobs:
               raise SystemExit(
                   f'trace-limit anchor: expected one, found {text.count(anchor)}')
           path.write_text(
-              text.replace(anchor, '#define M3_TRACE_LIMIT 12000u'),
+              text.replace(anchor, '#define M3_TRACE_LIMIT 24000u'),
               encoding='utf-8')
           PY
 
@@ -111,23 +118,38 @@ jobs:
           grep -F 'case LINUX_SYS_CHMOD:' build/generated/syscall_bridge.c
           grep -F 'case LINUX_SYS_FSTATFS:' build/generated/syscall_bridge.c
           grep -F 'case LINUX_SYS_EVENTFD2:' build/generated/syscall_bridge.c
-          grep -F '#define M3_TRACE_LIMIT 12000u' \
+          grep -F 'case LINUX_SYS_CLONE:' build/generated/syscall_bridge.c
+          grep -F 'case LINUX_SYS_CHDIR:' build/generated/syscall_bridge.c
+          grep -F 'pthread_create(' build/generated/syscall_bridge.c
+          grep -F 'm10_schedule_clone_thread_exit(' \
             build/generated/syscall_bridge.c
+          grep -F 'm10_stack_belongs_to_context(' \
+            build/generated/syscall_bridge.c
+          grep -F '#define M3_TRACE_LIMIT 24000u' \
+            build/generated/syscall_bridge.c
+          grep -F 'HRT M10 CLONE ASM: guest-gs-set' \
+            runtime/m10/clone_trampoline.S
+          ! grep -F '(void)raw_set_gs(context->guest_gs);' \
+            build/generated/syscall_bridge.c
+
           shasum -a 256 build/generated/syscall_bridge.c \
             >build/output/generated-bridge.sha256
           shasum -a 256 build/generated/appkit_adapter_m11.m \
             >build/output/generated-appkit-adapter.sha256
           shasum -a 256 runtime/m8/appkit_input.m \
             >build/output/generated-appkit-input.sha256
+          shasum -a 256 runtime/m10/clone_trampoline.S \
+            >build/output/clone-trampoline.sha256
 
-      - name: Compile, sign, and lock the x86-64 host
+      - name: Compile, sign, and lock the clone-capable x86-64 host
         run: |
           set -euxo pipefail
           common=(-arch x86_64 -std=c17 -O2 -g \
-            -fno-stack-protector -fno-omit-frame-pointer \
+            -fno-stack-protector -fno-omit-frame-pointer -mfsgsbase \
             -Wall -Wextra -Werror -Wpedantic \
             -Wno-unused-function -Wno-unused-variable \
-            -Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1)
+            -Iruntime/m10 -Iruntime/m8 -Iruntime/m6 \
+            -Iruntime/m3 -Iruntime/m1)
           index=0
           for source in \
             runtime/m6/main.c \
@@ -154,6 +176,9 @@ jobs:
             -o build/objects/appkit-input.o
           clang -arch x86_64 -g -c runtime/m1/enter_guest.S \
             -o build/objects/enter-guest.o
+          clang -arch x86_64 -g -Iruntime/m10 \
+            -c runtime/m10/clone_trampoline.S \
+            -o build/objects/clone-trampoline.o
           clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \
             -o build/objects/hostcall-trampoline.o
 
@@ -181,7 +206,7 @@ jobs:
           input_source = Path('runtime/m8/appkit_input.m').read_text(
               encoding='utf-8')
           lock = {
-              'schema': 1,
+              'schema': 2,
               'workflow_run': os.environ['GITHUB_RUN_ID'],
               'commit': os.environ['GITHUB_SHA'],
               'binary': str(binary),
@@ -204,13 +229,23 @@ jobs:
                   'fstatfs': 'case LINUX_SYS_FSTATFS:' in bridge,
                   'eventfd2': 'case LINUX_SYS_EVENTFD2:' in bridge,
               },
-              'trace_limit': 12000,
+              'thread_syscalls': {
+                  'clone': 'case LINUX_SYS_CLONE:' in bridge,
+                  'chdir': 'case LINUX_SYS_CHDIR:' in bridge,
+                  'pthread_backend': 'pthread_create(' in bridge,
+                  'assembly_tls':
+                      'hrt_m10_enter_clone_child(context);' in bridge,
+                  'normal_return':
+                      'm10_schedule_clone_thread_exit(' in bridge,
+              },
+              'trace_limit': 24000,
           }
           assert lock['korean_title_staging']
           assert lock['toolbar_stage']
           assert lock['document_focus_stage']
           assert lock['text_stage']
           assert all(lock['filesystem_syscalls'].values())
+          assert all(lock['thread_syscalls'].values())
           Path('build/output/fs-korean-host-lock.json').write_text(
               json.dumps(lock, indent=2) + '\n', encoding='utf-8')
           print(json.dumps(lock, indent=2))
