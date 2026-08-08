@@ -14,7 +14,7 @@ import subprocess
 import sys
 import tempfile
 
-HRT_M10_FS_SELF_CONTAINED_TRACE_V3 = True
+HRT_M10_FS_SELF_CONTAINED_TRACE_V4 = True
 
 
 def run_module(path: Path, argv: list[str]) -> None:
@@ -73,6 +73,7 @@ def main() -> int:
         'HRT M9 PATH:': 1,
         'm9_trace_path("open"': 1,
         'm9_trace_path("fstatat"': 1,
+        'm9_trace_path("readlink"': 1,
     }
     for marker, minimum in requirements.items():
         count = final.count(marker)
