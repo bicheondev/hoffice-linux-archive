@@ -1,0 +1,156 @@
+{
+  "schema": 1,
+  "milestone": "M9-bootstrap-resolution",
+  "status": "PASS",
+  "frontier": "NORMAL_KOREAN_LOCALE_BOOTSTRAP_PASS",
+  "workflow_run": "31235068358",
+  "commit": "4da586113df0106d69171ca34cb6a1fcf28f50d7",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "production_path": "locale-and-resource-restoration",
+  "provider_diagnosis": {
+    "schema": 2,
+    "milestone": "M9-provider-substr-diagnosis",
+    "status": "PASS",
+    "workflow_run": "31231092756",
+    "commit": "ec3d6fc3259be3d6afa0262f938cc0285d4ce18a",
+    "program": "/opt/hnc/hoffice11/Bin/hword",
+    "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+    "package_sha256": "23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46",
+    "probe_label": "std::__throw_out_of_range_fmt",
+    "probe_symbol": "_ZSt24__throw_out_of_range_fmtPKcz",
+    "probe_site": "0x16e0b344",
+    "return_address": "0xfcf1352",
+    "stack_pointer": "0xf7fbe18",
+    "format_pointer": "0x10eb5940",
+    "first_variadic_argument": "0x10e9776b",
+    "format": "%s: __pos (which is %zu) > this->size() (which is %zu)",
+    "stack_words": [
+      "0xfcf1352",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0xf7fbe90",
+      "0xf7fbeb0",
+      "0x0",
+      "0x0"
+    ],
+    "executable_mapping_count": 103,
+    "owner_mapping": {
+      "start": 260423680,
+      "end": 289272594,
+      "file_offset": 0,
+      "fd": 7,
+      "host_path": "/private/tmp/h9i-31231092756/opt/hnc/hoffice11/Bin/libHwordApp.so"
+    },
+    "caller_guest_path": "/private/tmp/h9i-31231092756/opt/hnc/hoffice11/Bin/libHwordApp.so",
+    "caller_file_offset": 4805458,
+    "caller_object_sha256": "e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50",
+    "caller_object_copy": "build/caller-object/libHwordApp.so",
+    "raw_exit_status": 191,
+    "source_workflow_run": "31231092756",
+    "classification": "FIRST_PROVIDER_STRING_TOO_SHORT_FOR_SUBSTR",
+    "substring": {
+      "position": 3,
+      "source_size": 0,
+      "matching_provider_sources": [
+        "first_string"
+      ],
+      "format": "%s: __pos (which is %zu) > this->size() (which is %zu)",
+      "format_function_name_pointer": "0x10e9776b"
+    },
+    "provider": {
+      "rbx": "0x69335e0",
+      "r12": "0x6030090",
+      "r13": "0xf7fc090",
+      "r14": "0x0",
+      "r15": "0xf7fc080",
+      "rbp": "0xf7fc090",
+      "vtable": "0x11251a50",
+      "offset_to_top": "0x0",
+      "typeinfo": "0x11283d48",
+      "type_name_pointer": "0x10ec63d0",
+      "type_name": "15CHwordUtilityEx",
+      "method_130": "0xfc6d100",
+      "method_138": "0xfc6e380",
+      "first_data": "0xf7fbea0",
+      "first_string": "",
+      "second_data": "0xf7fbec0",
+      "second_string": "en-US",
+      "first_length": 0,
+      "second_length": 5
+    },
+    "provider_address_owners": {
+      "method_130": {
+        "start": 260423680,
+        "end": 289272594,
+        "file_offset": 0,
+        "fd": 7,
+        "host_path": "/private/tmp/h9i-31231092756/opt/hnc/hoffice11/Bin/libHwordApp.so",
+        "address": 264687872,
+        "relative_address": 4264192,
+        "object_file_offset": 4264192
+      },
+      "method_138": {
+        "start": 260423680,
+        "end": 289272594,
+        "file_offset": 0,
+        "fd": 7,
+        "host_path": "/private/tmp/h9i-31231092756/opt/hnc/hoffice11/Bin/libHwordApp.so",
+        "address": 264692608,
+        "relative_address": 4268928,
+        "object_file_offset": 4268928
+      },
+      "provider_vtable": {
+        "start": 260423680,
+        "end": 289272594,
+        "file_offset": 0,
+        "fd": 7,
+        "host_path": "/private/tmp/h9i-31231092756/opt/hnc/hoffice11/Bin/libHwordApp.so",
+        "address": 287644240,
+        "relative_address": 27220560,
+        "object_file_offset": 27220560
+      },
+      "provider_typeinfo": {
+        "start": 260423680,
+        "end": 289272594,
+        "file_offset": 0,
+        "fd": 7,
+        "host_path": "/private/tmp/h9i-31231092756/opt/hnc/hoffice11/Bin/libHwordApp.so",
+        "address": 287849800,
+        "relative_address": 27426120,
+        "object_file_offset": 27426120
+      }
+    },
+    "caller_object_virtual_address": 4805458,
+    "caller_load_segment": {
+      "index": 1,
+      "flags": 5,
+      "file_offset": 0,
+      "virtual_address": 0,
+      "file_size": 27208408,
+      "memory_size": 27208408,
+      "alignment": 4096
+    }
+  },
+  "baseline": {
+    "status": "PASS",
+    "classification": "BASELINE_STABLE_FRAME",
+    "window_titles": [
+      "Exception"
+    ],
+    "window_geometries": [
+      [
+        400,
+        168
+      ]
+    ],
+    "frame_present": true,
+    "frame_sha256": "4cbb09dbaa2b9658f5789cc96a0038ed20c5289ff7b65bb1edff449cadd8d552",
+    "alive_after_frame": true,
+    "initialization_error_observed": false,
+    "substr_exception_observed": false,
+    "raw_exit_status": 143
+  },
+  "provider_override": null
+}
