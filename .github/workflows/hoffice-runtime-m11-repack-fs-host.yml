@@ -1,0 +1,86 @@
+name: Repack filesystem-complete HWord input host
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-repack-fs-host.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: hrt-m11-repack-fs-host-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN_ID: '31257155399'
+  SOURCE_ARTIFACT: hrt-m11-korean-hword-input-v2-proof
+  SOURCE_BINARY: build/host/hrt-m11-korean-input-v2
+  OUTPUT_BINARY: build/output/hrt-m10-hword-main-input
+
+jobs:
+  repack:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the filesystem-complete M11 host proof
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.SOURCE_ARTIFACT }}
+          path: build/source
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Verify and rename the filesystem-complete host
+        run: |
+          set -euxo pipefail
+          source="build/source/$SOURCE_BINARY"
+          test -s "$source"
+          mkdir -p "$(dirname "$OUTPUT_BINARY")"
+          cp "$source" "$OUTPUT_BINARY"
+          chmod 0755 "$OUTPUT_BINARY"
+          file "$OUTPUT_BINARY" | tee build/output/host-file.txt
+          lipo -info "$OUTPUT_BINARY" | tee build/output/host-arch.txt
+          codesign --force --sign - --timestamp=none "$OUTPUT_BINARY"
+          codesign --verify --strict "$OUTPUT_BINARY"
+          shasum -a 256 "$OUTPUT_BINARY" | tee build/output/host-sha256.txt
+
+          stderr=build/source/build/proof/stderr.txt
+          test -s "$stderr"
+          grep -F 'HRT M10 FS: op=flock result=0' "$stderr"
+          grep -F 'HRT M10 EVENTFD:' "$stderr"
+          for syscall in 73 82 86 90 138 290; do
+            ! grep -F "Linux syscall ENOSYS $syscall" "$stderr"
+          done
+
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          binary = Path(os.environ['OUTPUT_BINARY'])
+          proof = {
+              'schema': 1,
+              'source_run': os.environ['SOURCE_RUN_ID'],
+              'source_artifact': os.environ['SOURCE_ARTIFACT'],
+              'source_binary': os.environ['SOURCE_BINARY'],
+              'output_binary': os.environ['OUTPUT_BINARY'],
+              'sha256': hashlib.sha256(binary.read_bytes()).hexdigest(),
+              'filesystem_syscalls': [73, 82, 86, 90, 138, 290],
+              'filesystem_syscalls_enosys': False,
+          }
+          Path('build/output/fs-host-lock.json').write_text(
+              json.dumps(proof, indent=2) + '\n')
+          print(json.dumps(proof, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m10-hword-main-window-input-proof
+          path: build/output
+          if-no-files-found: error
+          retention-days: 14
