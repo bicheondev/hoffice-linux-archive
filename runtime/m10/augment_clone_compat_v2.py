@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Run the locked clone generator on every mature getcwd source shape.
+"""Run the locked clone generator across mature getcwd source shapes.
 
-The first clone generator at commit 4f699526 replaces the original root-only
-``bridge_getcwd`` stub with guest-root-aware chdir/getcwd support.  Later bridge
-compositions preserve the same function signature but may rewrite its body,
-so this wrapper normalizes only that one balanced C function before invoking
-the immutable generator.  It then changes the two emitted C++ ``static_assert``
-tokens to C17 ``_Static_assert``.
+The first clone generator at commit 4f699526 replaces the root-only
+``bridge_getcwd`` function with a guest-root-aware chdir/getcwd pair.  Mature
+bridge composition can change whitespace or the body of that function, so this
+wrapper patches the locked generator's one named replacement operation: when
+its exact old body is absent, the unique function is replaced by balanced C
+function boundaries using the locked replacement text itself.
 
-Missing, duplicated, or malformed getcwd functions fail closed.  No other
-source text is normalized.
+All other locked anchors remain strict.  The two emitted C++ ``static_assert``
+tokens are then normalized to C17 ``_Static_assert``.
 """
 from __future__ import annotations
 
@@ -22,14 +22,6 @@ import tempfile
 LOCKED_COMMIT = "4f699526cf213a7c38df34faafeda1049bb06a19"
 LOCKED_PATH = "runtime/m10/augment_clone_compat.py"
 GETCWD_SIGNATURE = "static int64_t bridge_getcwd(char *buffer, size_t size) {"
-GETCWD_STUB = """static int64_t bridge_getcwd(char *buffer, size_t size) {
-    if (buffer == NULL) return -LINUX_EFAULT;
-    if (size < 2u) return -LINUX_ERANGE;
-    buffer[0] = '/';
-    buffer[1] = '\\0';
-    return 2;
-}
-"""
 
 
 def balanced_function_end(text: str, opening_brace: int) -> int:
@@ -79,8 +71,7 @@ def balanced_function_end(text: str, opening_brace: int) -> int:
     raise SystemExit("bridge_getcwd function is not terminated")
 
 
-def normalize_getcwd(source: Path, output: Path) -> None:
-    text = source.read_text(encoding="utf-8")
+def replace_getcwd_function(text: str, replacement: str) -> str:
     count = text.count(GETCWD_SIGNATURE)
     if count != 1:
         raise SystemExit(
@@ -92,10 +83,11 @@ def normalize_getcwd(source: Path, output: Path) -> None:
         end += 2
     elif text[end:end + 1] == "\n":
         end += 1
-    normalized = text[:start] + GETCWD_STUB + text[end:]
-    if normalized.count(GETCWD_STUB) != 1:
-        raise SystemExit("normalized bridge_getcwd stub count is not one")
-    output.write_text(normalized, encoding="utf-8")
+    result = text[:start] + replacement + text[end:]
+    if result.count("static int64_t host_chdir_bridge(") != 1 or \
+       result.count(GETCWD_SIGNATURE) != 1:
+        raise SystemExit("parsed chdir/getcwd replacement did not close exactly")
+    return result
 
 
 def main() -> None:
@@ -113,11 +105,7 @@ def main() -> None:
     ).stdout
 
     with tempfile.TemporaryDirectory(prefix="hrt-m10-clone-") as temporary:
-        temporary_root = Path(temporary)
-        normalized_input = temporary_root / "normalized-input.c"
-        normalize_getcwd(source_path, normalized_input)
-
-        module_path = temporary_root / "locked_clone_generator.py"
+        module_path = Path(temporary) / "locked_clone_generator.py"
         module_path.write_text(locked_source, encoding="utf-8")
         spec = importlib.util.spec_from_file_location(
             "hrt_m10_locked_clone", module_path)
@@ -125,9 +113,19 @@ def main() -> None:
             raise SystemExit("unable to load the locked clone generator")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
+
+        strict_replace = module.replace_once
+
+        def compatible_replace(text: str, needle: str, replacement: str,
+                               label: str) -> str:
+            if label == "guest chdir and getcwd" and text.count(needle) == 0:
+                return replace_getcwd_function(text, replacement)
+            return strict_replace(text, needle, replacement, label)
+
+        module.replace_once = compatible_replace
         previous_argv = sys.argv
         try:
-            sys.argv = [str(module_path), str(normalized_input), str(output_path)]
+            sys.argv = [str(module_path), str(source_path), str(output_path)]
             module.main()
         finally:
             sys.argv = previous_argv
