@@ -1,0 +1,421 @@
+name: HOffice runtime M10 HWord filesystem compatibility
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m10/augment_fs_compat.py'
+      - '.github/workflows/hoffice-runtime-m10-hword-fs-compat.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m10-hword-fs-compat-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  M9_RUN_ID: '31235068358'
+  QPA_RUN_ID: '31166152504'
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  run-exact-hword:
+    runs-on: macos-14
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the locale and resource restoration proof
+        run: |
+          set -euxo pipefail
+          test -s proofs/m9-hword-normal-bootstrap.json
+          grep -F '"status": "PASS"' proofs/m9-hword-normal-bootstrap.json
+          grep -F '"frontier": "NORMAL_KOREAN_LOCALE_BOOTSTRAP_PASS"' \
+            proofs/m9-hword-normal-bootstrap.json
+
+      - name: Download the deterministic locale-complete HWord guest
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m9-bootstrap-prepared-guest
+          path: build/input/prepared
+          repository: ${{ github.repository }}
+          run-id: ${{ env.M9_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download the exact Qt 5.11.3 AppKit QPA
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m8-qt5113-hrtappkit-input-qpa
+          path: build/input/qpa
+          repository: ${{ github.repository }}
+          run-id: ${{ env.QPA_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Reconstruct the case-sensitive locale-complete guest
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated build/objects build/host build/proof \
+                   diagnostics proofs
+          prepared=build/input/prepared/hword-m9-prepared-rootfs.tar.zst
+          checksum=build/input/prepared/report/hword-m9-prepared-rootfs.tar.zst.sha256
+          test -s "$prepared"
+          test -s "$checksum"
+          expected=$(awk '{print $1; exit}' "$checksum")
+          actual=$(shasum -a 256 "$prepared" | awk '{print $1}')
+          test "$actual" = "$expected"
+
+          image="$RUNNER_TEMP/hrt-m10-fs.sparsebundle"
+          root="/tmp/h10fs-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"
+          mkdir -p "$root"
+          if ! hdiutil create -quiet -size 12g -fs APFSX \
+               -volname HRTM10FS -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 12g -fs HFSX \
+              -volname HRTM10FS -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >>"$GITHUB_ENV"
+          echo "HRT_IMAGE=$image" >>"$GITHUB_ENV"
+          zstd -dc "$prepared" | tar -xf - -C "$root"
+
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+          test -s "$root/usr/lib/locale/locale-archive"
+          test -f "$root/opt/hnc/hoffice1/Shared/Fonts/HGSMJ.HFT"
+          test -f "$root/opt/hnc/hoffice11/Shared/TTF/Install/HanSantteutDotum-Regular.ttf"
+
+          python3 - "$root" "$PROGRAM" "$PROGRAM_SHA256" <<'PY'
+          import hashlib,json,pathlib,sys
+          root=pathlib.Path(sys.argv[1]); program=sys.argv[2]
+          marker=json.loads((root/'.hrt-prepatched-v1').read_text())
+          record,=[item for item in marker['objects'] if item['path']==program]
+          assert record['sha256_before']==sys.argv[3],record
+          actual=hashlib.sha256((root/program.lstrip('/')).read_bytes()).hexdigest()
+          assert actual==record['sha256_after'],(actual,record)
+          pathlib.Path('build/proof/program-prepatch-record.json').write_text(
+              json.dumps(record,indent=2)+'\n')
+          PY
+
+          mkdir -p "$root$(dirname "$PLUGIN_GUEST")"
+          python3 - build/input/qpa/libqhrtappkit.so.xz \
+            build/input/qpa/lock.json "$root$PLUGIN_GUEST" <<'PY'
+          import hashlib,json,lzma,pathlib,sys
+          compressed=pathlib.Path(sys.argv[1]).read_bytes()
+          lock=json.loads(pathlib.Path(sys.argv[2]).read_text())
+          assert lock['toolchain']['qt_version']=='5.11.3',lock
+          assert hashlib.sha256(compressed).hexdigest()==lock['plugin']['xz_sha256']
+          plugin=lzma.decompress(compressed)
+          assert hashlib.sha256(plugin).hexdigest()==lock['plugin']['sha256_after_prepatch']
+          pathlib.Path(sys.argv[3]).write_bytes(plugin)
+          pathlib.Path('build/proof/qpa-lock.json').write_text(
+              json.dumps(lock,indent=2)+'\n')
+          PY
+          chmod 0755 "$root$PLUGIN_GUEST"
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+          grep -F 'Case-sensitive' build/proof/guest-volume.txt
+
+      - name: Generate the filesystem-complete Linux and AppKit bridge
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+          sw_vers | tee build/proof/sw-vers.txt
+
+          python3 runtime/m8/augment_appkit_adapter_input.py \
+            runtime/m6/appkit_adapter.m build/generated/appkit_adapter.m
+          python3 runtime/m6/augment_stack_hrtappkit.py \
+            runtime/m3/stack.c build/generated/stack-m6.c
+          python3 runtime/m9/augment_stack_locale.py \
+            build/generated/stack-m6.c build/generated/stack.c
+          grep -F 'LANG=ko_KR.UTF-8' build/generated/stack.c
+          grep -F 'LC_ALL=ko_KR.UTF-8' build/generated/stack.c
+
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m10/augment_fs_compat.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage9.c build/generated/stage10.c
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+            build/generated/stage10.c build/generated/stage11.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage11.c build/generated/syscall_bridge.c
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('build/generated/syscall_bridge.c')
+          text=path.read_text()
+          anchor='#define M3_TRACE_LIMIT 256u'
+          assert text.count(anchor)==1
+          path.write_text(text.replace(anchor,'#define M3_TRACE_LIMIT 80000u'))
+          PY
+          grep -q 'case LINUX_SYS_FLOCK:' build/generated/syscall_bridge.c
+          grep -q 'case LINUX_SYS_LINK:' build/generated/syscall_bridge.c
+          grep -q 'case LINUX_SYS_CHMOD:' build/generated/syscall_bridge.c
+          grep -q 'case LINUX_SYS_FSTATFS:' build/generated/syscall_bridge.c
+          grep -q 'sizeof(LinuxStatfs) == 120u' build/generated/syscall_bridge.c
+          shasum -a 256 build/generated/syscall_bridge.c \
+            >build/proof/generated-bridge.sha256
+
+      - name: Compile and sign the filesystem-complete runtime
+        run: |
+          set -euxo pipefail
+          common=(-arch x86_64 -std=c17 -O2 -g -fno-stack-protector \
+            -fno-omit-frame-pointer -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1)
+          index=0
+          for source in runtime/m6/main.c runtime/m6/hostcall_trampoline.c \
+            runtime/m1/common.c runtime/m3/elf_map.c build/generated/stack.c \
+            runtime/m3/patch.c build/generated/syscall_bridge.c; do
+            clang "${common[@]}" -c "$source" \
+              -o "build/objects/c-${index}.o"
+            index=$((index+1))
+          done
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c build/generated/appkit_adapter.m \
+            -o build/objects/appkit-adapter.o
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c runtime/m8/appkit_input.m \
+            -o build/objects/appkit-input.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S \
+            -o build/objects/enter-guest.o
+          clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \
+            -o build/objects/hostcall-trampoline.o
+          clang -arch x86_64 build/objects/*.o \
+            -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO \
+            -o build/host/hrt-m10-hword-fs
+          file build/host/hrt-m10-hword-fs | tee build/proof/host-file.txt
+          lipo -info build/host/hrt-m10-hword-fs | tee build/proof/host-arch.txt
+          codesign --force --sign - --timestamp=none \
+            build/host/hrt-m10-hword-fs
+          codesign --verify --strict build/host/hrt-m10-hword-fs
+
+      - name: Run exact HWord through the filesystem frontier
+        run: |
+          set -uxo pipefail
+          export HRT_M6_CAPTURE_PATH="$PWD/build/proof/pre-frame-window.png"
+          export HRT_M7_CAPTURE_PATH="$PWD/build/proof/hword-fs-frame.png"
+          unset HRT_M8_SYNTHETIC_INPUT
+          : >build/proof/stdout.txt
+          : >build/proof/stderr.txt
+          /usr/bin/arch -x86_64 build/host/hrt-m10-hword-fs \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          frame_seen=0
+          for _ in $(jot 1400); do
+            if grep -q 'HRT M7 QPA: BGRA frame accepted' \
+                 build/proof/stderr.txt 2>/dev/null; then
+              frame_seen=1
+              sleep 15
+              break
+            fi
+            if grep -q 'fatal signal' build/proof/stderr.txt 2>/dev/null; then
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 0.05
+          done
+          alive=0
+          if [ "$frame_seen" -eq 1 ] && kill -0 "$pid" 2>/dev/null; then
+            alive=1
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+              >build/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$pid" 2 1 -file build/proof/sample.txt \
+              >/dev/null 2>&1 || true
+          fi
+          if kill -0 "$pid" 2>/dev/null; then
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.3
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e
+          wait "$pid"
+          raw_status=$?
+          set -e
+          printf '%s\n' "$raw_status" >build/proof/raw-exit-status.txt
+          printf '%s\n' "$frame_seen" >build/proof/frame-seen.txt
+          printf '%s\n' "$alive" >build/proof/alive-after-frame.txt
+          grep -E 'HRT M10 FS:|Linux syscall ENOSYS|HRT M6 QPA: CREATE |HRT M7 QPA: BGRA frame accepted|Initialization Error|Exception|basic_string::substr|out_of_range|fatal signal' \
+            build/proof/stderr.txt | tail -n 30000 \
+            | tee build/proof/key-lines.txt || true
+          cat build/proof/key-lines.txt
+
+      - name: Classify the first real HWord window after filesystem compatibility
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,re,struct
+          from pathlib import Path
+
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          titles=[]; geometries=[]
+          for line in re.findall(r'HRT M6 QPA: CREATE .*',stderr):
+              title=re.search(r' title=(.*?) handle=',line)
+              geometry=re.search(r' geometry=(\d+)x(\d+)',line)
+              if title: titles.append(title.group(1))
+              if geometry: geometries.append([
+                  int(geometry.group(1)),int(geometry.group(2))])
+
+          unsupported=sorted({int(value) for value in re.findall(
+              r'Linux syscall ENOSYS (\d+)',stderr)})
+          target={73,86,90,138}
+          remaining=sorted(target.intersection(unsupported))
+          fs_lines=[line for line in stderr.splitlines()
+                    if line.startswith('HRT M10 FS:')]
+          error_titles={'Exception','Initialization Error'}
+          error_windows=[title for title in titles if title in error_titles]
+          main_windows=[]
+          for title,geometry in zip(titles,geometries):
+              if (geometry[0]>=640 and geometry[1]>=480 and
+                  title not in error_titles and title.strip()):
+                  main_windows.append({'title':title,'geometry':geometry})
+
+          frame=Path('build/proof/hword-fs-frame.png')
+          frame_info=None
+          if frame.is_file() and frame.stat().st_size>0:
+              data=frame.read_bytes()
+              assert data[:8]==b'\x89PNG\r\n\x1a\n'
+              width,height=struct.unpack('>II',data[16:24])
+              frame_info={'path':str(frame),'width':width,'height':height,
+                          'size':len(data),
+                          'sha256':hashlib.sha256(data).hexdigest()}
+          large_frame=bool(frame_info and frame_info['width']>=640 and
+                           frame_info['height']>=480)
+          alive=bool(int(Path('build/proof/alive-after-frame.txt').read_text()))
+          fatal='fatal signal' in stderr
+          cxx_exception=any(token in stderr for token in (
+              'basic_string::substr','std::out_of_range','Caught exception'))
+
+          if remaining:
+              classification='FS_COMPAT_TARGET_SYSCALLS_STILL_ENOSYS'
+          elif fatal:
+              classification='FS_COMPAT_FATAL_SIGNAL'
+          elif cxx_exception:
+              classification='FS_COMPAT_CXX_EXCEPTION'
+          elif error_windows:
+              classification='EXCEPTION_DIALOG_REMAINS_AFTER_FS_COMPAT'
+          elif main_windows and large_frame and alive:
+              classification='HWORD_MAIN_WINDOW_AFTER_FS_COMPAT'
+          elif main_windows:
+              classification='HWORD_MAIN_WINDOW_WITHOUT_LARGE_CAPTURE'
+          elif titles:
+              classification='NONERROR_AUXILIARY_WINDOW_ONLY'
+          else:
+              classification='NO_NATIVE_QT_WINDOW'
+
+          passed=classification=='HWORD_MAIN_WINDOW_AFTER_FS_COMPAT'
+          result={
+              'schema':1,
+              'milestone':'M10-fs-compat',
+              'status':'PASS' if passed else 'DIAGNOSTIC',
+              'classification':classification,
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'source_m9_run':os.environ['M9_RUN_ID'],
+              'program':os.environ['PROGRAM'],
+              'program_sha256':os.environ['PROGRAM_SHA256'],
+              'window_titles':titles,
+              'window_geometries':geometries,
+              'main_window_candidates':main_windows,
+              'error_windows':error_windows,
+              'implemented_syscalls':[73,86,90,138],
+              'unsupported_syscalls':unsupported,
+              'implemented_syscalls_still_enosys':remaining,
+              'filesystem_bridge_events':fs_lines[-1000:],
+              'filesystem_bridge_event_count':len(fs_lines),
+              'frame':frame_info,
+              'large_frame':large_frame,
+              'alive_after_frame':alive,
+              'fatal_signal_observed':fatal,
+              'cxx_exception_observed':cxx_exception,
+              'raw_exit_status':int(Path(
+                  'build/proof/raw-exit-status.txt').read_text()),
+          }
+          Path('diagnostics').mkdir(exist_ok=True)
+          payload=json.dumps(result,indent=2)+'\n'
+          Path(f"diagnostics/m10-hword-fs-compat-{os.environ['GITHUB_RUN_ID']}.json").write_text(payload)
+          Path('diagnostics/m10-hword-fs-compat-latest.json').write_text(payload)
+          Path('diagnostics/m10-hword-fs-compat-latest.md').write_text(
+              '# HWord M10 filesystem compatibility\n\n'
+              f"- Status: `{result['status']}`\n"
+              f"- Classification: `{classification}`\n"
+              f"- Windows: `{list(zip(titles,geometries))}`\n"
+              f"- Target syscalls still ENOSYS: `{remaining}`\n"
+              f"- All unsupported syscalls: `{unsupported}`\n"
+              f"- Filesystem bridge events: `{len(fs_lines)}`\n"
+              f"- Large frame: `{large_frame}`\n"
+              f"- Alive after frame: `{alive}`\n")
+          Path('build/proof/summary.json').write_text(payload)
+          if passed:
+              Path('proofs/m10-hword-fs-compat.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Commit the durable filesystem frontier
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          for attempt in $(seq 1 12); do
+            git pull --rebase origin codex/hoffice-runtime-from-scratch
+            git add diagnostics/m10-hword-fs-compat-*.json \
+                    diagnostics/m10-hword-fs-compat-latest.md
+            if test -f proofs/m10-hword-fs-compat.json; then
+              git add proofs/m10-hword-fs-compat.json
+            fi
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'diagnostic: classify exact HWord filesystem frontier'
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git reset --soft HEAD~1
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m10-hword-fs-compat-proof
+          path: |
+            build/host/hrt-m10-hword-fs
+            build/generated/syscall_bridge.c
+            build/proof
+            diagnostics/m10-hword-fs-compat-*.json
+            diagnostics/m10-hword-fs-compat-latest.md
+            proofs/m10-hword-fs-compat.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach the exact HWord guest
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true
