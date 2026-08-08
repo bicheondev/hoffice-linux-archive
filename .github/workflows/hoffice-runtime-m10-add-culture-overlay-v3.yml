@@ -1,0 +1,143 @@
+name: Generate culture-repaired exact HWord resource replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-add-culture-overlay-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hrt-m10-add-culture-overlay-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate the culture-repaired replay from the proven QPA-complete replay
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          source = Path('.github/workflows/hoffice-runtime-m10-run10-resource-overlay-v2.yml')
+          target = Path('.github/workflows/hoffice-runtime-m10-run10-resource-overlay-v3.yml')
+          text = source.read_text(encoding='utf-8')
+
+          def replace_once(old: str, new: str, label: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(
+                      f'{label}: expected exactly one anchor, found {count}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              'name: Replay exact HWord resource overlay with locked hrtappkit QPA',
+              'name: Replay exact HWord resource overlay with culture repair',
+              'workflow name')
+          replace_once(
+              "      - '.github/workflows/hoffice-runtime-m10-run10-resource-overlay-v2.yml'",
+              "      - '.github/workflows/hoffice-runtime-m10-run10-resource-overlay-v3.yml'",
+              'workflow trigger path')
+          replace_once(
+              '  group: hrt-m10-run10-resource-overlay-v2-${{ github.ref }}',
+              '  group: hrt-m10-run10-resource-overlay-v3-${{ github.ref }}',
+              'concurrency group')
+          replace_once(
+              '  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so\n',
+              '  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so\n'
+              '  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so\n'
+              '  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50\n'
+              '  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8\n',
+              'culture environment')
+
+          patch_anchor = '''          chmod 0755 "$root$PLUGIN_GUEST"
+
+          python3 - "$root" <<'PY'
+'''
+          patch_block = '''          chmod 0755 "$root$PLUGIN_GUEST"
+
+          test -f "$root$HWORD_APP_GUEST"
+          printf '%s  %s\\n' "$HWORD_APP_SHA256" \\
+            "$root$HWORD_APP_GUEST" | shasum -a 256 -c -
+          python3 runtime/m9/patch_hword_utility_culture_redirect.py \\
+            "$root$HWORD_APP_GUEST" \\
+            --expected-sha256 "$HWORD_APP_SHA256" \\
+            --expected-output-sha256 "$HWORD_APP_PATCHED_SHA256" \\
+            --manifest build/proof/culture-redirect-patch.json
+          printf '%s  %s\\n' "$HWORD_APP_PATCHED_SHA256" \\
+            "$root$HWORD_APP_GUEST" | shasum -a 256 -c -
+
+          python3 - "$root" <<'PY'
+'''
+          replace_once(patch_anchor, patch_block, 'culture patch insertion')
+
+          text = text.replace('overlay-v2', 'overlay-v3')
+          text = text.replace('QPA-complete', 'culture-repaired')
+          text = text.replace('qpa-complete', 'culture-repaired')
+          text = text.replace(
+              'AFTER_QPA_COMPLETE_RESOURCE_OVERLAY',
+              'AFTER_CULTURE_REPAIRED_RESOURCE_OVERLAY')
+          text = text.replace(
+              "              'qpa_loaded':qpa_loaded,\n",
+              "              'qpa_loaded':qpa_loaded,\n"
+              "              'culture_redirect_patch':json.loads(Path(\n"
+              "                  'build/proof/culture-redirect-patch.json').read_text()),\n",
+              1)
+
+          required = {
+              'HWORD_APP_PATCHED_SHA256: ccceee82': 1,
+              'patch_hword_utility_culture_redirect.py': 1,
+              'culture-redirect-patch.json': 2,
+              'm10-resource-overlay-v3': 3,
+              'HWORD_MAIN_WINDOW_AFTER_CULTURE_REPAIRED_RESOURCE_OVERLAY': 1,
+              'hrt-m10-resource-overlay-v3-proof': 1,
+          }
+          for marker, minimum in required.items():
+              count = text.count(marker)
+              if count < minimum:
+                  raise SystemExit(
+                      f'generated workflow marker {marker!r}: '
+                      f'expected at least {minimum}, found {count}')
+
+          target.write_text(text, encoding='utf-8')
+          PY
+          python3 - <<'PY'
+          import yaml
+          from pathlib import Path
+          path=Path('.github/workflows/hoffice-runtime-m10-run10-resource-overlay-v3.yml')
+          data=yaml.safe_load(path.read_text())
+          assert isinstance(data,dict)
+          print(data.get('name'))
+          PY
+          grep -F 'patch_hword_utility_culture_redirect.py' \
+            .github/workflows/hoffice-runtime-m10-run10-resource-overlay-v3.yml
+          grep -F 'HWORD_MAIN_WINDOW_AFTER_CULTURE_REPAIRED_RESOURCE_OVERLAY' \
+            .github/workflows/hoffice-runtime-m10-run10-resource-overlay-v3.yml
+
+      - name: Commit and trigger the culture-repaired exact replay
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/workflows/hoffice-runtime-m10-run10-resource-overlay-v3.yml
+          git commit -m 'ci: replay exact HWord resources with culture repair'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
