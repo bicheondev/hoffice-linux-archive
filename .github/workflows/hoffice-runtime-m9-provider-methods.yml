@@ -1,0 +1,180 @@
+name: HOffice runtime M9 provider method analysis
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m9/analyze_provider_methods_v2.py'
+      - 'diagnostics/m9-hword-provider-substr-latest.json'
+      - '.github/workflows/hoffice-runtime-m9-provider-methods.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m9-provider-methods-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ROOTFS_ARTIFACT_ID: '8968324706'
+  ROOTFS_ARTIFACT_SHA256: 3e301d3c6269926c62804bff18671136fcf8c0b0b22b3952072e427a8fa9918a
+  ROOTFS_ARCHIVE_SHA256: 322fcf228092b296a34edbfa7ee43f9a7b237d5bcedaee50109ac4bb44d9ca28
+
+jobs:
+  disassemble-provider-methods:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the exact provider/substr diagnosis
+        run: |
+          set -euxo pipefail
+          test -s diagnostics/m9-hword-provider-substr-latest.json
+          grep -F '"status": "PASS"' \
+            diagnostics/m9-hword-provider-substr-latest.json
+
+      - name: Download and verify the exact prepatched rootfs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input build/rootfs build/analysis diagnostics
+          curl --fail --location --retry 5 --retry-delay 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ROOTFS_ARTIFACT_ID/zip" \
+            -o build/input/rootfs-artifact.zip
+          printf '%s  %s\n' "$ROOTFS_ARTIFACT_SHA256" \
+            build/input/rootfs-artifact.zip | sha256sum --check -
+          unzip -q build/input/rootfs-artifact.zip -d build/input
+          printf '%s  %s\n' "$ROOTFS_ARCHIVE_SHA256" \
+            build/input/hword-rootfs.tar.gz | sha256sum --check -
+          tar -xzf build/input/hword-rootfs.tar.gz -C build/rootfs
+          test -s build/rootfs/.hrt-prepatched-v1
+
+      - name: Resolve both provider virtual slots to exact ELF addresses
+        run: |
+          set -euxo pipefail
+          python3 runtime/m9/analyze_provider_methods_v2.py \
+            --root build/rootfs \
+            --diagnosis diagnostics/m9-hword-provider-substr-latest.json \
+            --output build/analysis
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path('build/analysis/provider-methods.json').read_text())
+          for key,method in data['methods'].items():
+              Path(f'build/analysis/{key}-start.txt').write_text(
+                  str(method['disassembly_start'])+'\n')
+              Path(f'build/analysis/{key}-stop.txt').write_text(
+                  str(method['disassembly_stop'])+'\n')
+              Path(f'build/analysis/{key}-object.txt').write_text(
+                  data['objects'][method['object_key']]['copied_path']+'\n')
+          print(json.dumps(data,indent=2))
+          PY
+
+      - name: Disassemble and inventory each provider method
+        run: |
+          set -euxo pipefail
+          for key in method_130 method_138; do
+            object=$(cat "build/analysis/${key}-object.txt")
+            start=$(cat "build/analysis/${key}-start.txt")
+            stop=$(cat "build/analysis/${key}-stop.txt")
+            file "$object" | tee "build/analysis/${key}-file.txt"
+            readelf -hW "$object" | tee "build/analysis/${key}-elf-header.txt"
+            readelf -dW "$object" | tee "build/analysis/${key}-dynamic.txt"
+            readelf -Ws "$object" | tee "build/analysis/${key}-symbols.txt"
+            objdump -dC --start-address="$start" --stop-address="$stop" \
+              "$object" | tee "build/analysis/${key}-disassembly.txt"
+            strings -a -t x "$object" \
+              | grep -Ei 'locale|culture|language|encoding|utf|country|region|ko[_-]KR|en[_-]US' \
+              | head -n 2000 \
+              >"build/analysis/${key}-semantic-strings.txt" || true
+          done
+
+      - name: Resolve nearest symbols and persist the implementation frontier
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json,os,re
+          from pathlib import Path
+          root=Path('build/analysis')
+          data=json.loads((root/'provider-methods.json').read_text())
+          symbol_pattern=re.compile(
+              r'^\s*\d+:\s+([0-9a-fA-F]+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
+              r'(\S+)\s+(\S+)\s+(.*)$')
+          for key,method in data['methods'].items():
+              target=int(method['virtual_address'])
+              symbols=[]
+              for line in (root/f'{key}-symbols.txt').read_text(
+                      errors='replace').splitlines():
+                  match=symbol_pattern.match(line)
+                  if not match: continue
+                  value=int(match.group(1),16); size=int(match.group(2))
+                  name=match.group(7).strip()
+                  if value and name:
+                      symbols.append({'value':value,'size':size,
+                          'type':match.group(3),'binding':match.group(4),
+                          'name':name})
+              containing=[item for item in symbols if item['value']<=target and
+                  (item['size']==0 or target<item['value']+item['size'])]
+              preceding=[item for item in symbols if item['value']<=target]
+              nearest=max(containing or preceding,
+                          key=lambda item:item['value'],default=None)
+              method['nearest_symbol']=nearest
+              method['offset_from_nearest_symbol']=(
+                  target-nearest['value'] if nearest else None)
+              method['disassembly']=(root/f'{key}-disassembly.txt').read_text(
+                  errors='replace')
+              method['semantic_strings']=(root/f'{key}-semantic-strings.txt').read_text(
+                  errors='replace').splitlines()
+          data['analysis_workflow_run']=os.environ['GITHUB_RUN_ID']
+          payload=json.dumps(data,indent=2)+'\n'
+          Path(f"diagnostics/m9-hword-provider-methods-{os.environ['GITHUB_RUN_ID']}.json").write_text(payload)
+          Path('diagnostics/m9-hword-provider-methods-latest.json').write_text(payload)
+          lines=['# Exact HWord provider virtual methods','',
+                 f"- Provider type: `{data['provider_type']}`",
+                 f"- Provider vtable: `{data['provider_vtable']}`",'']
+          for key,method in data['methods'].items():
+              lines.extend([
+                  f'## {key}',
+                  f"- Slot: `0x{method['slot']:x}`",
+                  f"- Guest object: `{method['guest_path']}`",
+                  f"- File offset: `0x{method['file_offset']:x}`",
+                  f"- Virtual address: `0x{method['virtual_address']:x}`",
+                  f"- Nearest symbol: `{method['nearest_symbol']['name'] if method['nearest_symbol'] else None}`",
+                  f"- Symbol offset: `{method['offset_from_nearest_symbol']}`",
+                  '',
+              ])
+          Path('diagnostics/m9-hword-provider-methods-latest.md').write_text(
+              '\n'.join(lines)+'\n')
+          print(payload)
+          PY
+
+      - name: Commit the durable provider implementation diagnosis
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git add diagnostics/m9-hword-provider-methods-*.json \
+                  diagnostics/m9-hword-provider-methods-latest.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'diagnostic: disassemble exact HWord provider methods'
+            git push origin HEAD:codex/hoffice-runtime-from-scratch
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m9-hword-provider-method-analysis
+          path: |
+            build/analysis
+            diagnostics/m9-hword-provider-methods-*.json
+            diagnostics/m9-hword-provider-methods-latest.md
+          if-no-files-found: error
+          retention-days: 14
