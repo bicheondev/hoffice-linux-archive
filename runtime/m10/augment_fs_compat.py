@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
-"""Extend the proven M10 filesystem bridge with Linux rename(2).
+"""Complete the locale-complete HWord filesystem and wakeup bridge.
 
-Run 31245615859 proved that flock, link, chmod and fstatfs were translated
-successfully and removed their ENOSYS failures.  The only new filesystem call
-left in HWord's fontconfig cache transaction was Linux x86-64 syscall 82,
-``rename``.  This wrapper executes the immutable first filesystem generator
-from commit 81e56f4e, then adds a guest-root-confined Darwin rename bridge.
-
-Keeping the already-proven generator immutable makes this delta small and
-fail-closed while preserving the exact 120-byte statfs translation and lock
-semantics already exercised on Apple Silicon.
+Run 31245615859 proved flock, link, chmod and fstatfs.  Run 31245803508 then
+proved atomic rename and left eventfd2 as the only unsupported Linux syscall.
+This wrapper executes the immutable first filesystem generator from commit
+81e56f4e, adds guest-root-confined rename, and finally applies the mature
+pipe-backed eventfd2 bridge that cooperates with directory and epoll close
+bookkeeping.
 """
 from __future__ import annotations
 
@@ -139,6 +136,22 @@ def add_rename_bridge(path: Path) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def add_mature_eventfd(path: Path) -> None:
+    with tempfile.TemporaryDirectory(prefix="hrt-m10-eventfd-") as temporary:
+        generated = Path(temporary) / "syscall-eventfd.c"
+        subprocess.run(
+            [
+                sys.executable,
+                "runtime/m10/augment_eventfd2_mature.py",
+                str(path),
+                str(generated),
+            ],
+            check=True,
+        )
+        path.write_text(generated.read_text(encoding="utf-8"),
+                        encoding="utf-8")
+
+
 def main() -> None:
     if len(sys.argv) != 3:
         raise SystemExit(f"usage: {sys.argv[0]} SOURCE.c OUTPUT.c")
@@ -146,6 +159,7 @@ def main() -> None:
     output = Path(sys.argv[2])
     run_locked_generator(source, output)
     add_rename_bridge(output)
+    add_mature_eventfd(output)
 
 
 if __name__ == "__main__":
