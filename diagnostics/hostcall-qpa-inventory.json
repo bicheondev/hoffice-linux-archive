@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "commit": "c268b8ca6d52917176bba158fa999547c9398528",
-  "workflow_run": "31268936866",
+  "commit": "cb242181d08a0f7e965380543c2ac873a7cc337f",
+  "workflow_run": "31269470130",
   "file_count": 175,
   "match_counts": {
     "opcode_256": 1185,
     "create_operation": 104,
     "host_call": 590,
-    "custom_qpa": 999,
+    "custom_qpa": 1000,
     "appkit": 178,
     "rendering": 262,
     "input_ime": 2813
@@ -127,7 +127,7 @@
     },
     {
       "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
-      "sha256": "8dbb5be60566f3595adc42a2d2ef1a57e8f9cb7769e8878f3bc5f41c57b99df5",
+      "sha256": "65849fe63856048e05709cf880a88466ea0373787da2d00ef09292a54da527b3",
       "size": 1500,
       "groups": [
         "custom_qpa",
@@ -802,8 +802,8 @@
     },
     {
       "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-      "sha256": "72e5c46cf4501fd66105156516ce78a272d9bd1458a8861024bbbd6248ecf6b9",
-      "size": 3485,
+      "sha256": "2bb74acb0fbb9a747c67264710b44c1c7fc689a810edcc299b898afd5deab2fa",
+      "size": 3573,
       "groups": [
         "custom_qpa",
         "host_call",
@@ -1946,17 +1946,17 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 18,
-        "text": "\"sha256_before_prepatch\": \"625a8f1d5d26729a40bffc586244f780a91a6a4b061f6719ab217edf19046cbc\","
+        "text": "\"sha256_before_prepatch\": \"8d4c2119c50abf8429d7a7c7825d2d99ab6e9063820a23fd9bbe77f220a4ae8a\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 19,
-        "text": "\"sha256_after_prepatch\": \"886a70deb6fae0394d7d5c75363efda292d2552b5b401c02a20953059d4ccb28\","
+        "text": "\"sha256_after_prepatch\": \"bf4116e85397430cc89c8c0db5df66285a2f69a152197ba81c5291c53f711cf3\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 20,
-        "text": "\"xz_sha256\": \"150bb2fa356deddccc71700e7c3c43016b3e56e1266b75a720e2a9e8a8b4ae68\","
+        "text": "\"xz_sha256\": \"951c68ee354c610500d7c1485e86da5f36194a0fdd6144e46e2469fc52d82100\","
       },
       {
         "path": "runtime/m6/qpa/build_hrtappkit_root.sh",
@@ -3840,22 +3840,22 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 25,
+        "line": 26,
         "text": "PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 27,
+        "line": 28,
         "text": "PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 29,
+        "line": 30,
         "text": "HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 30,
+        "line": 31,
         "text": "HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8"
       },
       {
@@ -11317,7 +11317,7 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 7,
-        "text": "\"qpa_source_tree\": \"90f94a10c75d29212e2217787765bda1c61a92b3\""
+        "text": "\"qpa_source_tree\": \"77e21aae526a1e6fd68b2bdee3b0978af18dcd4b\""
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
@@ -12937,11 +12937,16 @@
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
         "line": 22,
-        "text": "QPA_RUN_ID: '31256998140'"
+        "text": "QPA_RUN_ID: '31268936911'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 31,
+        "line": 23,
+        "text": "QPA_ARTIFACT_DIGEST: 29f19ed5f2461ca2e1f34f546542aeb805eb04cbb1faaf57b259a09a9a4534c7"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 32,
         "text": "PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so"
       },
       {
@@ -22542,27 +22547,27 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 36,
+        "line": 37,
         "text": "timeout-minutes: 70"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 54,
+        "line": 55,
         "text": "run: runtime/m11/run_korean_title_staged_replay.sh"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 73,
+        "line": 74,
         "text": "if git push origin HEAD:codex/hoffice-runtime-from-scratch; then"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 76,
+        "line": 77,
         "text": "git fetch origin codex/hoffice-runtime-from-scratch"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 77,
+        "line": 78,
         "text": "git rebase origin/codex/hoffice-runtime-from-scratch"
       },
       {
