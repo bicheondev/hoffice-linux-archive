@@ -15,25 +15,25 @@ Dynamic section at offset 0x34bd0 contains 36 entries:
  0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
  0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
  0x000000000000000c (INIT)               0x14000
- 0x000000000000000d (FINI)               0x2b8b0
+ 0x000000000000000d (FINI)               0x2bf90
  0x0000000000000019 (INIT_ARRAY)         0x34798
  0x000000000000001b (INIT_ARRAYSZ)       32 (bytes)
  0x000000000000001a (FINI_ARRAY)         0x347b8
  0x000000000000001c (FINI_ARRAYSZ)       8 (bytes)
  0x000000006ffffef5 (GNU_HASH)           0x260
- 0x0000000000000005 (STRTAB)             0x5308
- 0x0000000000000006 (SYMTAB)             0xb20
- 0x000000000000000a (STRSZ)              29249 (bytes)
+ 0x0000000000000005 (STRTAB)             0x5428
+ 0x0000000000000006 (SYMTAB)             0xbb0
+ 0x000000000000000a (STRSZ)              29545 (bytes)
  0x000000000000000b (SYMENT)             24 (bytes)
  0x0000000000000003 (PLTGOT)             0x36000
- 0x0000000000000002 (PLTRELSZ)           9504 (bytes)
+ 0x0000000000000002 (PLTRELSZ)           9624 (bytes)
  0x0000000000000014 (PLTREL)             RELA
- 0x0000000000000017 (JMPREL)             0x10b60
- 0x0000000000000007 (RELA)               0xcc78
+ 0x0000000000000017 (JMPREL)             0x10db8
+ 0x0000000000000007 (RELA)               0xced0
  0x0000000000000008 (RELASZ)             16104 (bytes)
  0x0000000000000009 (RELAENT)            24 (bytes)
- 0x000000006ffffffe (VERNEED)            0xcb48
+ 0x000000006ffffffe (VERNEED)            0xcda0
  0x000000006fffffff (VERNEEDNUM)         6
- 0x000000006ffffff0 (VERSYM)             0xc54a
+ 0x000000006ffffff0 (VERSYM)             0xc792
  0x000000006ffffff9 (RELACOUNT)          174
  0x0000000000000000 (NULL)               0x0
