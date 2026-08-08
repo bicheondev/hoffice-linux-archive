@@ -1,0 +1,210 @@
+{
+  "schema": 2,
+  "milestone": "M10-resource-overlay",
+  "status": "DIAGNOSTIC",
+  "classification": "FATAL_AFTER_RESOURCE_OVERLAY",
+  "workflow_run": "31254618589",
+  "commit": "7c0c365484dc72433099e8aa53d1017c128e0f78",
+  "source_workflow_run": "31254233337",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "package_sha256": "23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46",
+  "window_titles": [],
+  "restored_resources": [
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code",
+      "type": "directory"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_1361.dat",
+      "type": "file",
+      "size": 65650,
+      "sha256": "044ba9acf2ef8180b1c245ecad4369a94aad41d9ce026374ba54e6503ce7517b",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_932.dat",
+      "type": "file",
+      "size": 65094,
+      "sha256": "6116d2ecd548a2eba865a331f1e0c944423d14703bb4b480e912c8a1c9143d25",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_936.dat",
+      "type": "file",
+      "size": 65130,
+      "sha256": "69c22f4333d6725bbd33c014131e92c040bc0b0f0cd52e82907440b5aa014b93",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_949.dat",
+      "type": "file",
+      "size": 65092,
+      "sha256": "70f2a3bfd751047ec39152b58158b57d047f09e6af04f406f24c7f3157b183b9",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_950.dat",
+      "type": "file",
+      "size": 48710,
+      "sha256": "47611d27e9969bf7362bd5f3eccb31dd0dc7a7bcc92cb3d3033aa1951307a8ee",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_9566.dat",
+      "type": "file",
+      "size": 47914,
+      "sha256": "a3152537d51d424837b748c1b8c1675e6b95d2db1c4587f7188d0c1d57aab8ef",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_chs.dat",
+      "type": "file",
+      "size": 11229,
+      "sha256": "88c7202cccee5093b9bc279cca3164a21242a8b9b04986e7178fe0a3b06d9fb8",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_cht.dat",
+      "type": "file",
+      "size": 1493,
+      "sha256": "4eaf4310802a6d5d06ffd01c37c91bc976ca8cf5dfe565ff9849995cfa4d1811",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_cjk.dat",
+      "type": "file",
+      "size": 57029,
+      "sha256": "607674cf5f819cb5c7f92c4a20883e64ff02276ffd79a6d05f12add0d191402f",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_com.dat",
+      "type": "file",
+      "size": 6861,
+      "sha256": "4f7ec788853285b9c4d7143cfc5cba1a29ae428326d7692946f5d7a9a1b94e8c",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_gen.dat",
+      "type": "file",
+      "size": 32975,
+      "sha256": "09ddbee55a8f9a4ac9df25fa0484fdbab10921e576132b4c41874564904dd85a",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_h2u.dat",
+      "type": "file",
+      "size": 3176,
+      "sha256": "2f78ab7ec0765ea638324024b576e5937e36b42abba872b33dd4c90600abe857",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_jpn.dat",
+      "type": "file",
+      "size": 3161,
+      "sha256": "93ebd827683a3af34b306d9b5be8c135697c078cb25a445c328fce1f7ef5796c",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_kor.dat",
+      "type": "file",
+      "size": 323,
+      "sha256": "a6bd2fd9d8d00c78986c5eec1437856eac071adb886f171cdaef27f316c56f21",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_pua.dat",
+      "type": "file",
+      "size": 51408,
+      "sha256": "c4b3c09f8d7fe922c77703f38763041b12c1eace7cf3ff35a941abfc6a480956",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u300_u2h.dat",
+      "type": "file",
+      "size": 3496,
+      "sha256": "fc5fbf6cc1b28122822a9fe6b3863b2c8e31b3e6dc8735ef3a1e689c3ff8a062",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/Code/u320_hnc.dat",
+      "type": "file",
+      "size": 1226,
+      "sha256": "1190293c29c44e14428cd2e7bdaa31209bfed99506a2795c384ac6d84baf5cab",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/HwordAction.so",
+      "type": "file",
+      "size": 1838824,
+      "sha256": "e6de430ac740865928cf3947d1a7a90bf7e5df37d609e85a86051d99d3949cbc",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/libHncImm.KOR.res",
+      "type": "file",
+      "size": 6844,
+      "sha256": "e7e809de2bbcb204ce82ee443ea6ea592b8fcf88ad8976d98034aea54386d4b0",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/libHncOfficeFramework.KOR.res",
+      "type": "file",
+      "size": 1399212,
+      "sha256": "5ccfd8ac41d05fe15cb6b01b36575aeb329c9991765ca9e4b7bb146991e7f49f",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/libHncOfficeFramework.res",
+      "type": "file",
+      "size": 27944,
+      "sha256": "3fba43f2fd73e53a27f0a17268ea1f743bd1d85eab8c87f8005934e5d1b02c1f",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/optionInfo.xml",
+      "type": "file",
+      "size": 391,
+      "sha256": "4e64c26f836a4783276958deae03e5c810ddc62412aac92a665bc29a1d51aa1a",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/translations/qt_en.qm",
+      "type": "file",
+      "size": 16,
+      "sha256": "9959b510b15d18937848ad13007e30459d2e993c67e564badbfc18f935695c85",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/translations/qt_ko.qm",
+      "type": "file",
+      "size": 165,
+      "sha256": "8449ae94ecfb335d7dea2cdba256d6cc3b6d7665dd86e8af4abb642db3d14ed4",
+      "mode": "0o644"
+    },
+    {
+      "guest_path": "/opt/hnc/hoffice11/Bin/themeInfo.xml",
+      "type": "file",
+      "size": 139,
+      "sha256": "bcd9cdf3e99493744d009d3e1192ce41899ee15e8d9c8e98dcb4a35ea96ff4e9",
+      "mode": "0o644"
+    }
+  ],
+  "restored_resource_failures": [
+    "HRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/HwordAction.so host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/HwordAction.so",
+    "HRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/libHncImm.KOR.res host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/libHncImm.KOR.res",
+    "HRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/libHncOfficeFramework.KOR.res host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/libHncOfficeFramework.KOR.res",
+    "HRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/libHncOfficeFramework.res host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/libHncOfficeFramework.res",
+    "HRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/optionInfo.xml host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/optionInfo.xml",
+    "HRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/themeInfo.xml host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/themeInfo.xml"
+  ],
+  "path_trace_count": 391,
+  "unsupported_syscalls": [],
+  "fatal_signal_observed": true,
+  "frame_present": false,
+  "frame_sha256": null,
+  "alive_at_observation": false,
+  "raw_exit_status": 134,
+  "stderr_tail": "call 11 rip=0x14705d79 a1=0x1b55c000 a2=0x1aae218 a3=0x35f4450 a4=0x35f5040 a5=0xa a6=0x7\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x69 a4=0xffffffff a5=0x2ff a6=0x0\n\"Failed to extract plugin meta data from '/opt/hnc/hoffice11/Bin/libHwordApp.so'\" \n         not a plugin\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x52 a4=0xffffffff a5=0xaaaa a6=0x0\nQFactoryLoader::QFactoryLoader() looking at \"/opt/hnc/hoffice11/Bin/libMsOD3D.so\"\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fbb4b a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt host=/tmp/h10o-31254618589/opt\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fbb4f a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc host=/tmp/h10o-31254618589/opt/hnc\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fbb59 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11 host=/tmp/h10o-31254618589/opt/hnc/hoffice11\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fbb5d a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fbb6a a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/libMsOD3D.so host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/libMsOD3D.so\nhrt-m3: syscall 257 rip=0x146fb1a3 a1=0xffffff9c a2=0x35fbbd8 a3=0x80000 a4=0x0 a5=0x35f8e8b a6=0x7\nhrt-m3: syscall 5 rip=0x1470a195 a1=0x7 a2=0xd011d60 a3=0xd011d60 a4=0x0 a5=0x35f8e8b a6=0x7\nhrt-m3: syscall 5 rip=0x1470a195 a1=0x7 a2=0xd011e40 a3=0xd011e40 a4=0x0 a5=0x18 a6=0x13f71630\nhrt-m3: syscall 9 rip=0x1470534a a1=0x0 a2=0x33cf8 a3=0x1 a4=0x1 a5=0x7 a6=0x0\nhrt-m3: syscall 3 rip=0x146f6722 a1=0x7 a2=0x35fc780 a3=0x0 a4=0x35f5040 a5=0x34df010 a6=0x7\nhrt-m3: syscall 11 rip=0x14705d79 a1=0x1b55c000 a2=0x33cf8 a3=0x35f4450 a4=0x35f5040 a5=0xa a6=0x7\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x67 a4=0xffffffff a5=0x0 a6=0x0\n\"Failed to extract plugin meta data from '/opt/hnc/hoffice11/Bin/libMsOD3D.so'\" \n         not a plugin\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x53 a4=0xffffffff a5=0xfefe a6=0x0\nQFactoryLoader::QFactoryLoader() looking at \"/opt/hnc/hoffice11/Bin/libssl.so.1.1\"\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f734b a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt host=/tmp/h10o-31254618589/opt\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f734f a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc host=/tmp/h10o-31254618589/opt/hnc\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f7359 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11 host=/tmp/h10o-31254618589/opt/hnc/hoffice11\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f735d a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f736b a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/libssl.so.1.1 host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/libssl.so.1.1\nhrt-m3: syscall 257 rip=0x146fb1a3 a1=0xffffff9c a2=0x35fcd18 a3=0x80000 a4=0x0 a5=0x35f468c a6=0x7\nhrt-m3: syscall 5 rip=0x1470a195 a1=0x7 a2=0xd011d60 a3=0xd011d60 a4=0x0 a5=0x35f468c a6=0x7\nhrt-m3: syscall 5 rip=0x1470a195 a1=0x7 a2=0xd011e40 a3=0xd011e40 a4=0x0 a5=0x18 a6=0x13f71630\nhrt-m3: syscall 9 rip=0x1470534a a1=0x0 a2=0x92058 a3=0x1 a4=0x1 a5=0x7 a6=0x0\nhrt-m3: syscall 3 rip=0x146f6722 a1=0x7 a2=0x35fbbf0 a3=0x0 a4=0x35f5040 a5=0x34df010 a6=0x7\nhrt-m3: syscall 11 rip=0x14705d79 a1=0x1b55c000 a2=0x92058 a3=0x35f4450 a4=0x35f5040 a5=0xa a6=0x7\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x68 a4=0xffffffff a5=0xfcf0 a6=0x0\n\"Failed to extract plugin meta data from '/opt/hnc/hoffice11/Bin/libssl.so.1.1'\" \n         not a plugin\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x57 a4=0xffffffff a5=0x4000 a6=0x0\nQFactoryLoader::QFactoryLoader() looking at \"/opt/hnc/hoffice11/Bin/libValueFormat.so\"\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f7dfb a6=0x90\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt host=/tmp/h10o-31254618589/opt\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f7dff a6=0x90\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc host=/tmp/h10o-31254618589/opt/hnc\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f7e09 a6=0x90\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11 host=/tmp/h10o-31254618589/opt/hnc/hoffice11\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f7e0d a6=0x90\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f7e1f a6=0x90\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/libValueFormat.so host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/libValueFormat.so\nhrt-m3: syscall 257 rip=0x146fb1a3 a1=0xffffff9c a2=0x35fb078 a3=0x80000 a4=0x0 a5=0x90 a6=0x90\nhrt-m3: syscall 5 rip=0x1470a195 a1=0x7 a2=0xd011d60 a3=0xd011d60 a4=0x0 a5=0x90 a6=0x90\nhrt-m3: syscall 5 rip=0x1470a195 a1=0x7 a2=0xd011e40 a3=0xd011e40 a4=0x0 a5=0x18 a6=0x13f71630\nhrt-m3: syscall 9 rip=0x1470534a a1=0x0 a2=0x92948 a3=0x1 a4=0x1 a5=0x7 a6=0x0\nhrt-m3: syscall 3 rip=0x146f6722 a1=0x7 a2=0x35fcd30 a3=0x0 a4=0x35f8810 a5=0x34df010 a6=0x7\nhrt-m3: syscall 11 rip=0x14705d79 a1=0x1b55c000 a2=0x92948 a3=0x35f4450 a4=0x35f8810 a5=0xa a6=0x7\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x6c a4=0xffffffff a5=0xfce2 a6=0x0\n\"Failed to extract plugin meta data from '/opt/hnc/hoffice11/Bin/libValueFormat.so'\" \n         not a plugin\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x54 a4=0xffffffff a5=0x0 a6=0x0\nQFactoryLoader::QFactoryLoader() looking at \"/opt/hnc/hoffice11/Bin/optionInfo.xml\"\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fbe7b a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt host=/tmp/h10o-31254618589/opt\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fbe7f a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc host=/tmp/h10o-31254618589/opt/hnc\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fbe89 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11 host=/tmp/h10o-31254618589/opt/hnc/hoffice11\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fbe8d a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fbe9c a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/optionInfo.xml host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/optionInfo.xml\nhrt-m3: syscall 257 rip=0x146fb1a3 a1=0xffffff9c a2=0x35fd0e8 a3=0x80000 a4=0x0 a5=0x35f8b5d a6=0x7\nHRT M9 PATH: op=open result=7 errno=0 guest=/opt/hnc/hoffice11/Bin/optionInfo.xml host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/optionInfo.xml\nhrt-m3: syscall 5 rip=0x1470a195 a1=0x7 a2=0xd011d60 a3=0xd011d60 a4=0x0 a5=0x35f8b5d a6=0x7\nhrt-m3: syscall 5 rip=0x1470a195 a1=0x7 a2=0xd011e40 a3=0xd011e40 a4=0x0 a5=0x18 a6=0x13f71630\nhrt-m3: syscall 9 rip=0x1470534a a1=0x0 a2=0x187 a3=0x1 a4=0x1 a5=0x7 a6=0x0\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011c00 a3=0x49 a4=0xffffffff a5=0xfeff a6=0x0\nQElfParser: '/opt/hnc/hoffice11/Bin/optionInfo.xml' is not an ELF object\nhrt-m3: syscall 3 rip=0x146f6722 a1=0x7 a2=0x35fcd30 a3=0x0 a4=0x35f7080 a5=0x34df010 a6=0x7\nhrt-m3: syscall 11 rip=0x14705d79 a1=0x105ff000 a2=0x187 a3=0x35f4450 a4=0x35f7080 a5=0x8 a6=0x7\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x56 a4=0xffffffff a5=0xfeff a6=0x0\n\"'/opt/hnc/hoffice11/Bin/optionInfo.xml' is not an ELF object\" \n         not a plugin\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x53 a4=0xffffffff a5=0xfeff a6=0x0\nQFactoryLoader::QFactoryLoader() looking at \"/opt/hnc/hoffice11/Bin/themeInfo.xml\"\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f829b a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt host=/tmp/h10o-31254618589/opt\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f829f a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc host=/tmp/h10o-31254618589/opt/hnc\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f82a9 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11 host=/tmp/h10o-31254618589/opt/hnc/hoffice11\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f82ad a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f82bb a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/themeInfo.xml host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/themeInfo.xml\nhrt-m3: syscall 257 rip=0x146fb1a3 a1=0xffffff9c a2=0x35f7098 a3=0x80000 a4=0x0 a5=0x35fb737 a6=0x7\nhrt-m3: syscall 5 rip=0x1470a195 a1=0x7 a2=0xd011d60 a3=0xd011d60 a4=0x0 a5=0x35fb737 a6=0x7\nhrt-m3: syscall 5 rip=0x1470a195 a1=0x7 a2=0xd011e40 a3=0xd011e40 a4=0x0 a5=0x18 a6=0x13f71630\nhrt-m3: syscall 9 rip=0x1470534a a1=0x0 a2=0x8b a3=0x1 a4=0x1 a5=0x7 a6=0x0\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011c00 a3=0x48 a4=0xffffffff a5=0x0 a6=0x0\nQElfParser: '/opt/hnc/hoffice11/Bin/themeInfo.xml' is not an ELF object\nhrt-m3: syscall 3 rip=0x146f6722 a1=0x7 a2=0x35f7140 a3=0x0 a4=0x35f7720 a5=0x34df010 a6=0x7\nhrt-m3: syscall 11 rip=0x14705d79 a1=0x105ff000 a2=0x8b a3=0x35f4450 a4=0x35f7720 a5=0x8 a6=0x7\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x55 a4=0xffffffff a5=0xfeff a6=0x0\n\"'/opt/hnc/hoffice11/Bin/themeInfo.xml' is not an ELF object\" \n         not a plugin\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x75 a4=0xffffffff a5=0xffff a6=0x0\nQFactoryLoader::QFactoryLoader() checking directory path \"/opt/hnc/hoffice11/Bin/qt/plugins/platforms/platforms\" ...\nhrt-m3: syscall 21 rip=0x146f6659 a1=0x35fcda8 a2=0x0 a3=0x2 a4=0x147e3ac0 a5=0x34df010 a6=0x7\nHRT M9 PATH: op=access result=-1 errno=2 guest=/opt/hnc/hoffice11/Bin/qt/plugins/platforms/platforms/. host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/qt/plugins/platforms/platforms/.\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x6b a4=0xffffffff a5=0xaaaa a6=0x0\nQFactoryLoader::QFactoryLoader() checking directory path \"/opt/hnc/hoffice11/Bin/qt/plugins/platforms\" ...\nhrt-m3: syscall 21 rip=0x146f6659 a1=0x35f8f38 a2=0x0 a3=0x2 a4=0x147e3ac0 a5=0x35f87f8 a6=0x7\nhrt-m3: syscall 257 rip=0x146fc8e2 a1=0xffffff9c a2=0x35f7898 a3=0x90800 a4=0x0 a5=0x35fba57 a6=0x7\nhrt-m3: syscall 5 rip=0x146f73b9 a1=0x7 a2=0xd011d60 a3=0x0 a4=0x0 a5=0x35fba57 a6=0x7\nhrt-m3: syscall 217 rip=0x146cd935 a1=0x7 a2=0x35fd300 a3=0x8000 a4=0x1 a5=0x1 a6=0x0\nHRT M5: directory stream yielded libqoffscreen.so\nhrt-m3: syscall 217 rip=0x146cd935 a1=0x7 a2=0x35fd300 a3=0x8000 a4=0x35f08c0 a5=0x1 a6=0x7\nhrt-m3: syscall 3 rip=0x146fc639 a1=0x7 a2=0xad40 a3=0x2d00 a4=0x35f08c0 a5=0x34df010 a6=0x7\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x69 a4=0xffffffff a5=0xfef0 a6=0x0\nQFactoryLoader::QFactoryLoader() looking at \"/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqminimal.so\"\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fc69b a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt host=/tmp/h10o-31254618589/opt\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fc69f a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc host=/tmp/h10o-31254618589/opt/hnc\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fc6a9 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11 host=/tmp/h10o-31254618589/opt/hnc/hoffice11\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fc6ad a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fc6b0 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/qt host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/qt\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fc6b8 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/qt/plugins host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/qt/plugins\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fc6c2 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/qt/plugins/platforms host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/qt/plugins/platforms\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35fc6d1 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqminimal.so host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqminimal.so\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x2b a4=0xffffffff a5=0x0 a6=0x0\nGot keys from plugin meta data (\"minimal\")\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x6b a4=0xffffffff a5=0x0 a6=0x0\nQFactoryLoader::QFactoryLoader() looking at \"/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so\"\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f628b a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt host=/tmp/h10o-31254618589/opt\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f628f a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc host=/tmp/h10o-31254618589/opt/hnc\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f6299 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11 host=/tmp/h10o-31254618589/opt/hnc/hoffice11\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f629d a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f62a0 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/qt host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/qt\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f62a8 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/qt/plugins host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/qt/plugins\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f62b2 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/qt/plugins/platforms host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/qt/plugins/platforms\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011370 a2=0xd011b90 a3=0x3ff a4=0x147e3ac0 a5=0x35f62c3 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x2d a4=0xffffffff a5=0x0 a6=0x0\nGot keys from plugin meta data (\"offscreen\")\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd011e70 a3=0x60 a4=0xffffffff a5=0xfeff a6=0x0\nQFactoryLoader::QFactoryLoader() checking directory path \"/opt/hnc/hoffice11/Bin/platforms\" ...\nhrt-m3: syscall 21 rip=0x146f6659 a1=0x35f8b38 a2=0x0 a3=0x2 a4=0x147e3ac0 a5=0x35f8 a6=0x7\nHRT M9 PATH: op=access result=-1 errno=2 guest=/opt/hnc/hoffice11/Bin/platforms/. host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/platforms/.\nhrt-m3: syscall 21 rip=0x146f6659 a1=0x35f87a8 a2=0x0 a3=0x2 a4=0x147e3ac0 a5=0x34df010 a6=0x7\nHRT M9 PATH: op=access result=-1 errno=2 guest=/opt/hnc/hoffice11/Bin/qt.conf host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/qt.conf\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011710 a2=0xd011f30 a3=0x3ff a4=0x147e3ac0 a5=0x35f8bcb a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt host=/tmp/h10o-31254618589/opt\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011710 a2=0xd011f30 a3=0x3ff a4=0x147e3ac0 a5=0x35f8bcf a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc host=/tmp/h10o-31254618589/opt/hnc\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011710 a2=0xd011f30 a3=0x3ff a4=0x147e3ac0 a5=0x35f8bd9 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11 host=/tmp/h10o-31254618589/opt/hnc/hoffice11\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011710 a2=0xd011f30 a3=0x3ff a4=0x147e3ac0 a5=0x35f8bdd a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011710 a2=0xd011f30 a3=0x3ff a4=0x147e3ac0 a5=0x35f8be0 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/qt host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/qt\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011710 a2=0xd011f30 a3=0x3ff a4=0x147e3ac0 a5=0x35f8be8 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/qt/plugins host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/qt/plugins\nhrt-m3: syscall 89 rip=0x146fbb29 a1=0xd011710 a2=0xd011f30 a3=0x3ff a4=0x147e3ac0 a5=0x35f8bf2 a6=0x7\nHRT M9 PATH: op=readlink result=-1 errno=22 guest=/opt/hnc/hoffice11/Bin/qt/plugins/platforms host=/tmp/h10o-31254618589/opt/hnc/hoffice11/Bin/qt/plugins/platforms\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd012260 a3=0x72 a4=0xffffffff a5=0xf0f0 a6=0x0\nqt.qpa.plugin: Could not find the Qt platform plugin \"hrtappkit\" in \"/opt/hnc/hoffice11/Bin/qt/plugins/platforms\"\nhrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd0121a0 a3=0x80 a4=0xffffffff a5=0x8000 a6=0x0\nThis application failed to start because no Qt platform plugin could be initialized. Reinstalling the application may fix this phrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd0121a0 a3=0x80 a4=0xffffffff a5=0x80 a6=0x0\nroblem.\n\nAvailable platform plugins are: minimal (from /opt/hnc/hoffice11/Bin/qt/plugins/platforms), offscreen (from /opt/hnc/hohrt-m3: syscall 1 rip=0x146fc5a2 a1=0x2 a2=0xd0121a0 a3=0x38 a4=0xffffffff a5=0x80 a6=0x0\nffice11/Bin/qt/plugins/platforms), minimal, offscreen.\n\nhrt-m3: syscall 14 rip=0x146088b5 a1=0x1 a2=0xd012320 a3=0x0 a4=0x8 a5=0x34df010 a6=0x7\nhrt-m3: syscall 186 rip=0x1467eb15 a1=0x1b120dc0 a2=0x6 a3=0xffffffe6 a4=0x8 a5=0x34df010 a6=0x7\nhrt-m3: syscall 39 rip=0x146d5a99 a1=0x1b120dc0 a2=0x6 a3=0xffffffe6 a4=0x8 a5=0x34df010 a6=0x7\nhrt-m3: syscall 234 rip=0x1467eb2a a1=0x22cb a2=0x22cb a3=0x6 a4=0x8 a5=0x34df010 a6=0x7\nhrt-m3: fatal signal 6 code=0 address=0x7ff89e9caa78 rip=0x7ff80e6c80ae rax=0x10004005 rsp=0x20493a638 last-syscall=234 last-syscall-rip=0x1467eb2a\n"
+}
