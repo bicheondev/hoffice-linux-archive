@@ -1,0 +1,131 @@
+name: Generate bounded-log M11 Korean input replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-generate-fast-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hrt-m11-generate-fast-replay-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate a bounded-log replay from M11 v2
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          source=Path('.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml')
+          target=Path('.github/workflows/hoffice-runtime-m11-korean-input-replay-v3.yml')
+          text=source.read_text(encoding='utf-8')
+
+          def replace_once(old,new,label):
+              global text
+              count=text.count(old)
+              if count!=1:
+                  raise SystemExit(f'{label}: expected one anchor, found {count}')
+              text=text.replace(old,new,1)
+
+          replace_once(
+              'name: HOffice runtime M11 Korean HWord input replay v2',
+              'name: HOffice runtime M11 Korean HWord input replay v3',
+              'workflow name')
+          replace_once(
+              "      - '.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml'",
+              "      - '.github/workflows/hoffice-runtime-m11-korean-input-replay-v3.yml'",
+              'trigger path')
+          replace_once(
+              '  group: hrt-m11-korean-input-replay-v2-',
+              '  group: hrt-m11-korean-input-replay-v3-',
+              'concurrency prefix')
+          replace_once(
+              "          path.write_text(text.replace(anchor,'#define M3_TRACE_LIMIT 100000u'))",
+              "          path.write_text(text.replace(anchor,'#define M3_TRACE_LIMIT 6000u'))",
+              'trace limit')
+          replace_once(
+              '          for _ in $(jot 2200); do\n',
+              '          for _ in $(jot 1500); do\n',
+              'observation loop')
+
+          # Bound every repeated observation to the recent log tail. This keeps
+          # the loop O(iterations) instead of repeatedly rescanning an expanding
+          # syscall transcript.
+          old='''            if grep -q 'HRT M10 APPKIT: post-input capture result=1' \\
+                 build/proof/stderr.txt 2>/dev/null; then
+'''
+          new='''            if tail -n 8000 build/proof/stderr.txt 2>/dev/null | \\
+                 grep -q 'HRT M10 APPKIT: post-input capture result=1'; then
+'''
+          replace_once(old,new,'post-capture observation')
+          old='''            if grep -q 'fatal signal' build/proof/stderr.txt 2>/dev/null; then
+'''
+          new='''            if tail -n 8000 build/proof/stderr.txt 2>/dev/null | \\
+                 grep -q 'fatal signal'; then
+'''
+          replace_once(old,new,'fatal observation')
+          old='''            if grep -q 'HRT M6 QPA: CREATE .*title=Exception ' \\
+                 build/proof/stderr.txt 2>/dev/null; then
+'''
+          new='''            if tail -n 8000 build/proof/stderr.txt 2>/dev/null | \\
+                 grep -q 'HRT M6 QPA: CREATE .*title=Exception '; then
+'''
+          replace_once(old,new,'exception observation')
+
+          text=text.replace('input-v2','input-v3')
+          text=text.replace('M11 v2 frontier','M11 v3 frontier')
+          text=text.replace('input-v2-proof','input-v3-proof')
+          text=text.replace('input-v2-', 'input-v3-')
+          text=text.replace('input-v2-latest', 'input-v3-latest')
+          text=text.replace('stage-separated exact HWord interaction',
+                            'bounded-log stage-separated exact HWord interaction')
+
+          required={
+              '#define M3_TRACE_LIMIT 6000u':1,
+              'tail -n 8000 build/proof/stderr.txt':3,
+              'hrt-m11-korean-hword-input-v3-proof':1,
+              'diagnostics/m11-korean-hword-input-v3-latest.json':1,
+              "name: HOffice runtime M11 Korean HWord input replay v3":1,
+          }
+          for marker,expected in required.items():
+              count=text.count(marker)
+              if count!=expected:
+                  raise SystemExit(
+                      f'generated marker {marker!r}: expected {expected}, found {count}')
+          target.write_text(text,encoding='utf-8')
+          PY
+          test -s .github/workflows/hoffice-runtime-m11-korean-input-replay-v3.yml
+          grep -F '#define M3_TRACE_LIMIT 6000u' \
+            .github/workflows/hoffice-runtime-m11-korean-input-replay-v3.yml
+          grep -F 'tail -n 8000 build/proof/stderr.txt' \
+            .github/workflows/hoffice-runtime-m11-korean-input-replay-v3.yml
+
+      - name: Commit and trigger the bounded-log replay
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/workflows/hoffice-runtime-m11-korean-input-replay-v3.yml
+          git commit -m 'ci: replay M11 input with bounded syscall logging'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
