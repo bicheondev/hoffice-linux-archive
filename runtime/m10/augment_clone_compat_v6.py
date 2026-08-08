@@ -159,6 +159,8 @@ static void m10_exit_current_guest_thread(int status) {
                         "deferred normal-return clone exit")
 
     old_dispatch = '''        case LINUX_SYS_EXIT:
+            m10_exit_current_guest_thread(
+                (int)(state->__rdi & 0xffu));
         case LINUX_SYS_EXIT_GROUP:
             raw_exit((int)(state->__rdi & 0xffu));
 '''
