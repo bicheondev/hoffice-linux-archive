@@ -35,7 +35,15 @@
 #define HRT_M10_CLONE_FXSAVE_SIZE 512
 #define HRT_M10_CLONE_HOST_RSP_OFFSET 752
 #define HRT_M10_CLONE_HOST_RBP_OFFSET 760
-#define HRT_M10_CLONE_CONTEXT_SIZE 768
+#define HRT_M10_CLONE_HOST_RBX_OFFSET 768
+#define HRT_M10_CLONE_HOST_R12_OFFSET 776
+#define HRT_M10_CLONE_HOST_R13_OFFSET 784
+#define HRT_M10_CLONE_HOST_R14_OFFSET 792
+#define HRT_M10_CLONE_HOST_R15_OFFSET 800
+#define HRT_M10_CLONE_EXIT_STATUS_OFFSET 808
+#define HRT_M10_CLONE_HOST_FXSAVE_OFFSET 816
+#define HRT_M10_CLONE_HOST_FXSAVE_SIZE 512
+#define HRT_M10_CLONE_CONTEXT_SIZE 1328
 
 #ifndef __ASSEMBLER__
 
@@ -78,6 +86,14 @@ typedef struct __attribute__((aligned(16))) {
         __attribute__((aligned(16)));
     uint64_t host_rsp;
     uint64_t host_rbp;
+    uint64_t host_rbx;
+    uint64_t host_r12;
+    uint64_t host_r13;
+    uint64_t host_r14;
+    uint64_t host_r15;
+    uint64_t exit_status;
+    unsigned char host_fxsave[HRT_M10_CLONE_HOST_FXSAVE_SIZE]
+        __attribute__((aligned(16)));
 } HrtM10CloneContext;
 
 _Static_assert(offsetof(HrtM10CloneContext, active) ==
@@ -116,6 +132,27 @@ _Static_assert(offsetof(HrtM10CloneContext, host_rsp) ==
 _Static_assert(offsetof(HrtM10CloneContext, host_rbp) ==
                    HRT_M10_CLONE_HOST_RBP_OFFSET,
                "clone host RBP offset");
+_Static_assert(offsetof(HrtM10CloneContext, host_rbx) ==
+                   HRT_M10_CLONE_HOST_RBX_OFFSET,
+               "clone host RBX offset");
+_Static_assert(offsetof(HrtM10CloneContext, host_r12) ==
+                   HRT_M10_CLONE_HOST_R12_OFFSET,
+               "clone host R12 offset");
+_Static_assert(offsetof(HrtM10CloneContext, host_r13) ==
+                   HRT_M10_CLONE_HOST_R13_OFFSET,
+               "clone host R13 offset");
+_Static_assert(offsetof(HrtM10CloneContext, host_r14) ==
+                   HRT_M10_CLONE_HOST_R14_OFFSET,
+               "clone host R14 offset");
+_Static_assert(offsetof(HrtM10CloneContext, host_r15) ==
+                   HRT_M10_CLONE_HOST_R15_OFFSET,
+               "clone host R15 offset");
+_Static_assert(offsetof(HrtM10CloneContext, exit_status) ==
+                   HRT_M10_CLONE_EXIT_STATUS_OFFSET,
+               "clone exit status offset");
+_Static_assert(offsetof(HrtM10CloneContext, host_fxsave) ==
+                   HRT_M10_CLONE_HOST_FXSAVE_OFFSET,
+               "clone host FXSAVE offset");
 _Static_assert(sizeof(HrtM10CloneContext) == HRT_M10_CLONE_CONTEXT_SIZE,
                "clone context size");
 
@@ -123,8 +160,7 @@ _Static_assert(sizeof(HrtM10CloneContext) == HRT_M10_CLONE_CONTEXT_SIZE,
 extern "C" {
 #endif
 
-void hrt_m10_enter_clone_child(HrtM10CloneContext *context)
-    __attribute__((noreturn));
+void hrt_m10_enter_clone_child(HrtM10CloneContext *context);
 void hrt_m10_exit_clone_child(HrtM10CloneContext *context, int status)
     __attribute__((noreturn));
 
