@@ -1,16 +1,16 @@
 {
   "schema": 1,
-  "commit": "d0a4aa1942656289cb53235c6d71d4d2b0325d10",
-  "workflow_run": "31256985338",
-  "file_count": 172,
+  "commit": "2d47c2d6e9ce3e64bb3f29cf03416fa1259d970b",
+  "workflow_run": "31268532681",
+  "file_count": 175,
   "match_counts": {
-    "opcode_256": 1153,
-    "create_operation": 101,
-    "host_call": 581,
-    "custom_qpa": 977,
-    "appkit": 177,
+    "opcode_256": 1185,
+    "create_operation": 104,
+    "host_call": 590,
+    "custom_qpa": 999,
+    "appkit": 178,
     "rendering": 261,
-    "input_ime": 2746
+    "input_ime": 2813
   },
   "files": [
     {
@@ -127,7 +127,7 @@
     },
     {
       "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
-      "sha256": "941ea89f84149daff02b875a12bb336d02890bbf5a404485031c5326c0a62eac",
+      "sha256": "8dbb5be60566f3595adc42a2d2ef1a57e8f9cb7769e8878f3bc5f41c57b99df5",
       "size": 1500,
       "groups": [
         "custom_qpa",
@@ -766,12 +766,45 @@
       ]
     },
     {
+      "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+      "sha256": "703ef8add65a1774976a0550123088bb755c8324720c7d190c7c49b3ed0786b6",
+      "size": 4615,
+      "groups": [
+        "host_call",
+        "input_ime"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+      "sha256": "74dde19a3c148df3cb6f951e2caaa9b1f51148fc778e0c45c8008b613e938409",
+      "size": 26080,
+      "groups": [
+        "appkit",
+        "create_operation",
+        "custom_qpa",
+        "host_call",
+        "input_ime",
+        "opcode_256"
+      ]
+    },
+    {
       "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay.yml",
       "sha256": "423fc5a45ef98be3ac47881ed2148bfa82381fab3376bc5e5c7599cee0799a4a",
       "size": 20149,
       "groups": [
         "appkit",
         "create_operation",
+        "custom_qpa",
+        "host_call",
+        "input_ime",
+        "opcode_256"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+      "sha256": "72e5c46cf4501fd66105156516ce78a272d9bd1458a8861024bbbd6248ecf6b9",
+      "size": 3485,
+      "groups": [
         "custom_qpa",
         "host_call",
         "input_ime",
@@ -1913,17 +1946,17 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 18,
-        "text": "\"sha256_before_prepatch\": \"49907f9807daab4844eafd9e5955b1e6e2484fe0ee21a48bf1d7b3af48b2eebd\","
+        "text": "\"sha256_before_prepatch\": \"625a8f1d5d26729a40bffc586244f780a91a6a4b061f6719ab217edf19046cbc\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 19,
-        "text": "\"sha256_after_prepatch\": \"4d5aa9c0ef341a6a4a4b804e1ca04f7ddaee25ba600a1178c24da1339f06a3d1\","
+        "text": "\"sha256_after_prepatch\": \"886a70deb6fae0394d7d5c75363efda292d2552b5b401c02a20953059d4ccb28\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 20,
-        "text": "\"xz_sha256\": \"953c8bd4823f2111125867a1c762234dfbad50a188789684ca80835ae89dbec8\","
+        "text": "\"xz_sha256\": \"150bb2fa356deddccc71700e7c3c43016b3e56e1266b75a720e2a9e8a8b4ae68\","
       },
       {
         "path": "runtime/m6/qpa/build_hrtappkit_root.sh",
@@ -3551,6 +3584,146 @@
         "text": "'package_sha256':os.environ['PACKAGE_SHA256'],"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 25,
+        "text": "PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 27,
+        "text": "PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 29,
+        "text": "HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 30,
+        "text": "HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 79,
+        "text": "printf '%s  %s\\n' \"$PACKAGE_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 80,
+        "text": "\"build/input/deb/$ASSET_NAME\" | shasum -a 256 -c -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 86,
+        "text": "checksum=build/input/prepared/report/hword-m9-prepared-rootfs.tar.zst.sha256"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 89,
+        "text": "actual=$(shasum -a 256 \"$prepared\" | awk '{print $1}')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 127,
+        "text": "| shasum -a 256 -c -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 138,
+        "text": "assert hashlib.sha256(compressed).hexdigest()==lock['plugin']['xz_sha256']"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 140,
+        "text": "assert hashlib.sha256(plugin).hexdigest()==lock['plugin']['sha256_after_prepatch']"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 147,
+        "text": "printf '%s  %s\\n' \"$HWORD_APP_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 148,
+        "text": "\"$root$HWORD_APP_GUEST\" | shasum -a 256 -c -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 151,
+        "text": "--expected-sha256 \"$HWORD_APP_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 152,
+        "text": "--expected-output-sha256 \"$HWORD_APP_PATCHED_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 154,
+        "text": "printf '%s  %s\\n' \"$HWORD_APP_PATCHED_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 155,
+        "text": "\"$root$HWORD_APP_GUEST\" | shasum -a 256 -c -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 214,
+        "text": "anchor='#define M3_TRACE_LIMIT 256u'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 223,
+        "text": "shasum -a 256 build/generated/syscall_bridge.c \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 224,
+        "text": ">build/proof/generated-bridge.sha256"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 225,
+        "text": "shasum -a 256 build/generated/appkit_adapter_m11.m \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 226,
+        "text": ">build/proof/generated-appkit-adapter.sha256"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 265,
+        "text": "shasum -a 256 build/host/hrt-m11-korean-input-v2 \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 266,
+        "text": "| tee build/proof/host-sha256.txt"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 366,
+        "text": "'size':len(data),'sha256':hashlib.sha256(data).hexdigest()}"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 371,
+        "text": "before['sha256']!=after['sha256'])"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 426,
+        "text": "'program_sha256':os.environ['PROGRAM_SHA256'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 427,
+        "text": "'package_sha256':os.environ['PACKAGE_SHA256'],"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay.yml",
         "line": 25,
         "text": "PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46"
@@ -3664,6 +3837,26 @@
         "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay.yml",
         "line": 335,
         "text": "'package_sha256':os.environ['PACKAGE_SHA256'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 25,
+        "text": "PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 27,
+        "text": "PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 29,
+        "text": "HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 30,
+        "text": "HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m3-hword.yml",
@@ -7873,6 +8066,21 @@
         "text": "for line in re.findall(r'HRT M6 QPA: CREATE .*', stderr):"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 289,
+        "text": "if grep -q 'HRT M6 QPA: CREATE .*title=Exception ' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 310,
+        "text": "grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|HRT M8 APPKIT|HRT M8 QPA|HRT M10 QPA|HRT M10 WIDGET|HRT M10 FOCUS|HRT M10 APPKIT|HRT M11 QPA|host-call opcode=262|fatal signal|basic_string::substr|Caught exception|Linux syscall ENOSYS' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 325,
+        "text": "for line in re.findall(r'HRT M6 QPA: CREATE .*',stderr):"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay.yml",
         "line": 204,
         "text": "if grep -q 'HRT M6 QPA: CREATE .*title=Exception ' \\"
@@ -9145,6 +9353,46 @@
         "text": "r'hrt-m7-hostcall: presented BGRA frame=(\\d+)', stderr)]"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 8,
+        "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 8,
+        "text": "workflow_dispatch:"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 136,
+        "text": "assert lock['plugin']['m8_input_poll_transport'] is True,lock"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 206,
+        "text": "python3 runtime/m6/augment_appkit_hostcall_deferred.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 236,
+        "text": "for source in runtime/m6/main.c runtime/m6/hostcall_trampoline.c \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 252,
+        "text": "clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 253,
+        "text": "-o build/objects/hostcall-trampoline.o"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 310,
+        "text": "grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|HRT M8 APPKIT|HRT M8 QPA|HRT M10 QPA|HRT M10 WIDGET|HRT M10 FOCUS|HRT M10 APPKIT|HRT M11 QPA|host-call opcode=262|fatal signal|basic_string::substr|Caught exception|Linux syscall ENOSYS' \\"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay.yml",
         "line": 8,
         "text": "workflow_dispatch:"
@@ -9158,6 +9406,11 @@
         "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay.yml",
         "line": 225,
         "text": "grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|HRT M8 APPKIT|HRT M8 QPA|HRT M10 QPA|HRT M10 WIDGET|HRT M10 FOCUS|HRT M10 APPKIT|host-call opcode=262|fatal signal|basic_string::substr|Caught exception|Linux syscall ENOSYS' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 9,
+        "text": "workflow_dispatch:"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m2-probe.yml",
@@ -11064,7 +11317,7 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 7,
-        "text": "\"qpa_source_tree\": \"95ff06fd155ea1c509cd52fd74a9616fc3f0ac72\""
+        "text": "\"qpa_source_tree\": \"90f94a10c75d29212e2217787765bda1c61a92b3\""
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
@@ -12497,6 +12750,106 @@
         "text": "'qwidget_qpa_run':os.environ['QPA_RUN_ID'],"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 21,
+        "text": "QPA_RUN_ID: '31256998140'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 22,
+        "text": "QPA_ARTIFACT_DIGEST: 8c4f1a86328e5bffbbb0b59667659aa0b80623432cf58b8a83cf1dddfc91f488"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 31,
+        "text": "PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 60,
+        "text": "- name: Download the stage-separated QWidget-aware QPA"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 63,
+        "text": "name: hrt-m8-qt5113-hrtappkit-input-qpa"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 64,
+        "text": "path: build/input/qpa"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 66,
+        "text": "run-id: ${{ env.QPA_RUN_ID }}"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 130,
+        "text": "python3 - build/input/qpa/libqhrtappkit.so.xz \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 131,
+        "text": "build/input/qpa/lock.json \"$root$PLUGIN_GUEST\" <<'PY'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 142,
+        "text": "pathlib.Path('build/proof/qpa-lock.json').write_text("
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 289,
+        "text": "if grep -q 'HRT M6 QPA: CREATE .*title=Exception ' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 310,
+        "text": "grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|HRT M8 APPKIT|HRT M8 QPA|HRT M10 QPA|HRT M10 WIDGET|HRT M10 FOCUS|HRT M10 APPKIT|HRT M11 QPA|host-call opcode=262|fatal signal|basic_string::substr|Caught exception|Linux syscall ENOSYS' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 325,
+        "text": "for line in re.findall(r'HRT M6 QPA: CREATE .*',stderr):"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 335,
+        "text": "r'HRT M11 QPA: mouse-up stage boundary .*',stderr)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 336,
+        "text": "key_lines=re.findall(r'HRT M8 QPA: key event delivered .*',stderr)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 337,
+        "text": "mouse_lines=re.findall(r'HRT M8 QPA: mouse event delivered .*',stderr)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 355,
+        "text": "r'HRT M8 QPA: (?:key|mouse) event delivered sequence=(\\d+)',stderr)]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 378,
+        "text": "queue_drained='HRT M8 QPA: input queue drained' in stderr"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 423,
+        "text": "'qpa_run':os.environ['QPA_RUN_ID'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 424,
+        "text": "'qpa_artifact_digest':os.environ['QPA_ARTIFACT_DIGEST'],"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay.yml",
         "line": 22,
         "text": "QPA_RUN_ID: '31228921228'"
@@ -12580,6 +12933,16 @@
         "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay.yml",
         "line": 332,
         "text": "'qpa_run':os.environ['QPA_RUN_ID'],"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 22,
+        "text": "QPA_RUN_ID: '31256998140'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 31,
+        "text": "PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m5-hword-connect.yml",
@@ -16342,6 +16705,11 @@
         "path": ".github/workflows/hoffice-runtime-m10-hword-stability-input.yml",
         "line": 86,
         "text": "- name: Download the exact Qt 5.11.3 AppKit QPA"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 256,
+        "text": "-framework AppKit -framework CoreGraphics -framework ImageIO \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay.yml",
@@ -21803,6 +22171,296 @@
         "text": "git rebase origin/codex/hoffice-runtime-from-scratch"
       },
       {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-m11-generate-fast-replay.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 20,
+        "text": "timeout-minutes: 10"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 32,
+        "text": "source = Path('.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 33,
+        "text": "target = Path('.github/workflows/hoffice-runtime-m11-korean-input-replay-v3.yml')"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 45,
+        "text": "'name: HOffice runtime M11 Korean HWord input replay v2',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 46,
+        "text": "'name: HOffice runtime M11 Korean HWord input replay v3',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 49,
+        "text": "\"      - '.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml'\","
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 50,
+        "text": "\"      - '.github/workflows/hoffice-runtime-m11-korean-input-replay-v3.yml'\","
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 57,
+        "text": "'          python3 runtime/m10/augment_appkit_input_capture.py \\\\\\n',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 58,
+        "text": "'          python3 runtime/m11/augment_appkit_korean_input_capture.py \\\\\\n',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 81,
+        "text": "'name: HOffice runtime M11 Korean HWord input replay v3': 1,"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 91,
+        "text": "test -s .github/workflows/hoffice-runtime-m11-korean-input-replay-v3.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 93,
+        "text": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v3.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 95,
+        "text": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v3.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 102,
+        "text": "git add .github/workflows/hoffice-runtime-m11-korean-input-replay-v3.yml"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 105,
+        "text": "if git push origin HEAD:codex/hoffice-runtime-from-scratch; then"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 108,
+        "text": "git fetch origin codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-generate-fast-replay.yml",
+        "line": 109,
+        "text": "git rebase origin/codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 1,
+        "text": "name: HOffice runtime M11 Korean HWord input replay v2"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 7,
+        "text": "- '.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 19,
+        "text": "TARGET_BRANCH: codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 36,
+        "text": "timeout-minutes: 70"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 149,
+        "text": "python3 runtime/m9/patch_hword_utility_culture_redirect.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 169,
+        "text": "python3 runtime/m8/augment_appkit_adapter_input.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 170,
+        "text": "runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 171,
+        "text": "python3 runtime/m10/augment_appkit_input_capture.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 179,
+        "text": "python3 runtime/m6/augment_stack_hrtappkit.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 180,
+        "text": "runtime/m3/stack.c build/generated/stack-m6.c"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 181,
+        "text": "python3 runtime/m9/augment_stack_locale.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 186,
+        "text": "python3 runtime/m3/augment_syscalls.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 187,
+        "text": "runtime/m3/syscall_bridge.c build/generated/stage1.c"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 188,
+        "text": "python3 runtime/m3/augment_directory_syscalls.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 190,
+        "text": "python3 runtime/m3/augment_directory_stream.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 192,
+        "text": "python3 runtime/m3/augment_pipe2.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 194,
+        "text": "python3 runtime/m3/augment_eventfd2.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 196,
+        "text": "python3 runtime/m3/augment_crash_signals.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 198,
+        "text": "python3 runtime/m3/augment_poll.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 200,
+        "text": "python3 runtime/m3/augment_posix_basics.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 202,
+        "text": "python3 runtime/m10/augment_fs_compat.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 204,
+        "text": "python3 runtime/m3/augment_connect.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 206,
+        "text": "python3 runtime/m6/augment_appkit_hostcall_deferred.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 208,
+        "text": "python3 runtime/m3/augment_darwin_syscall_abi.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 234,
+        "text": "-Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1)"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 236,
+        "text": "for source in runtime/m6/main.c runtime/m6/hostcall_trampoline.c \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 237,
+        "text": "runtime/m1/common.c runtime/m3/elf_map.c build/generated/stack.c \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 238,
+        "text": "runtime/m3/patch.c build/generated/syscall_bridge.c; do"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 244,
+        "text": "-Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 248,
+        "text": "-Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 249,
+        "text": "-c runtime/m8/appkit_input.m -o build/objects/appkit-input.o"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 250,
+        "text": "clang -arch x86_64 -g -c runtime/m1/enter_guest.S \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 252,
+        "text": "clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 262,
+        "text": "codesign --force --sign - --timestamp=none \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 299,
+        "text": "ps -o pid,ppid,state,%cpu,%mem,etime,command -p \"$pid\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 507,
+        "text": "if git push origin HEAD:codex/hoffice-runtime-from-scratch; then"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 510,
+        "text": "git fetch origin codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml",
+        "line": 511,
+        "text": "git rebase origin/codex/hoffice-runtime-from-scratch"
+      },
+      {
         "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay.yml",
         "line": 1,
         "text": "name: HOffice runtime M11 Korean HWord input replay"
@@ -21855,6 +22513,51 @@
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-input-replay.yml",
         "line": 410,
+        "text": "git rebase origin/codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 1,
+        "text": "name: HOffice runtime M11 Korean-title staged input"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 7,
+        "text": "- 'runtime/m11/run_korean_title_staged_replay.sh'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 8,
+        "text": "- '.github/workflows/hoffice-runtime-m11-korean-title-replay.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 36,
+        "text": "timeout-minutes: 70"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 54,
+        "text": "run: runtime/m11/run_korean_title_staged_replay.sh"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 73,
+        "text": "if git push origin HEAD:codex/hoffice-runtime-from-scratch; then"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 76,
+        "text": "git fetch origin codex/hoffice-runtime-from-scratch"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 77,
         "text": "git rebase origin/codex/hoffice-runtime-from-scratch"
       },
       {
