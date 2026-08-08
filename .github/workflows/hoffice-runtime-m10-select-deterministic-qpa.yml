@@ -1,0 +1,78 @@
+name: Select deterministic HWord toolbar and focus QPA
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-select-deterministic-qpa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hrt-m10-select-deterministic-qpa-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TARGET_BRANCH: codex/hoffice-runtime-from-scratch
+  QPA_RUN_ID: '31228921228'
+  QPA_ARTIFACT_DIGEST: 13a1cb526a38a7a85cf7586c32795fc91d2e51fbe1f3a3a1e959fa8af5b7a1fa
+
+jobs:
+  select-qpa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Atomically pin the verified deterministic QPA
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+          for attempt in $(seq 1 16); do
+            git fetch origin "$TARGET_BRANCH"
+            git reset --hard "origin/$TARGET_BRANCH"
+
+            python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          path = Path('.github/workflows/hoffice-runtime-m10-widget-replay.yml')
+          text = path.read_text(encoding='utf-8')
+
+          run_pattern = re.compile(r"^  QPA_RUN_ID: '[0-9]+'$", re.MULTILINE)
+          digest_pattern = re.compile(
+              r'^  QPA_ARTIFACT_DIGEST: [0-9a-f]{64}$', re.MULTILINE)
+          assert len(run_pattern.findall(text)) == 1
+          assert len(digest_pattern.findall(text)) == 1
+
+          text = run_pattern.sub(
+              f"  QPA_RUN_ID: '{os.environ['QPA_RUN_ID']}'", text, count=1)
+          text = digest_pattern.sub(
+              f"  QPA_ARTIFACT_DIGEST: {os.environ['QPA_ARTIFACT_DIGEST']}",
+              text, count=1)
+
+          assert text.count(f"  QPA_RUN_ID: '{os.environ['QPA_RUN_ID']}'") == 1
+          assert text.count(
+              f"  QPA_ARTIFACT_DIGEST: {os.environ['QPA_ARTIFACT_DIGEST']}") == 1
+          path.write_text(text, encoding='utf-8')
+          PY
+
+            git add .github/workflows/hoffice-runtime-m10-widget-replay.yml
+            if git diff --cached --quiet; then
+              echo 'deterministic QPA is already selected'
+              exit 0
+            fi
+            git commit -m 'ci: replay M10 with deterministic toolbar and focus QPA'
+            if git push origin "HEAD:$TARGET_BRANCH"; then
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          exit 1
