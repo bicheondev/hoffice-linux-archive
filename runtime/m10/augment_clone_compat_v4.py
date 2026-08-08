@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Stable workflow entry point for normal-return M10 clone support.
+"""Stable workflow entry point for mature M10 clone support.
 
-This path is intentionally retained as the Actions trigger while the detailed
-normal-return transform lives in augment_clone_compat_v6.py.  The current
-revision verifies the prototype's thread-local exit dispatch shape.
+This path remains the Actions trigger.  The detailed transform now lives in
+``augment_clone_compat_v7.py`` and adds the verified Darwin pthread TSD-base
+capture required to restore GS correctly under Rosetta before libpthread
+teardown.
 """
-from augment_clone_compat_v6 import main
+from augment_clone_compat_v7 import main
 
 
 if __name__ == "__main__":
