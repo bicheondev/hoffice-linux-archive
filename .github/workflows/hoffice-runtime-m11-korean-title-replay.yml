@@ -18,7 +18,7 @@ concurrency:
 
 env:
   PREPARED_RUN_ID: '31235068358'
-  HOST_RUN_ID: '31272049813'
+  HOST_RUN_ID: '31272935552'
   QPA_RUN_ID: '31270900419'
   QPA_ARTIFACT_DIGEST: f1f56d957fda29796380fa5ea31fa181f4ef3e78782e40fb7f8d62ab475f6f05
   ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
@@ -48,6 +48,9 @@ jobs:
             proofs/m10-hword-culture-resource-window.json
           grep -F 'HWORD_KOREAN_MAIN_WINDOW_AFTER_CULTURE_AND_RESOURCE_REPAIR' \
             proofs/m10-hword-culture-resource-window.json
+          test -s proofs/m10-clone-chdir.json
+          grep -F '"status": "PASS"' proofs/m10-clone-chdir.json
+          grep -F '"exit_status": 0' proofs/m10-clone-chdir.json
 
       - name: Run the exact Korean-title staged replay
         env:
