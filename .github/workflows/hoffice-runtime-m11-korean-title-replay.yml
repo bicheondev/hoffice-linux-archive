@@ -1,0 +1,94 @@
+name: HOffice runtime M11 Korean-title staged input
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m11/run_korean_title_staged_replay.sh'
+      - '.github/workflows/hoffice-runtime-m11-korean-title-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-korean-title-staged-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREPARED_RUN_ID: '31235068358'
+  HOST_RUN_ID: '31258102504'
+  QPA_RUN_ID: '31256998140'
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  replay:
+    runs-on: macos-14
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the verified Korean HWord main-window proof
+        run: |
+          set -euxo pipefail
+          test -s proofs/m10-hword-culture-resource-window.json
+          grep -F '"status": "PASS"' \
+            proofs/m10-hword-culture-resource-window.json
+          grep -F 'HWORD_KOREAN_MAIN_WINDOW_AFTER_CULTURE_AND_RESOURCE_REPAIR' \
+            proofs/m10-hword-culture-resource-window.json
+
+      - name: Run the exact Korean-title staged replay
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: runtime/m11/run_korean_title_staged_replay.sh
+
+      - name: Commit the durable M11 input frontier
+        if: always()
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-korean-title-staged-*.json \
+                  diagnostics/m11-korean-title-staged-latest.md 2>/dev/null || true
+          if test -f proofs/m11-hword-document-interaction.json; then
+            git add proofs/m11-hword-document-interaction.json
+          fi
+          if test -f proofs/m11-hword-text-input.json; then
+            git add proofs/m11-hword-text-input.json
+          fi
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: classify Korean-title HWord staged input'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-korean-title-staged-proof
+          path: |
+            build/host/hrt-m11-korean-staged
+            build/proof
+            diagnostics/m11-korean-title-staged-*.json
+            diagnostics/m11-korean-title-staged-latest.md
+            proofs/m11-hword-document-interaction.json
+            proofs/m11-hword-text-input.json
+          if-no-files-found: warn
+          retention-days: 14
