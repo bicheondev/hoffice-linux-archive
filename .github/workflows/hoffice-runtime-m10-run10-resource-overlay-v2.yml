@@ -1,0 +1,333 @@
+name: Replay exact HWord resource overlay with locked hrtappkit QPA
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-run10-resource-overlay-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m10-run10-resource-overlay-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TARGET_BRANCH: codex/hoffice-runtime-from-scratch
+  PREPARED_RUN_ID: '31235068358'
+  SOURCE_RUN_ID: '31254233337'
+  QPA_RUN_ID: '31166152504'
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  replay:
+    runs-on: macos-14
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lock the verified resource plan
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input build/host build/proof diagnostics
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          source=json.loads(Path(
+              'diagnostics/m10-fs-path-trace-latest.json').read_text())
+          assert source['frontier']=='PACKAGE_RESOURCES_MISSING_FROM_PREPARED_GUEST'
+          assert str(source['source_workflow_run'])==os.environ['SOURCE_RUN_ID']
+          paths=sorted({str(path) for path in
+              source['package_resources_missing_from_prepared_guest']
+              if str(path).startswith('/opt/hnc/hoffice11/')})
+          assert '/opt/hnc/hoffice11/Bin/HwordAction.so' in paths
+          Path('build/restoration-paths.json').write_text(
+              json.dumps(paths,indent=2)+'\n')
+          Path('build/restore-members.txt').write_text(
+              ''.join('./'+path.lstrip('/')+'\n' for path in paths))
+          print(json.dumps(paths,indent=2))
+          PY
+
+      - uses: actions/download-artifact@v4
+        name: Download the locale-complete prepared guest
+        with:
+          name: hrt-m9-bootstrap-prepared-guest
+          path: build/input/prepared
+          repository: ${{ github.repository }}
+          run-id: ${{ env.PREPARED_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - uses: actions/download-artifact@v4
+        name: Download the exact run-10 host proof
+        with:
+          name: hrt-m10-hword-fs-compat-proof
+          path: build/input/source
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - uses: actions/download-artifact@v4
+        name: Download the exact Qt 5.11.3 hrtappkit QPA
+        with:
+          name: hrt-m8-qt5113-hrtappkit-input-qpa
+          path: build/input/qpa
+          repository: ${{ github.repository }}
+          run-id: ${{ env.QPA_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download and verify the exact HOffice package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/deb
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" \
+            --dir build/input/deb
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/input/deb/$ASSET_NAME" | shasum -a 256 -c -
+
+      - name: Reconstruct, restore exact resources, and install hrtappkit
+        run: |
+          set -euxo pipefail
+          prepared=build/input/prepared/hword-m9-prepared-rootfs.tar.zst
+          checksum=build/input/prepared/report/hword-m9-prepared-rootfs.tar.zst.sha256
+          expected=$(awk '{print $1;exit}' "$checksum")
+          actual=$(shasum -a 256 "$prepared" | awk '{print $1}')
+          test "$actual" = "$expected"
+
+          image="$RUNNER_TEMP/hrt-m10-overlay-v2.sparsebundle"
+          root="/tmp/h10ov2-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"; mkdir -p "$root"
+          if ! hdiutil create -quiet -size 14g -fs APFSX \
+               -volname HRTM10OV2 -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 14g -fs HFSX \
+              -volname HRTM10OV2 -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >>"$GITHUB_ENV"
+          echo "HRT_IMAGE=$image" >>"$GITHUB_ENV"
+          zstd -dc "$prepared" | tar -xf - -C "$root"
+          test -s "$root/.hrt-prepatched-v1"
+
+          deb="build/input/deb/$ASSET_NAME"
+          data_member=$(ar t "$deb" | awk '/^data\.tar/{print;exit}')
+          test -n "$data_member"
+          ar p "$deb" "$data_member" >"build/input/deb/$data_member"
+          tar -xf "build/input/deb/$data_member" -C "$root" \
+            -T build/restore-members.txt
+
+          mkdir -p "$root$(dirname "$PLUGIN_GUEST")"
+          python3 - build/input/qpa/libqhrtappkit.so.xz \
+            build/input/qpa/lock.json "$root$PLUGIN_GUEST" <<'PY'
+          import hashlib,json,lzma,pathlib,sys
+          compressed=pathlib.Path(sys.argv[1]).read_bytes()
+          lock=json.loads(pathlib.Path(sys.argv[2]).read_text())
+          assert lock['toolchain']['qt_version']=='5.11.3',lock
+          assert hashlib.sha256(compressed).hexdigest()==lock['plugin']['xz_sha256']
+          plugin=lzma.decompress(compressed)
+          assert hashlib.sha256(plugin).hexdigest()==lock['plugin']['sha256_after_prepatch']
+          pathlib.Path(sys.argv[3]).write_bytes(plugin)
+          pathlib.Path('build/proof/qpa-lock.json').write_text(
+              json.dumps(lock,indent=2)+'\n')
+          PY
+          chmod 0755 "$root$PLUGIN_GUEST"
+
+          python3 - "$root" <<'PY'
+          import hashlib,json,pathlib,sys
+          root=pathlib.Path(sys.argv[1])
+          paths=json.loads(pathlib.Path('build/restoration-paths.json').read_text())
+          restored=[]
+          for guest in paths:
+              path=root/guest.lstrip('/')
+              assert path.exists() or path.is_symlink(),guest
+              item={'guest_path':guest}
+              if path.is_dir(): item['type']='directory'
+              elif path.is_symlink():
+                  item.update(type='symlink',target=str(path.readlink()))
+              else:
+                  data=path.read_bytes()
+                  item.update(type='file',size=len(data),
+                              sha256=hashlib.sha256(data).hexdigest())
+              restored.append(item)
+          assert hashlib.sha256((root/'opt/hnc/hoffice11/Bin/HwordAction.so').read_bytes()).hexdigest()==\
+              'e6de430ac740865928cf3947d1a7a90bf7e5df37d609e85a86051d99d3949cbc'
+          pathlib.Path('build/proof/restored-resources.json').write_text(
+              json.dumps(restored,indent=2)+'\n')
+          PY
+          test -x "$root$PLUGIN_GUEST"
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+          grep -F 'Case-sensitive' build/proof/guest-volume.txt
+
+      - name: Select and sign the exact run-10 host
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import os,pathlib,shutil
+          candidates=[]
+          for path in pathlib.Path('build/input/source').rglob('*'):
+              if path.is_file() and path.read_bytes()[:4]==bytes.fromhex('cffaedfe'):
+                  candidates.append(path)
+          assert candidates,candidates
+          candidates.sort(key=lambda path:(
+              0 if '/build/host/' in '/'+str(path) else 1,
+              -path.stat().st_size,str(path)))
+          destination=pathlib.Path('build/host/hrt-m10-overlay-v2')
+          shutil.copy2(candidates[0],destination); os.chmod(destination,0o755)
+          pathlib.Path('build/proof/source-host.txt').write_text(
+              str(candidates[0])+'\n')
+          PY
+          codesign --force --sign - --timestamp=none build/host/hrt-m10-overlay-v2
+          codesign --verify --strict build/host/hrt-m10-overlay-v2
+          file build/host/hrt-m10-overlay-v2 | tee build/proof/host-file.txt
+
+      - name: Replay exact HWord with resources and hrtappkit restored
+        run: |
+          set -uxo pipefail
+          export HRT_M6_CAPTURE_PATH="$PWD/build/proof/pre-frame-window.png"
+          export HRT_M7_CAPTURE_PATH="$PWD/build/proof/hword-overlay-v2.png"
+          unset HRT_M8_SYNTHETIC_INPUT
+          : >build/proof/stdout.txt; : >build/proof/stderr.txt
+          /usr/bin/arch -x86_64 build/host/hrt-m10-overlay-v2 \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          observed=0
+          for _ in $(jot 1800); do
+            if grep -q 'HRT M6 QPA: CREATE .*title=Word ' build/proof/stderr.txt 2>/dev/null; then
+              observed=1; sleep 4; break
+            fi
+            if grep -q 'HRT M6 QPA: CREATE .*title=Exception ' build/proof/stderr.txt 2>/dev/null; then
+              observed=2; sleep 2; break
+            fi
+            if grep -q 'fatal signal' build/proof/stderr.txt 2>/dev/null; then
+              observed=3; break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 0.05
+          done
+          alive=0
+          if kill -0 "$pid" 2>/dev/null; then
+            alive=1
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" >build/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$pid" 2 1 -file build/proof/sample.txt >/dev/null 2>&1 || true
+            kill -TERM "$pid" 2>/dev/null || true; sleep 0.3
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e; wait "$pid"; raw_status=$?; set -e
+          printf '%s\n' "$raw_status" >build/proof/raw-exit-status.txt
+          printf '%s\n' "$alive" >build/proof/alive-at-observation.txt
+          printf '%s\n' "$observed" >build/proof/observed-boundary.txt
+          grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|HRT M9 PATH:|HRT M10 FS:|Linux syscall ENOSYS|fatal signal|Exception|error|failed|hrtappkit' \
+            build/proof/stderr.txt | tail -n 30000 | tee build/proof/key-lines.txt || true
+          tail -n 14000 build/proof/stderr.txt >build/proof/stderr-tail.txt
+          cat build/proof/key-lines.txt
+
+      - name: Classify the QPA-complete resource replay
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,re
+          from pathlib import Path
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          titles=re.findall(r'HRT M6 QPA: CREATE .*? title=(.*?) handle=',stderr)
+          unsupported=sorted({int(m.group(1)) for line in stderr.splitlines()
+              if (m:=re.search(r'Linux syscall ENOSYS\s+([0-9]+)',line))})
+          fatal='fatal signal' in stderr
+          word='Word' in titles
+          exception='Exception' in titles
+          qpa_loaded=('HRT M5: qhrtappkit create' in stderr or
+                      'HRT M6 QPA:' in stderr or
+                      'HRT M7 QPA:' in stderr)
+          frame=Path('build/proof/hword-overlay-v2.png')
+          if word and not exception and not fatal:
+              classification='HWORD_MAIN_WINDOW_AFTER_QPA_COMPLETE_RESOURCE_OVERLAY'
+          elif exception:
+              classification='EXCEPTION_REMAINS_AFTER_QPA_COMPLETE_RESOURCE_OVERLAY'
+          elif fatal:
+              classification='FATAL_AFTER_QPA_COMPLETE_RESOURCE_OVERLAY'
+          else:
+              classification='NO_DECISIVE_WINDOW_AFTER_QPA_COMPLETE_RESOURCE_OVERLAY'
+          status='PASS' if classification.startswith('HWORD_MAIN_WINDOW') else 'DIAGNOSTIC'
+          result={
+              'schema':3,'milestone':'M10-resource-overlay','status':status,
+              'classification':classification,
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'source_workflow_run':os.environ['SOURCE_RUN_ID'],
+              'qpa_run':os.environ['QPA_RUN_ID'],
+              'program':os.environ['PROGRAM'],
+              'program_sha256':os.environ['PROGRAM_SHA256'],
+              'package_sha256':os.environ['PACKAGE_SHA256'],
+              'window_titles':titles,
+              'restored_resources':json.loads(Path('build/proof/restored-resources.json').read_text()),
+              'qpa_loaded':qpa_loaded,
+              'unsupported_syscalls':unsupported,
+              'fatal_signal_observed':fatal,
+              'frame_present':frame.is_file() and frame.stat().st_size>0,
+              'frame_sha256':hashlib.sha256(frame.read_bytes()).hexdigest()
+                  if frame.is_file() and frame.stat().st_size>0 else None,
+              'alive_at_observation':bool(int(Path('build/proof/alive-at-observation.txt').read_text())),
+              'raw_exit_status':int(Path('build/proof/raw-exit-status.txt').read_text()),
+              'stderr_tail':stderr[-24000:],
+          }
+          payload=json.dumps(result,indent=2)+'\n'
+          Path(f"diagnostics/m10-resource-overlay-v2-{os.environ['GITHUB_RUN_ID']}.json").write_text(payload)
+          Path('diagnostics/m10-resource-overlay-v2-latest.json').write_text(payload)
+          Path('diagnostics/m10-resource-overlay-v2-latest.md').write_text(
+              '# HWord M10 QPA-complete resource overlay\n\n'
+              f"- Status: `{status}`\n- Classification: `{classification}`\n"
+              f"- Windows: `{titles}`\n- QPA loaded: `{qpa_loaded}`\n"
+              f"- Unsupported syscalls: `{unsupported}`\n- Fatal: `{fatal}`\n")
+          Path('build/proof/summary.json').write_text(payload)
+          if status=='PASS':
+              Path('proofs').mkdir(exist_ok=True)
+              Path('proofs/m10-hword-resource-overlay.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Commit the durable QPA-complete overlay frontier
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m10-resource-overlay-v2-*.json \
+                  diagnostics/m10-resource-overlay-v2-latest.md
+          if test -f proofs/m10-hword-resource-overlay.json; then
+            git add proofs/m10-hword-resource-overlay.json
+          fi
+          git commit -m 'diagnostic: classify QPA-complete HWord resource overlay'
+          for attempt in $(seq 1 20); do
+            if git push origin "HEAD:$TARGET_BRANCH"; then exit 0; fi
+            git fetch origin "$TARGET_BRANCH"; git rebase "origin/$TARGET_BRANCH"
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m10-resource-overlay-v2-proof
+          path: |
+            build/host/hrt-m10-overlay-v2
+            build/proof
+            diagnostics/m10-resource-overlay-v2-*.json
+            diagnostics/m10-resource-overlay-v2-latest.md
+            proofs/m10-hword-resource-overlay.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach the exact HWord guest
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true
