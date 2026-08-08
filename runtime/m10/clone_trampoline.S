@@ -40,9 +40,14 @@ _hrt_m10_enter_clone_child:
     movq $(.Lclone_trace_fx_end-.Lclone_trace_fx), %rdx
     syscall
 
-    /* Switch to the Linux-provided child stack. */
+    /*
+     * Linux clone resumes at the instruction following syscall with RSP equal
+     * to the supplied child stack.  Jump directly instead of manufacturing a
+     * host return address on guest memory; this also prevents a diagnostic
+     * Darwin syscall from touching the continuation word through Rosetta's
+     * translated call machinery.
+     */
     movq HRT_M10_CLONE_RSP_OFFSET(%r12), %rsp
-    pushq HRT_M10_CLONE_RIP_OFFSET(%r12)
     pushq HRT_M10_CLONE_RFLAGS_OFFSET(%r12)
     popfq
 
@@ -52,6 +57,7 @@ _hrt_m10_enter_clone_child:
     movq $(.Lclone_trace_stack_end-.Lclone_trace_stack), %rdx
     syscall
 
+    movq HRT_M10_CLONE_RIP_OFFSET(%r12), %r11
     movq HRT_M10_CLONE_RBX_OFFSET(%r12), %rbx
     movq HRT_M10_CLONE_RBP_OFFSET(%r12), %rbp
     movq HRT_M10_CLONE_R13_OFFSET(%r12), %r13
@@ -67,7 +73,7 @@ _hrt_m10_enter_clone_child:
 
     /* clone returns zero in the child; RCX and R11 are syscall-clobbered. */
     xorl %eax, %eax
-    retq
+    jmpq *%r11
 
 .section __TEXT,__const
 .Lclone_trace_enter:
