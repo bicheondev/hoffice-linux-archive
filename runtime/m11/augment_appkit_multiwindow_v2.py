@@ -13,7 +13,6 @@ and invariant remains unchanged.  The replacement still requires exactly one
 from __future__ import annotations
 
 from pathlib import Path
-import re
 
 
 def main() -> None:
@@ -33,7 +32,7 @@ def main() -> None:
         raise SystemExit("v1 attach-transform end not found")
     end += len(end_token)
 
-    replacement = r'''    attach_pattern = re.compile(
+    replacement = r"""    attach_pattern = re.compile(
         r'    const int input_result = hrt_m8_input_attach\(\(__bridge void \*\)g_window\);\n'
         r'    fprintf\(stderr, "HRT M8 APPKIT: attach result=%d[^\n]*\n'
         r'    fflush\(stderr\);\n'
@@ -59,7 +58,7 @@ def main() -> None:
         raise SystemExit(
             f"primary-only input attachment: expected one regex anchor, "
             f"found {attach_count}")
-'''
+"""
     patched = source[:start] + replacement + source[end:]
     if "import re\n" not in patched:
         patched = patched.replace(
