@@ -17,20 +17,22 @@ system(ln -sf /usr/lib/x86_64-linux-gnu/libfontconfig.so.1 $$HRT_COMPAT_LIBDIR/l
 system(ln -sf /usr/lib/x86_64-linux-gnu/libfreetype.so.6 $$HRT_COMPAT_LIBDIR/libfreetype.so)
 QMAKE_LIBDIR += $$HRT_COMPAT_LIBDIR
 
-# Generate the QWidget-aware variant in seven fail-closed passes.  The first
+# Generate the QWidget-aware variant in eight fail-closed passes.  The first
 # adds hit testing and focus-object delivery; the second guarantees that the
 # HWord New QToolButton emits its application signal; the third yields after
 # each mouse-up so a later stage cannot overtake document construction; the
 # fourth repairs focus immediately before key delivery; the fifth adds a
 # printable input-method fallback; the sixth inventories the materialized
-# document QObject/QWidget hierarchy without changing it; and the seventh
-# gives the fallback a preedit-to-commit composition lifecycle.
+# document QObject/QWidget hierarchy; the seventh gives the fallback a
+# preedit-to-commit lifecycle; and the eighth passively traces the final event
+# route, waits for page materialization, and supplies Linux/X11 native key data.
 HRT_M10_WIDGET_BASE = $$OUT_PWD/qhrtappkitbackingstore_widget.cpp
 HRT_M10_BUTTON_FOCUS = $$OUT_PWD/qhrtappkitbackingstore_button_focus.cpp
 HRT_M11_STAGE_BOUNDARIES = $$OUT_PWD/qhrtappkitbackingstore_stage_boundaries.cpp
 HRT_M11_DELAYED_FOCUS = $$OUT_PWD/qhrtappkitbackingstore_delayed_focus.cpp
 HRT_M11_IME_FALLBACK = $$OUT_PWD/qhrtappkitbackingstore_ime_fallback.cpp
 HRT_M11_INVENTORY = $$OUT_PWD/qhrtappkitbackingstore_inventory.cpp
+HRT_M11_COMPOSE = $$OUT_PWD/qhrtappkitbackingstore_compose.cpp
 HRT_M11_BACKINGSTORE = $$OUT_PWD/qhrtappkitbackingstore_m11.cpp
 system(python3 $$PWD/../../m10/augment_qpa_widget_input.py $$PWD/qhrtappkitbackingstore.cpp $$HRT_M10_WIDGET_BASE)
 system(python3 $$PWD/../../m10/augment_qpa_button_focus.py $$HRT_M10_WIDGET_BASE $$HRT_M10_BUTTON_FOCUS)
@@ -38,11 +40,12 @@ system(python3 $$PWD/../../m11/augment_qpa_stage_boundaries.py $$HRT_M10_BUTTON_
 system(python3 $$PWD/../../m11/augment_qpa_document_focus.py $$HRT_M11_STAGE_BOUNDARIES $$HRT_M11_DELAYED_FOCUS)
 system(python3 $$PWD/../../m11/augment_qpa_input_method_fallback.py $$HRT_M11_DELAYED_FOCUS $$HRT_M11_IME_FALLBACK)
 system(python3 $$PWD/../../m11/augment_qpa_object_inventory.py $$HRT_M11_IME_FALLBACK $$HRT_M11_INVENTORY)
-system(python3 $$PWD/../../m11/augment_qpa_preedit_commit.py $$HRT_M11_INVENTORY $$HRT_M11_BACKINGSTORE)
+system(python3 $$PWD/../../m11/augment_qpa_preedit_commit.py $$HRT_M11_INVENTORY $$HRT_M11_COMPOSE)
+system(python3 $$PWD/../../m11/augment_qpa_native_key_probe.py $$HRT_M11_COMPOSE $$HRT_M11_BACKINGSTORE)
 exists($$HRT_M11_BACKINGSTORE) {
-    message(Building hierarchy-inventory QWidget M11 backing store: $$HRT_M11_BACKINGSTORE)
+    message(Building Linux-native key-route QWidget M11 backing store: $$HRT_M11_BACKINGSTORE)
 } else {
-    error(Failed to generate hierarchy-inventory QWidget M11 backing store)
+    error(Failed to generate Linux-native key-route QWidget M11 backing store)
 }
 
 SOURCES += $$PWD/main.cpp
