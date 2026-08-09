@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "commit": "0ec83dcad585103e93d5b80306af56d0bdbe4186",
-  "workflow_run": "31293098680",
+  "commit": "89b2f196c364758006c95f86fb351266615d0572",
+  "workflow_run": "31293127391",
   "file_count": 179,
   "match_counts": {
     "opcode_256": 1205,
@@ -10,7 +10,7 @@
     "custom_qpa": 1000,
     "appkit": 180,
     "rendering": 263,
-    "input_ime": 2887
+    "input_ime": 2886
   },
   "files": [
     {
@@ -177,8 +177,8 @@
     },
     {
       "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-      "sha256": "01ca65dcf68d980ffba2016df41e1ce462632f03535dac71eb50c6654c493f24",
-      "size": 913,
+      "sha256": "21170b9ffeb3b83758a1309aea03dcf699dc989fa55b7ed8880d3514ffa14683",
+      "size": 926,
       "groups": [
         "appkit",
         "input_ime",
@@ -17591,8 +17591,8 @@
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 11,
-        "text": "// QInputMethodEvent fallback in the generated backing-store source; the stable"
+        "line": 12,
+        "text": "// native key metadata.  The stable backing-store class ABI remains unchanged;"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
@@ -18935,11 +18935,6 @@
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
         "line": 283,
         "text": "static_cast<unsigned long long>(m_mouseEventsDelivered));"
-      },
-      {
-        "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-        "line": 11,
-        "text": "// QInputMethodEvent fallback in the generated backing-store source; the stable"
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",

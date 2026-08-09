@@ -1,6 +1,6 @@
 # Custom QPA and host-call inventory
 
-- Commit: `0ec83dcad585103e93d5b80306af56d0bdbe4186`
+- Commit: `89b2f196c364758006c95f86fb351266615d0572`
 - Matching files: `179`
 
 - `opcode_256`: `1205` matches
@@ -9,7 +9,7 @@
 - `custom_qpa`: `1000` matches
 - `appkit`: `180` matches
 - `rendering`: `263` matches
-- `input_ime`: `2887` matches
+- `input_ime`: `2886` matches
 
 ## opcode_256
 
@@ -1256,7 +1256,7 @@
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:297` — `QPaintDevice *device = paintDevice();`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:1` — `#ifndef QHRTAPPKITBACKINGSTORE_H`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:2` — `#define QHRTAPPKITBACKINGSTORE_H`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:11` — `// QInputMethodEvent fallback in the generated backing-store source; the stable`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:12` — `// native key metadata.  The stable backing-store class ABI remains unchanged;`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:14` — `class QHrtAppKitBackingStore : public QOffscreenBackingStore`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:17` — `explicit QHrtAppKitBackingStore(QWindow *window);`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:19` — `void flush(QWindow *window,`
@@ -1528,7 +1528,6 @@
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:267` — `++m_mouseEventsDelivered;`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:282` — `static_cast<unsigned long long>(m_keyEventsDelivered),`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:283` — `static_cast<unsigned long long>(m_mouseEventsDelivered));`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:11` — `// QInputMethodEvent fallback in the generated backing-store source; the stable`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:27` — `quint64 m_keyEventsDelivered;`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:28` — `quint64 m_mouseEventsDelivered;`
 - `.github/workflows/hoffice-legacy-openssl-audit.yml:5` — `branches: [codex/hoffice-runtime-from-scratch]`
@@ -1781,4 +1780,5 @@
 - `.github/workflows/hoffice-runtime-m1-v2.yml:8` — `- '.github/workflows/hoffice-runtime-m1-v2.yml'`
 - `.github/workflows/hoffice-runtime-m1-v2.yml:24` — `clang -c -nostdlib -fPIC runtime/m1/test_interp.S \`
 - `.github/workflows/hoffice-runtime-m1-v2.yml:29` — `clang -c -nostdlib -fPIE runtime/m1/test_main.S \`
-- … 2587 more matches in JSON
+- `.github/workflows/hoffice-runtime-m1-v2.yml:66` — `runtime/m1/main.c runtime/m1/common.c runtime/m1/elf_map.c \`
+- … 2586 more matches in JSON
