@@ -7,6 +7,7 @@ on:
       - 'runtime/m11/augment_appkit_korean_input_capture.py'
       - 'runtime/m11/augment_clock_nanosleep.py'
       - 'runtime/m11/augment_hword_document_io_trace.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v2.py'
       - 'runtime/m10/augment_appkit_input_capture.py'
       - 'runtime/m10/route_synthetic_events_directly.py'
       - 'runtime/m10/augment_fs_compat.py'
@@ -107,7 +108,7 @@ jobs:
             build/generated/stage12.c build/generated/stage13.c
           python3 runtime/m10/augment_clone_compat_v4.py \
             build/generated/stage13.c build/generated/stage14.c
-          python3 runtime/m11/augment_hword_document_io_trace.py \
+          python3 runtime/m11/augment_hword_document_io_trace_v2.py \
             build/generated/stage14.c build/generated/syscall_bridge.c
 
           python3 - <<'PY'
