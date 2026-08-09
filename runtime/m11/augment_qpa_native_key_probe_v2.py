@@ -4,15 +4,16 @@
 The first generator revision correctly emitted four ``HRT M11 KEYROUTE``
 format strings, while its final invariant expected five.  It also used
 ``QScrollBar`` methods and therefore needs the concrete QtWidgets header rather
-than the forward declaration inherited through QAbstractScrollArea.
+than the forward declaration inherited through QAbstractScrollArea.  The
+native scan/virtual-key pair appears three times in the generated source: the
+helper signature, the direct QWidget event, and the QWindow-system event.
 
-Keep the reviewed v1 transform intact, patch exactly those two generator facts
-in memory, then invoke its normal entry point with the original arguments.
+Keep the reviewed v1 transform intact, patch exactly those generator facts in
+memory, then invoke its normal entry point with the original arguments.
 """
 from __future__ import annotations
 
 from pathlib import Path
-import sys
 
 
 def replace_once(text: str, old: str, new: str, label: str) -> str:
@@ -38,6 +39,12 @@ def main() -> None:
         '        "HRT M11 KEYROUTE:": 5,',
         '        "HRT M11 KEYROUTE:": 4,',
         "native key-route marker count",
+    )
+    source = replace_once(
+        source,
+        '        "nativeScanCode, nativeVirtualKey": 2,',
+        '        "nativeScanCode, nativeVirtualKey": 3,',
+        "native key field marker count",
     )
 
     namespace = {
