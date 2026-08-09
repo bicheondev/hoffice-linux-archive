@@ -1,16 +1,16 @@
 {
   "schema": 1,
-  "commit": "580a9800e6389c10a64032a86f2bfcfb33c3c4fc",
-  "workflow_run": "31294953490",
+  "commit": "25a0c13bbcc7b7a4883f0c95ca5e6cdc4df5ef2a",
+  "workflow_run": "31305420973",
   "file_count": 180,
   "match_counts": {
-    "opcode_256": 1212,
+    "opcode_256": 1216,
     "create_operation": 104,
     "host_call": 599,
     "custom_qpa": 1000,
-    "appkit": 180,
+    "appkit": 181,
     "rendering": 263,
-    "input_ime": 2895
+    "input_ime": 2904
   },
   "files": [
     {
@@ -127,7 +127,7 @@
     },
     {
       "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
-      "sha256": "de5c865e3c072459be51ef7e3a8039cbf51260f1bf3c21655892cfde823287b0",
+      "sha256": "971cdfc08a82e8e791933a5c22a43d95f597694c26a9893211f677a66ef1063f",
       "size": 1500,
       "groups": [
         "custom_qpa",
@@ -220,8 +220,8 @@
     },
     {
       "path": "runtime/m6/qpa/qhrtappkitwindow.h",
-      "sha256": "e91383e44899d6db66464581840017bdb5baa11cf13e1f91146dd860a4e843c3",
-      "size": 756,
+      "sha256": "10c1a83d47488bca9866f7b77de3a62b4e93d99029efac309f3a879488f83203",
+      "size": 817,
       "groups": [
         "appkit"
       ]
@@ -777,8 +777,8 @@
     },
     {
       "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-      "sha256": "6b4ff351938d3d16d5634e94c3ff70d762a9cf42639e925fdc453ae33ce0260a",
-      "size": 11639,
+      "sha256": "5c608d674bd68461302e3b97173e1477768fd2b7f5211eb4b5b49bd502d9ecec",
+      "size": 12315,
       "groups": [
         "appkit",
         "host_call",
@@ -843,8 +843,8 @@
     },
     {
       "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-      "sha256": "3c601332a28878f59242d7f44358c264a90129b262bcf5c95016d81dd08f2ebd",
-      "size": 3749,
+      "sha256": "532d5c3b5f7ee659be180201f6f21b034a8c6b49d9dddb362b6161be3597a0c4",
+      "size": 10581,
       "groups": [
         "custom_qpa",
         "host_call",
@@ -1997,17 +1997,17 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 18,
-        "text": "\"sha256_before_prepatch\": \"b6d46957262385f9f772ecda48eea2ad2b82bc0229c9d8423ff591ed3c86cf85\","
+        "text": "\"sha256_before_prepatch\": \"47162252dcdea33aa7aabfcc2262e8b2846ef0d0706a1dc5a5c629938cc818fb\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 19,
-        "text": "\"sha256_after_prepatch\": \"60386ef1647bfa5cd71c4b50fee7bc99492256ca555cce45f28d1f7f2b3d21e6\","
+        "text": "\"sha256_after_prepatch\": \"91ea0b0a7e885dc3bbd51cecd938551445ab4834734cf8a5ecd0067dc3a27143\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 20,
-        "text": "\"xz_sha256\": \"ce0d885ac7110ad9bb75c9edebd2dfea1bcf050b3340260dc0d997850a92ce93\","
+        "text": "\"xz_sha256\": \"0c8d3ed351861ed4d15fbd17450fca9fd2a2c2604ec6292aa6395a9260736d92\","
       },
       {
         "path": "runtime/m6/qpa/build_hrtappkit_root.sh",
@@ -3636,57 +3636,57 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 106,
+        "line": 110,
         "text": "anchor = '#define M3_TRACE_LIMIT 256u'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 135,
+        "line": 142,
         "text": "shasum -a 256 build/generated/syscall_bridge.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 136,
+        "line": 143,
         "text": ">build/output/generated-bridge.sha256"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 137,
+        "line": 144,
         "text": "shasum -a 256 build/generated/appkit_adapter_m11.m \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 138,
+        "line": 145,
         "text": ">build/output/generated-appkit-adapter.sha256"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 139,
+        "line": 146,
         "text": "shasum -a 256 runtime/m8/appkit_input.m \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 140,
+        "line": 147,
         "text": ">build/output/generated-appkit-input.sha256"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 141,
+        "line": 148,
         "text": "shasum -a 256 runtime/m10/clone_trampoline.S \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 142,
+        "line": 149,
         "text": ">build/output/clone-trampoline.sha256"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 195,
+        "line": 202,
         "text": "shasum -a 256 \"$output\" | tee build/output/host-sha256.txt"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 213,
+        "line": 220,
         "text": "'binary_sha256': hashlib.sha256(binary.read_bytes()).hexdigest(),"
       },
       {
@@ -4016,23 +4016,43 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 26,
+        "line": 29,
         "text": "PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 28,
+        "line": 31,
         "text": "PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 30,
+        "line": 33,
         "text": "HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 31,
+        "line": 34,
         "text": "HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 147,
+        "text": "'full_product_payload_manifest_sha256',"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 158,
+        "text": "result['product_package_manifest_sha256'] = hashlib.sha256("
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 160,
+        "text": "result['product_missing_manifest_sha256'] = hashlib.sha256("
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 162,
+        "text": "result['product_existing_manifest_sha256'] = hashlib.sha256("
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-repack-fs-host.yml",
@@ -9545,27 +9565,27 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 20,
+        "line": 22,
         "text": "workflow_dispatch:"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 95,
+        "line": 99,
         "text": "python3 runtime/m6/augment_appkit_hostcall_deferred.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 156,
+        "line": 163,
         "text": "runtime/m6/hostcall_trampoline.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 182,
+        "line": 189,
         "text": "clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 183,
+        "line": 190,
         "text": "-o build/objects/hostcall-trampoline.o"
       },
       {
@@ -9635,7 +9655,7 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 9,
+        "line": 12,
         "text": "workflow_dispatch:"
       },
       {
@@ -11548,7 +11568,7 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 7,
-        "text": "\"qpa_source_tree\": \"2ae62c78fc8bb44898c4facaa3e280266d9d73e9\""
+        "text": "\"qpa_source_tree\": \"cc02ad26d04b724180d3da8754b551322e045f8e\""
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
@@ -13167,17 +13187,17 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 22,
-        "text": "QPA_RUN_ID: '31293494359'"
+        "line": 25,
+        "text": "QPA_RUN_ID: '31294953477'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 23,
-        "text": "QPA_ARTIFACT_DIGEST: da16de2d896a500743bb9fdca2e1e642e915f4c98f3144df6c41d3c87c0087d1"
+        "line": 26,
+        "text": "QPA_ARTIFACT_DIGEST: 39d85aa902c9e8a92325d69c21c4b8535d06396ee59603e71613068c0b212dff"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 32,
+        "line": 35,
         "text": "PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so"
       },
       {
@@ -16890,7 +16910,12 @@
       {
         "path": "runtime/m6/qpa/qhrtappkitwindow.h",
         "line": 31,
-        "text": "static QHrtAppKitWindow *s_nativeOwner;"
+        "text": "QHrtAppKitWindow *m_nextWindow;"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitwindow.h",
+        "line": 33,
+        "text": "static QHrtAppKitWindow *s_windows;"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m10-hword-fs-compat.yml",
@@ -16944,12 +16969,12 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 38,
+        "line": 40,
         "text": "- name: Generate the Korean-title AppKit adapter and clone-capable bridge"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 188,
+        "line": 195,
         "text": "-framework AppKit -framework CoreGraphics -framework ImageIO \\"
       },
       {
@@ -22459,92 +22484,97 @@
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 8,
-        "text": "- 'runtime/m10/augment_appkit_input_capture.py'"
+        "text": "- 'runtime/m11/augment_clock_nanosleep.py'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 9,
-        "text": "- 'runtime/m10/route_synthetic_events_directly.py'"
+        "text": "- 'runtime/m10/augment_appkit_input_capture.py'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 10,
-        "text": "- 'runtime/m10/augment_fs_compat.py'"
+        "text": "- 'runtime/m10/route_synthetic_events_directly.py'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 11,
-        "text": "- 'runtime/m10/augment_clone_compat_v2.py'"
+        "text": "- 'runtime/m10/augment_fs_compat.py'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 12,
-        "text": "- 'runtime/m10/augment_clone_compat_v4.py'"
+        "text": "- 'runtime/m10/augment_clone_compat_v2.py'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 13,
-        "text": "- 'runtime/m10/augment_clone_compat_v6.py'"
+        "text": "- 'runtime/m10/augment_clone_compat_v4.py'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 14,
-        "text": "- 'runtime/m10/clone_trampoline.h'"
+        "text": "- 'runtime/m10/augment_clone_compat_v6.py'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 15,
-        "text": "- 'runtime/m10/clone_trampoline.S'"
+        "text": "- 'runtime/m10/augment_clone_compat_v7.py'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 16,
-        "text": "- 'runtime/m9/augment_stack_locale.py'"
+        "text": "- 'runtime/m10/clone_trampoline.h'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 17,
-        "text": "- 'runtime/m8/appkit_input.m'"
+        "text": "- 'runtime/m10/clone_trampoline.S'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 18,
-        "text": "- 'runtime/m8/augment_appkit_adapter_input.py'"
+        "text": "- 'runtime/m9/augment_stack_locale.py'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 19,
+        "text": "- 'runtime/m8/appkit_input.m'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
+        "line": 20,
+        "text": "- 'runtime/m8/augment_appkit_adapter_input.py'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
+        "line": 21,
         "text": "- '.github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 32,
+        "line": 34,
         "text": "timeout-minutes: 30"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 49,
+        "line": 51,
         "text": "python3 runtime/m8/augment_appkit_adapter_input.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 50,
+        "line": 52,
         "text": "runtime/m6/appkit_adapter.m \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 52,
+        "line": 54,
         "text": "python3 runtime/m11/augment_appkit_korean_input_capture.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 56,
-        "text": "grep -F 'isEqualToString:@\"\ud55c\uc6cc\ub4dc\"' runtime/m8/appkit_input.m"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 58,
-        "text": "runtime/m8/appkit_input.m"
+        "text": "grep -F 'isEqualToString:@\"\ud55c\uc6cc\ub4dc\"' runtime/m8/appkit_input.m"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
@@ -22558,182 +22588,192 @@
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 68,
-        "text": "python3 runtime/m6/augment_stack_hrtappkit.py \\"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 69,
-        "text": "runtime/m3/stack.c build/generated/stack-m6.c"
+        "line": 64,
+        "text": "runtime/m8/appkit_input.m"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 70,
+        "text": "python3 runtime/m6/augment_stack_hrtappkit.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
+        "line": 71,
+        "text": "runtime/m3/stack.c build/generated/stack-m6.c"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
+        "line": 72,
         "text": "python3 runtime/m9/augment_stack_locale.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 75,
+        "line": 77,
         "text": "python3 runtime/m3/augment_syscalls.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 76,
+        "line": 78,
         "text": "runtime/m3/syscall_bridge.c build/generated/stage1.c"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 77,
+        "line": 79,
         "text": "python3 runtime/m3/augment_directory_syscalls.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 79,
+        "line": 81,
         "text": "python3 runtime/m3/augment_directory_stream.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 81,
+        "line": 83,
         "text": "python3 runtime/m3/augment_pipe2.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 83,
+        "line": 85,
         "text": "python3 runtime/m3/augment_eventfd2.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 85,
+        "line": 87,
         "text": "python3 runtime/m3/augment_crash_signals.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 87,
+        "line": 89,
         "text": "python3 runtime/m3/augment_poll.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 89,
+        "line": 91,
         "text": "python3 runtime/m3/augment_posix_basics.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 91,
-        "text": "python3 runtime/m10/augment_fs_compat.py \\"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 93,
-        "text": "python3 runtime/m3/augment_connect.py \\"
+        "text": "python3 runtime/m11/augment_clock_nanosleep.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 95,
-        "text": "python3 runtime/m6/augment_appkit_hostcall_deferred.py \\"
+        "text": "python3 runtime/m10/augment_fs_compat.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 97,
-        "text": "python3 runtime/m3/augment_darwin_syscall_abi.py \\"
+        "text": "python3 runtime/m3/augment_connect.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 99,
+        "text": "python3 runtime/m6/augment_appkit_hostcall_deferred.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
+        "line": 101,
+        "text": "python3 runtime/m3/augment_darwin_syscall_abi.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
+        "line": 103,
         "text": "python3 runtime/m10/augment_clone_compat_v4.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 131,
+        "line": 138,
         "text": "runtime/m10/clone_trampoline.S"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 139,
+        "line": 146,
         "text": "shasum -a 256 runtime/m8/appkit_input.m \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 141,
+        "line": 148,
         "text": "shasum -a 256 runtime/m10/clone_trampoline.S \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 151,
+        "line": 158,
         "text": "-Iruntime/m10 -Iruntime/m8 -Iruntime/m6 \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 152,
+        "line": 159,
         "text": "-Iruntime/m3 -Iruntime/m1)"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 155,
+        "line": 162,
         "text": "runtime/m6/main.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 156,
+        "line": 163,
         "text": "runtime/m6/hostcall_trampoline.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 157,
+        "line": 164,
         "text": "runtime/m1/common.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 158,
+        "line": 165,
         "text": "runtime/m3/elf_map.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 160,
+        "line": 167,
         "text": "runtime/m3/patch.c \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 169,
+        "line": 176,
         "text": "-Iruntime/m8 -Iruntime/m6 \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 174,
+        "line": 181,
         "text": "-Iruntime/m8 -Iruntime/m6 \\"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 175,
-        "text": "-c runtime/m8/appkit_input.m \\"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 177,
-        "text": "clang -arch x86_64 -g -c runtime/m1/enter_guest.S \\"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 179,
-        "text": "clang -arch x86_64 -g -Iruntime/m10 \\"
-      },
-      {
-        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 180,
-        "text": "-c runtime/m10/clone_trampoline.S \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 182,
+        "text": "-c runtime/m8/appkit_input.m \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
+        "line": 184,
+        "text": "clang -arch x86_64 -g -c runtime/m1/enter_guest.S \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
+        "line": 186,
+        "text": "clang -arch x86_64 -g -Iruntime/m10 \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
+        "line": 187,
+        "text": "-c runtime/m10/clone_trampoline.S \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
+        "line": 189,
         "text": "clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 193,
+        "line": 200,
         "text": "codesign --force --sign - --timestamp=none \"$output\""
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
-        "line": 206,
+        "line": 213,
         "text": "input_source = Path('runtime/m8/appkit_input.m').read_text("
       },
       {
@@ -23179,31 +23219,61 @@
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
         "line": 8,
+        "text": "- 'runtime/m11/augment_full_product_replay.py'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 9,
+        "text": "- 'runtime/m11/augment_full_product_replay_v2.py'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 10,
+        "text": "- 'runtime/m11/harden_text_input_proof.py'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 11,
         "text": "- '.github/workflows/hoffice-runtime-m11-korean-title-replay.yml'"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 37,
+        "line": 40,
         "text": "timeout-minutes: 70"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 58,
-        "text": "run: runtime/m11/run_korean_title_staged_replay.sh"
+        "line": 64,
+        "text": "python3 runtime/m11/augment_full_product_replay_v2.py \\"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 77,
+        "line": 65,
+        "text": "runtime/m11/run_korean_title_staged_replay.sh \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 90,
+        "text": "python3 runtime/m11/harden_text_input_proof.py"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 92,
+        "text": "- name: Record the completed product closure-fill experiment"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
+        "line": 208,
         "text": "if git push origin HEAD:codex/hoffice-runtime-from-scratch; then"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 80,
+        "line": 211,
         "text": "git fetch origin codex/hoffice-runtime-from-scratch"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-korean-title-replay.yml",
-        "line": 81,
+        "line": 212,
         "text": "git rebase origin/codex/hoffice-runtime-from-scratch"
       },
       {
