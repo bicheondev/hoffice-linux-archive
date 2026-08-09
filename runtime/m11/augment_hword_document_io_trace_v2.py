@@ -7,8 +7,9 @@ the next named function as its range terminator, so a common libc-result tail
 inside those inserted helpers made the write edit ambiguous.
 
 Patch only the generator's function-range helper in memory.  The replacement
-finds the opening brace after the exact function signature and the matching
-closing brace, while preserving every v1 anchor and marker audit.
+uses an opening brace already present in an exact one-line signature, otherwise
+finds the first brace after a multiline signature, and then scans to the
+matching close.  Every v1 anchor and marker audit remains intact.
 """
 from __future__ import annotations
 
@@ -39,7 +40,11 @@ def main() -> None:
         raise SystemExit(
             f"{label}: expected one function start, found {start_count}")
     start = text.index(function_start)
-    opening = text.find("{", start + len(function_start))
+    signature_brace = function_start.find("{")
+    if signature_brace >= 0:
+        opening = start + signature_brace
+    else:
+        opening = text.find("{", start + len(function_start))
     if opening < 0:
         raise SystemExit(f"{label}: opening function brace not found")
 
