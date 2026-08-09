@@ -7,10 +7,10 @@
 
 QT_BEGIN_NAMESPACE
 
-// M11 diagnostic builds add delayed editor-focus repair and a printable
-// QInputMethodEvent fallback in the generated backing-store source; the stable
-// class ABI remains unchanged here.  This revision retries the Qt 5.11.3
-// rebuild after correcting the one-shot document hierarchy marker audit.
+// M11 diagnostic builds generate document hierarchy inventory, delayed focus,
+// composition fallback, a bounded editor-materialization wait, and Linux/X11
+// native key metadata.  The stable backing-store class ABI remains unchanged;
+// this revision triggers the locked Qt 5.11.3 plugin rebuild for that probe.
 class QHrtAppKitBackingStore : public QOffscreenBackingStore
 {
 public:
