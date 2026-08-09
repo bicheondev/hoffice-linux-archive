@@ -42,7 +42,7 @@ system(python3 $$PWD/../../m11/augment_qpa_document_focus.py $$HRT_M11_STAGE_BOU
 system(python3 $$PWD/../../m11/augment_qpa_input_method_fallback.py $$HRT_M11_DELAYED_FOCUS $$HRT_M11_IME_FALLBACK)
 system(python3 $$PWD/../../m11/augment_qpa_object_inventory.py $$HRT_M11_IME_FALLBACK $$HRT_M11_INVENTORY)
 system(python3 $$PWD/../../m11/augment_qpa_preedit_commit.py $$HRT_M11_INVENTORY $$HRT_M11_COMPOSE)
-system(python3 $$PWD/../../m11/augment_qpa_native_key_probe_v3.py $$HRT_M11_COMPOSE $$HRT_M11_BACKINGSTORE)
+system(python3 $$PWD/../../m11/augment_qpa_native_key_probe_v4.py $$HRT_M11_COMPOSE $$HRT_M11_BACKINGSTORE)
 exists($$HRT_M11_BACKINGSTORE) {
     message(Building credible-editor Linux-native key-route M11 backing store: $$HRT_M11_BACKINGSTORE)
 } else {
