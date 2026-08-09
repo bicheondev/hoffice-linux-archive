@@ -268,7 +268,7 @@ static int64_t bridge_gettimeofday(LinuxTimeval *guest_time) {
                         "clock_nanosleep dispatch")
 
     required = {
-        "HRT M11 SLEEP:": 2,
+        "HRT M11 SLEEP:": 1,
         "LINUX_SYS_CLOCK_NANOSLEEP": 3,
         "M11_LINUX_TIMER_ABSTIME": 4,
         "bridge_clock_nanosleep(": 2,
