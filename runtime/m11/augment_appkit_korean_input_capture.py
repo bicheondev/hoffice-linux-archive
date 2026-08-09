@@ -74,6 +74,15 @@ def apply_multiwindow_adapter(path: Path) -> None:
     generator = Path(__file__).with_name("augment_appkit_multiwindow.py")
     if not generator.is_file():
         raise SystemExit(f"multi-window adapter generator not found: {generator}")
+
+    source_text = path.read_text(encoding="utf-8")
+    marker = "hrt_m8_input_attach"
+    position = source_text.find(marker)
+    if position < 0:
+        raise SystemExit("generated adapter has no hrt_m8_input_attach call")
+    context = source_text[max(0, position - 220):position + 360]
+    print("M11 generated attach context:", repr(context), file=sys.stderr)
+
     with tempfile.TemporaryDirectory(prefix="hrt-m11-appkit-windows-") as temp:
         generated = Path(temp) / "appkit_adapter_multiwindow.m"
         subprocess.run(
