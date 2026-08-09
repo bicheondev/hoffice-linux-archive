@@ -1,15 +1,15 @@
 # Custom QPA and host-call inventory
 
-- Commit: `b59dbb5d360eeaf067b4dc299eaad716926f1fbf`
-- Matching files: `175`
+- Commit: `0ec83dcad585103e93d5b80306af56d0bdbe4186`
+- Matching files: `179`
 
-- `opcode_256`: `1185` matches
+- `opcode_256`: `1205` matches
 - `create_operation`: `104` matches
-- `host_call`: `590` matches
+- `host_call`: `598` matches
 - `custom_qpa`: `1000` matches
-- `appkit`: `178` matches
-- `rendering`: `262` matches
-- `input_ime`: `2814` matches
+- `appkit`: `180` matches
+- `rendering`: `263` matches
+- `input_ime`: `2887` matches
 
 ## opcode_256
 
@@ -22,9 +22,9 @@
 - `runtime/m6/appkit_adapter.m:197` — `const size_t title_length = strnlen(guest_title, 256u);`
 - `runtime/m6/appkit_adapter.m:198` — `if (title_length == 0u || title_length == 256u) return -1003;`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:13` — `"qtbase_archive_sha256": "c6bf887732b83ce072eb72eddb7497bedcdf9ca794e7ed91261a93f063623e1c"`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:18` — `"sha256_before_prepatch": "45affc1118b41d6b0937b50578e4dff738fa018b8ef38c9111c2e58808d23e0e",`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:19` — `"sha256_after_prepatch": "810e54a6e71f5135a8dfc8053727d00a9991d92c3d63086a689cffea27e96c5a",`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:20` — `"xz_sha256": "dbb082059db6270e8848785eb11b502ef8371028845c631d33e86304ccf68798",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:18` — `"sha256_before_prepatch": "3ce14290511cfc958df6addfc2e894952bdccfd8ff9f8c26d1f2766f18b3c2ac",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:19` — `"sha256_after_prepatch": "d6fafcf218ebc3402a5285068b5051e194b824ea3b2dd64d69513f2629cbbc79",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:20` — `"xz_sha256": "df691cdb4285e0b652881e47ded5adbdc9e051c3ee3c6bc591743971fe884c34",`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:5` — `: "${PROGRAM_SHA256:?PROGRAM_SHA256 is required}"`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:11` — `expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:12` — `actual=$(sha256sum build/input/hword-rootfs.tar.gz | awk '{print $1}')`
@@ -313,7 +313,7 @@
 - `.github/workflows/hoffice-runtime-m10-run10-resource-overlay.yml:109` — `checksum=build/input/prepared/report/hword-m9-prepared-rootfs.tar.zst.sha256`
 - `.github/workflows/hoffice-runtime-m10-run10-resource-overlay.yml:112` — `actual=$(shasum -a 256 "$prepared" | awk '{print $1}')`
 - `.github/workflows/hoffice-runtime-m10-run10-resource-overlay.yml:162` — `'sha256': hashlib.sha256(data).hexdigest(),`
-- … 885 more matches in JSON
+- … 905 more matches in JSON
 
 ## create_operation
 
@@ -574,6 +574,7 @@
 - `.github/workflows/hoffice-runtime-m10-fs-path-trace-orchestrator.yml:8` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-m10-fs-path-trace-orchestrator.yml:173` — `- name: Dispatch and wait for the traced exact-HWord replay`
 - `.github/workflows/hoffice-runtime-m10-fs-path-trace-orchestrator.yml:189` — `-f branch="$TARGET_BRANCH" -f event=workflow_dispatch -f per_page=20)`
+- `.github/workflows/hoffice-runtime-m10-gs-capture-probe.yml:8` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-m10-hword-fs-compat.yml:9` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-m10-hword-fs-compat.yml:164` — `python3 runtime/m6/augment_appkit_hostcall_deferred.py \`
 - `.github/workflows/hoffice-runtime-m10-hword-fs-compat.yml:192` — `for source in runtime/m6/main.c runtime/m6/hostcall_trampoline.c \`
@@ -625,6 +626,12 @@
 - `.github/workflows/hoffice-runtime-m10-widget-replay.yml:145` — `assert lock['plugin']['m8_input_poll_transport'] is True, lock`
 - `.github/workflows/hoffice-runtime-m10-widget-replay.yml:220` — `grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|HRT M8 APPKIT|HRT M8 QPA|HRT M10 QPA|HRT M10 WIDGET|HRT M10 APPKIT|host-call opcode=262|fatal signal|basic_string::substr|Caught exception' \`
 - `.github/workflows/hoffice-runtime-m10-widget-replay.yml:253` — `r'hrt-m7-hostcall: presented BGRA frame=(\d+)', stderr)]`
+- `.github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml:20` — `workflow_dispatch:`
+- `.github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml:95` — `python3 runtime/m6/augment_appkit_hostcall_deferred.py \`
+- `.github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml:156` — `runtime/m6/hostcall_trampoline.c \`
+- `.github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml:182` — `clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \`
+- `.github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml:183` — `-o build/objects/hostcall-trampoline.o`
+- `.github/workflows/hoffice-runtime-m11-documenttab-static-analysis.yml:8` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-m11-generate-fast-replay.yml:8` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml:8` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml:136` — `assert lock['plugin']['m8_input_poll_transport'] is True,lock`
@@ -637,6 +644,7 @@
 - `.github/workflows/hoffice-runtime-m11-korean-input-replay.yml:144` — `assert lock['plugin']['m8_input_poll_transport'] is True,lock`
 - `.github/workflows/hoffice-runtime-m11-korean-input-replay.yml:225` — `grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|HRT M8 APPKIT|HRT M8 QPA|HRT M10 QPA|HRT M10 WIDGET|HRT M10 FOCUS|HRT M10 APPKIT|host-call opcode=262|fatal signal|basic_string::substr|Caught exception|Linux syscall ENOSYS' \`
 - `.github/workflows/hoffice-runtime-m11-korean-title-replay.yml:9` — `workflow_dispatch:`
+- `.github/workflows/hoffice-runtime-m11-repack-fs-host.yml:8` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-m2-probe.yml:10` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-m2-tls-v2.yml:11` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-m2-tls.yml:11` — `workflow_dispatch:`
@@ -716,22 +724,14 @@
 - `.github/workflows/hoffice-runtime-m6-hword-appkit-coexist.yml:93` — `- name: Generate the mature syscall and dormant host-call bridge`
 - `.github/workflows/hoffice-runtime-m6-hword-appkit-coexist.yml:120` — `python3 runtime/m6/augment_appkit_hostcall.py \`
 - `.github/workflows/hoffice-runtime-m6-hword-appkit-coexist.yml:136` — `grep -q 'case HRT_M6_HOSTCALL_SYSCALL' \`
-- `.github/workflows/hoffice-runtime-m6-hword-appkit-coexist.yml:280` — `grep -F 'hrt-m6-hostcall: AppKit initialized on pid=' \`
-- `.github/workflows/hoffice-runtime-m6-hword-appkit-coexist.yml:306` — `! grep -F 'hrt-m6: host-call opcode=' build/proof/stderr.txt`
-- `.github/workflows/hoffice-runtime-m6-hword-appkit-coexist.yml:346` — `'reserved_host_calls_observed':`
-- `.github/workflows/hoffice-runtime-m6-hword-appkit-coexist.yml:347` — `'hrt-m6: host-call opcode=' in stderr,`
-- `.github/workflows/hoffice-runtime-m6-hword-backing-store-constructor.yml:9` — `workflow_dispatch:`
-- `.github/workflows/hoffice-runtime-m6-hword-candidate-probes-v3.yml:8` — `workflow_dispatch:`
-- `.github/workflows/hoffice-runtime-m6-hword-create-backing-store.yml:9` — `workflow_dispatch:`
-- `.github/workflows/hoffice-runtime-m6-hword-create-platform-window.yml:9` — `workflow_dispatch:`
-- … 290 more matches in JSON
+- … 298 more matches in JSON
 
 ## custom_qpa
 
 - `runtime/m4/build_closure.py:10` — `QPA plugins that do not appear in DT_NEEDED. Guest paths are normalized with`
 - `runtime/m6/augment_stack_hrtappkit.py:30` — `'static const char qt_platform[] = "QT_QPA_PLATFORM=offscreen";',`
 - `runtime/m6/augment_stack_hrtappkit.py:31` — `'static const char qt_platform[] = "QT_QPA_PLATFORM=hrtappkit";',`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:7` — `"qpa_source_tree": "e00d2eb5c696f201bcc1a6366e696a69b550b6e3"`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:7` — `"qpa_source_tree": "c09c5ed7db5fb8d522f528a396e93bf7326a494d"`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:16` — `"guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so",`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:17` — `"qpa_key": "hrtappkit",`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:7` — `: "${QPA_GUEST:?QPA_GUEST is required}"`
@@ -1114,6 +1114,8 @@
 - `.github/workflows/hoffice-runtime-m10-hword-provider-fs.yml:172` — `- name: Generate the complete provider-aware Linux and AppKit bridge`
 - `.github/workflows/hoffice-runtime-m10-hword-provider-fs.yml:268` — `-framework AppKit -framework CoreGraphics -framework ImageIO \`
 - `.github/workflows/hoffice-runtime-m10-hword-stability-input.yml:86` — `- name: Download the exact Qt 5.11.3 AppKit QPA`
+- `.github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml:38` — `- name: Generate the Korean-title AppKit adapter and clone-capable bridge`
+- `.github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml:188` — `-framework AppKit -framework CoreGraphics -framework ImageIO \`
 - `.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml:256` — `-framework AppKit -framework CoreGraphics -framework ImageIO \`
 - `.github/workflows/hoffice-runtime-m11-korean-input-replay.yml:60` — `- name: Download the proven AppKit input host`
 - `.github/workflows/hoffice-runtime-m11-korean-input-replay.yml:167` — `- name: Select and sign the exact AppKit input host`
@@ -1311,6 +1313,7 @@
 - `.github/workflows/hoffice-runtime-chain-m6-paint-device.yml:20` — `label: Qt offscreen backing store paintDevice`
 - `.github/workflows/hoffice-runtime-guest-target-symbol-probe-v3.yml:312` — `grep -E 'Call graph:|Thread_.*DispatchQueue|libqoffscreen|Qt5|GLib|poll|ppoll|kevent|QEventLoop|QPlatform|QWindow|QBackingStore|QWidget' \`
 - `.github/workflows/hoffice-runtime-guest-target-symbol-probe-v3.yml:368` — `'QEventLoop', 'QPlatform', 'QWindow', 'QBackingStore',`
+- `.github/workflows/hoffice-runtime-m10-gs-capture-probe.yml:106` — `fflush(stdout);`
 - `.github/workflows/hoffice-runtime-m5-m6-qoffscreen-probe-matrix-v2.yml:74` — `- id: create-backing-store`
 - `.github/workflows/hoffice-runtime-m5-m6-qoffscreen-probe-matrix-v2.yml:75` — `regex: 'QOffscreenIntegration.*createPlatformBackingStore'`
 - `.github/workflows/hoffice-runtime-m5-m6-qoffscreen-probe-matrix-v2.yml:76` — `label: Qt offscreen createPlatformBackingStore`
@@ -1778,4 +1781,4 @@
 - `.github/workflows/hoffice-runtime-m1-v2.yml:8` — `- '.github/workflows/hoffice-runtime-m1-v2.yml'`
 - `.github/workflows/hoffice-runtime-m1-v2.yml:24` — `clang -c -nostdlib -fPIC runtime/m1/test_interp.S \`
 - `.github/workflows/hoffice-runtime-m1-v2.yml:29` — `clang -c -nostdlib -fPIE runtime/m1/test_main.S \`
-- … 2514 more matches in JSON
+- … 2587 more matches in JSON
