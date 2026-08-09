@@ -1,6 +1,6 @@
 # Custom QPA and host-call inventory
 
-- Commit: `ad372f465f34dc69b7c850e1a86cd8bce904a971`
+- Commit: `4580b90b83fd2b68ee79cc15420156cc1d93dcc8`
 - Matching files: `179`
 
 - `opcode_256`: `1205` matches
@@ -1080,8 +1080,8 @@
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:159` — `void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:286` — `void QHrtAppKitBackingStore::flush(QWindow *target,`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:293` — `const qint64 hostWindow = QHrtAppKitWindow::hostWindowFor(topLevel);`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:14` — `class QHrtAppKitBackingStore : public QOffscreenBackingStore`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:17` — `explicit QHrtAppKitBackingStore(QWindow *window);`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:15` — `class QHrtAppKitBackingStore : public QOffscreenBackingStore`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:18` — `explicit QHrtAppKitBackingStore(QWindow *window);`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:9` — `QHrtAppKitIntegration::QHrtAppKitIntegration()`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:15` — `QPlatformWindow *QHrtAppKitIntegration::createPlatformWindow(QWindow *window) const`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:17` — `QPlatformWindow *platformWindow = new QHrtAppKitWindow(window);`
@@ -1257,9 +1257,9 @@
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:1` — `#ifndef QHRTAPPKITBACKINGSTORE_H`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:2` — `#define QHRTAPPKITBACKINGSTORE_H`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:12` — `// native key metadata.  The stable backing-store class ABI remains unchanged;`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:14` — `class QHrtAppKitBackingStore : public QOffscreenBackingStore`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:17` — `explicit QHrtAppKitBackingStore(QWindow *window);`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:19` — `void flush(QWindow *window,`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:15` — `class QHrtAppKitBackingStore : public QOffscreenBackingStore`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:18` — `explicit QHrtAppKitBackingStore(QWindow *window);`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:20` — `void flush(QWindow *window,`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:2` — `#include "qhrtappkitbackingstore.h"`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:22` — `QPlatformBackingStore *`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:23` — `QHrtAppKitIntegration::createPlatformBackingStore(QWindow *window) const`
@@ -1528,8 +1528,8 @@
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:267` — `++m_mouseEventsDelivered;`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:282` — `static_cast<unsigned long long>(m_keyEventsDelivered),`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:283` — `static_cast<unsigned long long>(m_mouseEventsDelivered));`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:27` — `quint64 m_keyEventsDelivered;`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:28` — `quint64 m_mouseEventsDelivered;`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:28` — `quint64 m_keyEventsDelivered;`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:29` — `quint64 m_mouseEventsDelivered;`
 - `.github/workflows/hoffice-legacy-openssl-audit.yml:5` — `branches: [codex/hoffice-runtime-from-scratch]`
 - `.github/workflows/hoffice-legacy-openssl-audit.yml:21` — `timeout-minutes: 10`
 - `.github/workflows/hoffice-runtime-abi-lock.yml:1` — `name: HOffice runtime ABI lock`
