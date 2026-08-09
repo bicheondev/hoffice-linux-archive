@@ -6,6 +6,7 @@ on:
     paths:
       - 'runtime/m11/augment_appkit_korean_input_capture.py'
       - 'runtime/m11/augment_clock_nanosleep.py'
+      - 'runtime/m11/augment_hword_document_io_trace.py'
       - 'runtime/m10/augment_appkit_input_capture.py'
       - 'runtime/m10/route_synthetic_events_directly.py'
       - 'runtime/m10/augment_fs_compat.py'
@@ -62,6 +63,10 @@ jobs:
             runtime/m8/appkit_input.m
           grep -F 'HRT M10 APPKIT: staged text input after focus' \
             runtime/m8/appkit_input.m
+          grep -F 'extern void hrt_m11_docio_mark_stage' \
+            runtime/m8/appkit_input.m
+          grep -F 'hrt_m11_docio_mark_stage(1u);' \
+            runtime/m8/appkit_input.m
           grep -F 'HRT M10 APPKIT: pre-input capture' \
             build/generated/appkit_adapter_m11.m
           grep -F 'HRT M10 APPKIT: post-input capture' \
@@ -101,7 +106,9 @@ jobs:
           python3 runtime/m3/augment_darwin_syscall_abi.py \
             build/generated/stage12.c build/generated/stage13.c
           python3 runtime/m10/augment_clone_compat_v4.py \
-            build/generated/stage13.c build/generated/syscall_bridge.c
+            build/generated/stage13.c build/generated/stage14.c
+          python3 runtime/m11/augment_hword_document_io_trace.py \
+            build/generated/stage14.c build/generated/syscall_bridge.c
 
           python3 - <<'PY'
           from pathlib import Path
@@ -125,6 +132,13 @@ jobs:
           grep -F 'case LINUX_SYS_CLOCK_NANOSLEEP:' \
             build/generated/syscall_bridge.c
           grep -F 'HRT M11 SLEEP: clock=' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 DOCIO: stage=' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 DOCIO: armed stage=' \
+            build/generated/syscall_bridge.c
+          grep -F 'void hrt_m11_docio_mark_stage' \
+            build/generated/syscall_bridge.c
+          grep -F 'm11_docio_note_open(result, guest_path, path' \
+            build/generated/syscall_bridge.c
           grep -F 'case LINUX_SYS_CLONE:' build/generated/syscall_bridge.c
           grep -F 'case LINUX_SYS_CHDIR:' build/generated/syscall_bridge.c
           grep -F 'pthread_create(' build/generated/syscall_bridge.c
@@ -213,7 +227,7 @@ jobs:
           input_source = Path('runtime/m8/appkit_input.m').read_text(
               encoding='utf-8')
           lock = {
-              'schema': 3,
+              'schema': 4,
               'workflow_run': os.environ['GITHUB_RUN_ID'],
               'commit': os.environ['GITHUB_SHA'],
               'binary': str(binary),
@@ -241,6 +255,18 @@ jobs:
                       'case LINUX_SYS_CLOCK_NANOSLEEP:' in bridge,
                   'bounded_trace': 'HRT M11 SLEEP: clock=' in bridge,
               },
+              'document_io_trace': {
+                  'stage_declaration':
+                      'extern void hrt_m11_docio_mark_stage' in input_source,
+                  'toolbar_arm':
+                      'hrt_m11_docio_mark_stage(1u);' in input_source,
+                  'bridge_marker': 'HRT M11 DOCIO: stage=' in bridge,
+                  'exported_stage':
+                      'void hrt_m11_docio_mark_stage' in bridge,
+                  'open_tracking':
+                      'm11_docio_note_open(result, guest_path, path' in bridge,
+                  'trace_limit': 8192,
+              },
               'thread_syscalls': {
                   'clone': 'case LINUX_SYS_CLONE:' in bridge,
                   'chdir': 'case LINUX_SYS_CHDIR:' in bridge,
@@ -258,6 +284,9 @@ jobs:
           assert lock['text_stage']
           assert all(lock['filesystem_syscalls'].values())
           assert all(lock['timing_syscalls'].values())
+          assert all(
+              value for key, value in lock['document_io_trace'].items()
+              if key != 'trace_limit')
           assert all(lock['thread_syscalls'].values())
           Path('build/output/fs-korean-host-lock.json').write_text(
               json.dumps(lock, indent=2) + '\n', encoding='utf-8')
