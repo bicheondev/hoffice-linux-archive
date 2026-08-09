@@ -1,14 +1,10 @@
 # Korean HWord title-aware staged input
 
-- Status: `PASS`
-- Classification: `HWORD_TEXT_KEY_ACCEPTED_AFTER_KOREAN_TITLE_STAGING`
-- Windows: `[('HWord Qt Window', [200, 100]), ('한워드', [800, 600])]`
-- Staged markers: `{'toolbar': True, 'focus': True, 'text': True}`
-- Stage boundaries: `2`
-- Button clicks: `1`
-- Accepted mouse events: `6`
-- Accepted key events: `2`
+- Status: `PARTIAL_PASS`
+- Classification: `HWORD_CHROME_ACCEPTED_KEY_EDITOR_NOT_PROVEN`
+- Credible editor key press: `False`
+- Editor classes: `[]`
+- Credible window receivers: `[]`
+- Credible direct receivers: `[]`
+- Chrome-only acceptance: `['hanul::DocumentTabImpl']`
 - Visual change: `True`
-- Document interaction: `True`
-- Text interaction: `True`
-- Unsupported syscalls: `[40]`
