@@ -6,6 +6,7 @@ on:
     paths:
       - 'runtime/m11/run_korean_title_staged_replay.sh'
       - 'runtime/m11/augment_full_product_replay.py'
+      - 'runtime/m11/augment_full_product_replay_v2.py'
       - 'runtime/m11/harden_text_input_proof.py'
       - '.github/workflows/hoffice-runtime-m11-korean-title-replay.yml'
   workflow_dispatch:
@@ -54,17 +55,17 @@ jobs:
           grep -F '"status": "PASS"' proofs/m10-clone-chdir.json
           grep -F '"exit_status": 0' proofs/m10-clone-chdir.json
 
-      - name: Generate and run the complete-product staged replay
+      - name: Generate and run the product closure-fill replay
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euxo pipefail
           mkdir -p build/generated
-          python3 runtime/m11/augment_full_product_replay.py \
+          python3 runtime/m11/augment_full_product_replay_v2.py \
             runtime/m11/run_korean_title_staged_replay.sh \
             build/generated/run_korean_title_full_product.sh
           test -x build/generated/run_korean_title_full_product.sh
-          grep -F 'full-product-payload-paths.txt' \
+          grep -F 'full-product-payload-missing-paths.txt' \
             build/generated/run_korean_title_full_product.sh
           build/generated/run_korean_title_full_product.sh
 
@@ -74,36 +75,97 @@ jobs:
           set -euxo pipefail
           test -s diagnostics/m11-korean-title-staged-latest.json
           test -s build/proof/stderr.txt
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          current = json.loads(Path(
+              'diagnostics/m11-korean-title-staged-latest.json'
+          ).read_text(encoding='utf-8'))
+          if str(current.get('workflow_run')) != os.environ['GITHUB_RUN_ID']:
+              raise SystemExit(
+                  f"stale replay summary: {current.get('workflow_run')} != "
+                  f"{os.environ['GITHUB_RUN_ID']}")
+          PY
           python3 runtime/m11/harden_text_input_proof.py
 
-      - name: Record the full-product closure experiment
+      - name: Record the completed product closure-fill experiment
         if: always()
         run: |
           set -euxo pipefail
           test -s build/proof/full-product-payload-paths.txt
+          test -f build/proof/full-product-payload-missing-paths.txt
+          test -f build/proof/full-product-payload-existing-paths.txt
           test -s build/proof/full-product-payload-count.txt
+          test -s build/proof/full-product-payload-missing-count.txt
+          test -s build/proof/full-product-payload-existing-count.txt
           test -s build/proof/full-product-payload-bytes.txt
+          test -s build/proof/prepatched-object-integrity-before.json
+          test -s build/proof/prepatched-object-integrity-after.json
           python3 - <<'PY'
           import hashlib
           import json
+          import os
           from pathlib import Path
 
           summary_path = Path('diagnostics/m11-korean-title-staged-latest.json')
           result = json.loads(summary_path.read_text(encoding='utf-8'))
-          manifest = Path('build/proof/full-product-payload-paths.txt')
-          count = int(Path('build/proof/full-product-payload-count.txt').read_text())
-          byte_count = int(Path('build/proof/full-product-payload-bytes.txt').read_text())
-          result['schema'] = max(int(result.get('schema', 0)), 5)
-          result['full_product_payload_restored'] = True
-          result['full_product_payload_entry_count'] = count
-          result['full_product_payload_file_bytes'] = byte_count
-          result['full_product_payload_manifest_sha256'] = hashlib.sha256(
-              manifest.read_bytes()).hexdigest()
+          if str(result.get('workflow_run')) != os.environ['GITHUB_RUN_ID']:
+              raise SystemExit(
+                  f"refusing to annotate stale run {result.get('workflow_run')}")
+
+          all_manifest = Path('build/proof/full-product-payload-paths.txt')
+          missing_manifest = Path(
+              'build/proof/full-product-payload-missing-paths.txt')
+          existing_manifest = Path(
+              'build/proof/full-product-payload-existing-paths.txt')
+          count = int(Path(
+              'build/proof/full-product-payload-count.txt').read_text())
+          missing_count = int(Path(
+              'build/proof/full-product-payload-missing-count.txt').read_text())
+          existing_count = int(Path(
+              'build/proof/full-product-payload-existing-count.txt').read_text())
+          byte_count = int(Path(
+              'build/proof/full-product-payload-bytes.txt').read_text())
+          before = json.loads(Path(
+              'build/proof/prepatched-object-integrity-before.json'
+          ).read_text(encoding='utf-8'))
+          after = json.loads(Path(
+              'build/proof/prepatched-object-integrity-after.json'
+          ).read_text(encoding='utf-8'))
+          if count != missing_count + existing_count:
+              raise SystemExit(
+                  f'closure partition mismatch: {count} != '
+                  f'{missing_count} + {existing_count}')
+          if before != after:
+              raise SystemExit('prepatched object integrity changed during fill')
+
+          for legacy_key in (
+              'full_product_payload_restored',
+              'full_product_payload_entry_count',
+              'full_product_payload_file_bytes',
+              'full_product_payload_manifest_sha256',
+          ):
+              result.pop(legacy_key, None)
+          result['schema'] = max(int(result.get('schema', 0)), 6)
+          result['product_closure_fill_completed'] = True
+          result['product_package_entry_count'] = count
+          result['product_missing_entry_count'] = missing_count
+          result['product_existing_entry_count'] = existing_count
+          result['product_tree_file_bytes'] = byte_count
+          result['prepatched_object_count'] = int(before['object_count'])
+          result['prepatched_object_integrity_preserved'] = True
+          result['product_package_manifest_sha256'] = hashlib.sha256(
+              all_manifest.read_bytes()).hexdigest()
+          result['product_missing_manifest_sha256'] = hashlib.sha256(
+              missing_manifest.read_bytes()).hexdigest()
+          result['product_existing_manifest_sha256'] = hashlib.sha256(
+              existing_manifest.read_bytes()).hexdigest()
           if (result.get('document_interaction_credited') and
                   not result.get('text_interaction_credited') and
                   not result.get('editor_materialized_classes')):
               result['classification'] = (
-                  'HWORD_FULL_PRODUCT_RESTORED_EDITOR_NOT_MATERIALIZED')
+                  'HWORD_PRODUCT_CLOSURE_FILLED_EDITOR_NOT_MATERIALIZED')
           payload = json.dumps(result, ensure_ascii=False, indent=2) + '\n'
           run_id = str(result['workflow_run'])
           Path(f'diagnostics/m11-korean-title-staged-{run_id}.json').write_text(
@@ -117,10 +179,13 @@ jobs:
           if result.get('text_interaction_credited') and text_proof.exists():
               text_proof.write_text(payload, encoding='utf-8')
           Path('diagnostics/m11-korean-title-staged-latest.md').write_text(
-              '# Korean HWord complete-product staged input\n\n'
+              '# Korean HWord product closure-fill staged input\n\n'
               f"- Status: `{result['status']}`\n"
               f"- Classification: `{result['classification']}`\n"
-              f"- Product entries restored: `{count}`\n"
+              f"- Package entries: `{count}`\n"
+              f"- Missing entries filled: `{missing_count}`\n"
+              f"- Existing entries preserved: `{existing_count}`\n"
+              f"- Prepatched objects preserved: `{before['object_count']}`\n"
               f"- Product file bytes: `{byte_count}`\n"
               f"- Credible editor key press: `{result.get('credible_editor_key_press')}`\n"
               f"- Editor classes: `{result.get('editor_materialized_classes', [])}`\n",
@@ -138,7 +203,7 @@ jobs:
                   diagnostics/m11-korean-title-staged-latest.md 2>/dev/null || true
           git add -A -- proofs
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'diagnostic: classify full-product HWord input'
+          git commit -m 'diagnostic: classify product-closure HWord input'
           for attempt in $(seq 1 20); do
             if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
               exit 0
