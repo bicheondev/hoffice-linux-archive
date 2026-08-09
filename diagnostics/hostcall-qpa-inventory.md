@@ -1,6 +1,6 @@
 # Custom QPA and host-call inventory
 
-- Commit: `7c0a8f9a4be9e390ba55cc85e2a9eeaa546f55ad`
+- Commit: `154ce137918492a292e9c9fab0650d0cb1a8c610`
 - Matching files: `180`
 
 - `opcode_256`: `1212` matches
@@ -1528,8 +1528,8 @@
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:267` — `++m_mouseEventsDelivered;`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:282` — `static_cast<unsigned long long>(m_keyEventsDelivered),`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:283` — `static_cast<unsigned long long>(m_mouseEventsDelivered));`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:28` — `quint64 m_keyEventsDelivered;`
-- `runtime/m6/qpa/qhrtappkitbackingstore.h:29` — `quint64 m_mouseEventsDelivered;`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:28` — `quint64 m_mouseEventsDelivered;`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:29` — `quint64 m_keyEventsDelivered;`
 - `.github/workflows/hoffice-legacy-openssl-audit.yml:5` — `branches: [codex/hoffice-runtime-from-scratch]`
 - `.github/workflows/hoffice-legacy-openssl-audit.yml:21` — `timeout-minutes: 10`
 - `.github/workflows/hoffice-runtime-abi-lock.yml:1` — `name: HOffice runtime ABI lock`
