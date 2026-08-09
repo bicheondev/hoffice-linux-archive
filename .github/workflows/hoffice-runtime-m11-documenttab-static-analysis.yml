@@ -1,0 +1,255 @@
+name: Inspect exact HWord DocumentTab implementation
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-documenttab-static-analysis.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hrt-m11-documenttab-static-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deterministic ELF inspection tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            binutils elfutils file python3-pyelftools xz-utils zstd
+
+      - name: Download and verify the exact archived package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input build/report build/matched
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" \
+            --dir build/input
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/input/$ASSET_NAME" | sha256sum -c -
+          ar t "build/input/$ASSET_NAME" | tee build/report/deb-members.txt
+          data_member=$(ar t "build/input/$ASSET_NAME" \
+            | awk '/^data\.tar/{print; exit}')
+          test -n "$data_member"
+          ar p "build/input/$ASSET_NAME" "$data_member" \
+            >"build/input/$data_member"
+          printf '%s\n' "$data_member" >build/report/data-member.txt
+          tar -tf "build/input/$data_member" \
+            >build/report/package-paths.txt
+
+      - name: Locate binaries containing the document-frame implementation
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import tarfile
+
+          data_name = Path('build/report/data-member.txt').read_text().strip()
+          archive = Path('build/input') / data_name
+          output = Path('build/matched')
+          output.mkdir(parents=True, exist_ok=True)
+
+          needles = {
+              b'DocumentTabImpl': 'DocumentTabImpl',
+              b'HorzScrollbar1Scrolling': 'HorzScrollbar1Scrolling',
+              b'HwordFrameManager': 'HwordFrameManager',
+              b'GetLauncherDontShowAgain': 'GetLauncherDontShowAgain',
+              b'SelectionChanged(int)': 'SelectionChanged(int)',
+              b'_ZN5hanul15DocumentTabImpl': 'mangled DocumentTabImpl',
+          }
+          interesting_suffixes = (
+              '.so', '.so.0', '.so.1', '.so.2', '.so.3', '.so.4',
+              '.so.5', '.so.6', '.so.7', '.so.8', '.so.9', '.bin',
+          )
+          manifest = []
+          with tarfile.open(archive, mode='r:*') as tf:
+              for member in tf:
+                  if not member.isfile():
+                      continue
+                  name = member.name
+                  lower = name.lower()
+                  if '/opt/hnc/hoffice11/bin/' not in '/' + lower.lstrip('./'):
+                      continue
+                  base = Path(name).name.lower()
+                  likely = (
+                      base == 'hword' or base.endswith(interesting_suffixes) or
+                      'hword' in base or 'officeframework' in base or
+                      'hanul' in base
+                  )
+                  if not likely or member.size == 0:
+                      continue
+                  source = tf.extractfile(member)
+                  if source is None:
+                      continue
+                  data = source.read()
+                  hits = [label for needle, label in needles.items()
+                          if needle in data]
+                  if not hits:
+                      continue
+                  destination = output / Path(name).name
+                  if destination.exists():
+                      destination = output / (
+                          hashlib.sha256(name.encode()).hexdigest()[:12] + '-' +
+                          Path(name).name)
+                  destination.write_bytes(data)
+                  manifest.append({
+                      'member': name,
+                      'output': str(destination),
+                      'size': len(data),
+                      'sha256': hashlib.sha256(data).hexdigest(),
+                      'hits': hits,
+                  })
+
+          Path('build/report/matches.json').write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
+          if not manifest:
+              raise SystemExit('no exact package binary contained DocumentTab markers')
+          print(json.dumps(manifest, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Produce symbol, section, string, and targeted disassembly reports
+        run: |
+          set -euxo pipefail
+          : >build/report/matched-files.txt
+          for binary in build/matched/*; do
+            test -f "$binary"
+            stem=$(basename "$binary")
+            out="build/report/$stem"
+            mkdir -p "$out"
+            printf '%s\n' "$binary" >>build/report/matched-files.txt
+            file "$binary" | tee "$out/file.txt"
+            sha256sum "$binary" | tee "$out/sha256.txt"
+            readelf -hW "$binary" >"$out/elf-header.txt" || true
+            readelf -SW "$binary" >"$out/sections.txt" || true
+            readelf -dW "$binary" >"$out/dynamic.txt" || true
+            readelf -WsW "$binary" >"$out/symbols.txt" || true
+            readelf -rW "$binary" >"$out/relocations.txt" || true
+            nm -a -C "$binary" >"$out/nm-all-demangled.txt" 2>&1 || true
+            nm -D -C "$binary" >"$out/nm-dynamic-demangled.txt" 2>&1 || true
+            objdump -T -C "$binary" >"$out/dynamic-table.txt" 2>&1 || true
+            strings -a -t x "$binary" >"$out/strings-offsets.txt"
+            grep -aEin \
+              'DocumentTabImpl|HwordFrameManager|CreateFrame|Launcher|InputMethod|keyPress|keyRelease|ShortcutOverride|HorzScrollbar|VertScrollbar|SelectionChanged|Adding' \
+              "$out/strings-offsets.txt" >"$out/relevant-strings.txt" || true
+            grep -aEin \
+              'DocumentTabImpl|HwordFrameManager|CreateFrame|Launcher|InputMethod|keyPress|keyRelease|ShortcutOverride|HorzScrollbar|VertScrollbar|SelectionChanged|Adding' \
+              "$out/symbols.txt" >"$out/relevant-symbols.txt" || true
+            grep -aEin \
+              'DocumentTabImpl|HwordFrameManager|CreateFrame|Launcher|InputMethod|keyPress|keyRelease|ShortcutOverride|HorzScrollbar|VertScrollbar|SelectionChanged|Adding' \
+              "$out/nm-all-demangled.txt" >"$out/relevant-nm.txt" || true
+            objdump -d -C --no-show-raw-insn "$binary" \
+              >"$out/disassembly-demangled.txt" 2>&1 || true
+            grep -n -B25 -A120 \
+              -E 'DocumentTabImpl|HwordFrameManager::CreateFrame|GetLauncherDontShowAgain' \
+              "$out/disassembly-demangled.txt" \
+              >"$out/relevant-disassembly-context.txt" || true
+            eu-readelf --notes "$binary" >"$out/notes.txt" 2>&1 || true
+          done
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from elftools.elf.elffile import ELFFile
+
+          rows = []
+          for path in sorted(Path('build/matched').iterdir()):
+              if not path.is_file():
+                  continue
+              with path.open('rb') as stream:
+                  elf = ELFFile(stream)
+                  sections = [section.name for section in elf.iter_sections()]
+                  dynsym = elf.get_section_by_name('.dynsym')
+                  symbols = []
+                  if dynsym is not None:
+                      for symbol in dynsym.iter_symbols():
+                          name = symbol.name
+                          if any(token in name for token in (
+                              'DocumentTab', 'HwordFrame', 'Launcher',
+                              'InputMethod', 'keyPress', 'keyRelease')):
+                              symbols.append({
+                                  'name': name,
+                                  'value': int(symbol['st_value']),
+                                  'size': int(symbol['st_size']),
+                                  'bind': symbol['st_info']['bind'],
+                                  'type': symbol['st_info']['type'],
+                              })
+                  rows.append({
+                      'file': str(path),
+                      'elf_type': elf['e_type'],
+                      'machine': elf['e_machine'],
+                      'entry': int(elf['e_entry']),
+                      'has_symtab': '.symtab' in sections,
+                      'has_debug_info': '.debug_info' in sections,
+                      'relevant_dynamic_symbols': symbols,
+                  })
+          Path('build/report/elf-summary.json').write_text(
+              json.dumps(rows, indent=2) + '\n')
+          print(json.dumps(rows, indent=2))
+          PY
+
+      - name: Summarize the exact static frontier
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          matches = json.loads(Path('build/report/matches.json').read_text())
+          elf = json.loads(Path('build/report/elf-summary.json').read_text())
+          lines = [
+              '# Exact HWord DocumentTab static analysis',
+              '',
+              f'Matched binaries: {len(matches)}',
+              '',
+          ]
+          for item in matches:
+              lines.extend([
+                  f"## `{item['member']}`",
+                  '',
+                  f"- SHA-256: `{item['sha256']}`",
+                  f"- Size: `{item['size']}`",
+                  f"- Markers: {', '.join(item['hits'])}",
+                  '',
+              ])
+          for item in elf:
+              lines.extend([
+                  f"### ELF `{Path(item['file']).name}`",
+                  '',
+                  f"- Machine: `{item['machine']}`",
+                  f"- Full symbol table: `{item['has_symtab']}`",
+                  f"- DWARF debug info: `{item['has_debug_info']}`",
+                  f"- Relevant exported symbols: `{len(item['relevant_dynamic_symbols'])}`",
+                  '',
+              ])
+          Path('build/report/README.md').write_text('\n'.join(lines) + '\n')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m11-documenttab-static-analysis
+          path: |
+            build/report
+            build/matched
+          if-no-files-found: error
+          retention-days: 14
