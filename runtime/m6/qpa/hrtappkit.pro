@@ -24,8 +24,9 @@ QMAKE_LIBDIR += $$HRT_COMPAT_LIBDIR
 # fourth repairs focus immediately before key delivery; the fifth adds a
 # printable input-method fallback; the sixth inventories the materialized
 # document QObject/QWidget hierarchy; the seventh gives the fallback a
-# preedit-to-commit lifecycle; and the eighth passively traces the final event
-# route, waits for page materialization, and supplies Linux/X11 native key data.
+# preedit-to-commit lifecycle; and the eighth waits before the window key path,
+# prefers hword::HwordAppView, supplies Linux/X11 native key data, and refuses
+# to credit QTabBar or another piece of application chrome as a text receiver.
 HRT_M10_WIDGET_BASE = $$OUT_PWD/qhrtappkitbackingstore_widget.cpp
 HRT_M10_BUTTON_FOCUS = $$OUT_PWD/qhrtappkitbackingstore_button_focus.cpp
 HRT_M11_STAGE_BOUNDARIES = $$OUT_PWD/qhrtappkitbackingstore_stage_boundaries.cpp
@@ -41,11 +42,11 @@ system(python3 $$PWD/../../m11/augment_qpa_document_focus.py $$HRT_M11_STAGE_BOU
 system(python3 $$PWD/../../m11/augment_qpa_input_method_fallback.py $$HRT_M11_DELAYED_FOCUS $$HRT_M11_IME_FALLBACK)
 system(python3 $$PWD/../../m11/augment_qpa_object_inventory.py $$HRT_M11_IME_FALLBACK $$HRT_M11_INVENTORY)
 system(python3 $$PWD/../../m11/augment_qpa_preedit_commit.py $$HRT_M11_INVENTORY $$HRT_M11_COMPOSE)
-system(python3 $$PWD/../../m11/augment_qpa_native_key_probe_v2.py $$HRT_M11_COMPOSE $$HRT_M11_BACKINGSTORE)
+system(python3 $$PWD/../../m11/augment_qpa_native_key_probe_v3.py $$HRT_M11_COMPOSE $$HRT_M11_BACKINGSTORE)
 exists($$HRT_M11_BACKINGSTORE) {
-    message(Building Linux-native key-route QWidget M11 backing store: $$HRT_M11_BACKINGSTORE)
+    message(Building credible-editor Linux-native key-route M11 backing store: $$HRT_M11_BACKINGSTORE)
 } else {
-    error(Failed to generate Linux-native key-route QWidget M11 backing store)
+    error(Failed to generate credible-editor Linux-native key-route M11 backing store)
 }
 
 SOURCES += $$PWD/main.cpp
