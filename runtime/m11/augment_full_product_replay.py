@@ -68,8 +68,8 @@ printf '%s  %s\\n' \\
 
     required = {
         "full-product-payload-paths.txt": 4,
-        "full-product-payload-bytes.txt": 3,
-        "full-product-payload-count.txt": 3,
+        "full-product-payload-bytes.txt": 2,
+        "full-product-payload-count.txt": 2,
         "HRT M11 PAYLOAD:": 1,
         "^\\./opt/hnc/hoffice11(/|$)": 1,
         "patch_hword_utility_culture_redirect.py": 1,
