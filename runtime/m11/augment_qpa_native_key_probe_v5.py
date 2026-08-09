@@ -29,24 +29,27 @@ def main() -> None:
     )
     source = generator.read_text(encoding="utf-8")
 
-    insertion_anchor = '''    text = replace_once(text, helper_anchor, helpers,
-                        "credible editor helper insertion")
-
-    timeout_anchor = '''
-    insertion_replacement = '''    text = replace_once(text, helper_anchor, helpers,
-                        "credible editor helper insertion")
-
-    declaration_anchor = '''static void m11LogMaterializationState(QWidget *topLevel,
-'''
-    declaration_replacement = '''static bool m11CredibleTextReceiver(QObject *receiver);
-static QWidget *m11FindCredibleEditorWidget(QWidget *topLevel);
-
-static void m11LogMaterializationState(QWidget *topLevel,
-'''
-    text = replace_once(text, declaration_anchor, declaration_replacement,
-                        "credible editor forward declarations")
-
-    timeout_anchor = '''
+    insertion_anchor = (
+        "    text = replace_once(text, helper_anchor, helpers,\n"
+        "                        \"credible editor helper insertion\")\n\n"
+        "    timeout_anchor = '''"
+    )
+    insertion_replacement = (
+        "    text = replace_once(text, helper_anchor, helpers,\n"
+        "                        \"credible editor helper insertion\")\n\n"
+        "    declaration_anchor = '''static void "
+        "m11LogMaterializationState(QWidget *topLevel,\n"
+        "'''\n"
+        "    declaration_replacement = '''static bool "
+        "m11CredibleTextReceiver(QObject *receiver);\n"
+        "static QWidget *m11FindCredibleEditorWidget(QWidget *topLevel);\n\n"
+        "static void m11LogMaterializationState(QWidget *topLevel,\n"
+        "'''\n"
+        "    text = replace_once(text, declaration_anchor, "
+        "declaration_replacement,\n"
+        "                        \"credible editor forward declarations\")\n\n"
+        "    timeout_anchor = '''"
+    )
     source = replace_once(
         source,
         insertion_anchor,
