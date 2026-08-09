@@ -1,13 +1,13 @@
 # Custom QPA and host-call inventory
 
-- Commit: `25a0c13bbcc7b7a4883f0c95ca5e6cdc4df5ef2a`
+- Commit: `711d471568795077d51e39ab3740c51f78c20e71`
 - Matching files: `180`
 
 - `opcode_256`: `1216` matches
 - `create_operation`: `104` matches
 - `host_call`: `599` matches
-- `custom_qpa`: `1000` matches
-- `appkit`: `181` matches
+- `custom_qpa`: `1003` matches
+- `appkit`: `184` matches
 - `rendering`: `263` matches
 - `input_ime`: `2904` matches
 
@@ -321,9 +321,9 @@
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:15` — `QPlatformWindow *QHrtAppKitIntegration::createPlatformWindow(QWindow *window) const`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:17` — `QPlatformWindow *platformWindow = new QHrtAppKitWindow(window);`
 - `runtime/m6/qpa/qhrtappkitintegration.h:12` — `QPlatformWindow *createPlatformWindow(QWindow *window) const override;`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:19` — `qWarning("HRT M6 QPA: QPlatformWindow constructed type=%d title=%s",`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:66` — `qWarning("HRT M6 QPA: CREATE failed type=%d result=%lld title=%s",`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:80` — `qWarning("HRT M6 QPA: CREATE type=%d geometry=%dx%d title=%s handle=%lld pump=%lld flags=0x%llx capture=%lld",`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:21` — `qWarning("HRT M6 QPA: QPlatformWindow constructed type=%d title=%s",`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:86` — `qWarning("HRT M6 QPA: CREATE failed type=%d result=%lld title=%s",`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:99` — `qWarning("HRT M6 QPA: CREATE type=%d geometry=%dx%d title=%s handle=%lld pump=%lld flags=0x%llx capture=%lld",`
 - `.github/workflows/hoffice-runtime-augmentors-static.yml:100` — `struct QPlatformWindow { virtual ~QPlatformWindow() = default; };`
 - `.github/workflows/hoffice-runtime-augmentors-static.yml:105` — `struct QOffscreenWindow final : QPlatformWindow {`
 - `.github/workflows/hoffice-runtime-augmentors-static.yml:123` — `QPlatformWindow *createPlatformWindow(QWindow *window) {`
@@ -529,11 +529,11 @@
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:335` — `const qint64 flags = hrtM6HostCall(`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:337` — `const qint64 capture = hrtM6HostCall(`
 - `runtime/m6/qpa/qhrtappkitwindow.cpp:2` — `#include "hrt_hostcall.h"`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:60` — `const qint64 handle = hrtM6HostCall(`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:75` — `const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 250);`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:76` — `const qint64 flags = hrtM6HostCall(`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:78` — `const qint64 capture = hrtM6HostCall(`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:94` — `const qint64 result = hrtM6HostCall(`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:80` — `const qint64 handle = hrtM6HostCall(`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:94` — `const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 250);`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:95` — `const qint64 flags = hrtM6HostCall(`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:97` — `const qint64 capture = hrtM6HostCall(`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:116` — `const qint64 result = hrtM6HostCall(`
 - `.github/workflows/hoffice-legacy-openssl-audit.yml:8` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-abi-lock.yml:9` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-augmentors-static.yml:10` — `workflow_dispatch:`
@@ -800,13 +800,16 @@
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:17` — `QPlatformWindow *platformWindow = new QHrtAppKitWindow(window);`
 - `runtime/m6/qpa/qhrtappkitintegration.h:12` — `QPlatformWindow *createPlatformWindow(QWindow *window) const override;`
 - `runtime/m6/qpa/qhrtappkitwindow.cpp:7` — `#include <qpa/qwindowsysteminterface.h>`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:19` — `qWarning("HRT M6 QPA: QPlatformWindow constructed type=%d title=%s",`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:66` — `qWarning("HRT M6 QPA: CREATE failed type=%d result=%lld title=%s",`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:80` — `qWarning("HRT M6 QPA: CREATE type=%d geometry=%dx%d title=%s handle=%lld pump=%lld flags=0x%llx capture=%lld",`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:96` — `qWarning("HRT M6 QPA: DESTROY handle=%lld result=%lld",`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:118` — `qWarning("HRT M6 QPA: GEOMETRY handle=%lld rect=%d,%d %dx%d",`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:129` — `qWarning("HRT M6 QPA: TITLE handle=%lld title=%s",`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:140` — `qWarning("HRT M8B QPA: Qt window activated type=%d title=%s host=%lld",`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:21` — `qWarning("HRT M6 QPA: QPlatformWindow constructed type=%d title=%s",`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:23` — `qWarning("HRT M11 QPA: registered top-level qt-window=%p type=%d",`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:40` — `qWarning("HRT M11 QPA: unregistered top-level qt-window=%p",`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:86` — `qWarning("HRT M6 QPA: CREATE failed type=%d result=%lld title=%s",`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:99` — `qWarning("HRT M6 QPA: CREATE type=%d geometry=%dx%d title=%s handle=%lld pump=%lld flags=0x%llx capture=%lld",`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:105` — `qWarning("HRT M11 QPA: native host assigned qt-window=%p type=%d handle=%lld",`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:118` — `qWarning("HRT M6 QPA: DESTROY handle=%lld result=%lld",`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:138` — `qWarning("HRT M6 QPA: GEOMETRY handle=%lld rect=%d,%d %dx%d",`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:149` — `qWarning("HRT M6 QPA: TITLE handle=%lld title=%s",`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:160` — `qWarning("HRT M8B QPA: Qt window activated type=%d title=%s host=%lld",`
 - `runtime/m6/qpa/qplatform_vulkan_compat.cpp:1` — `#include <qpa/qplatformintegration.h>`
 - `runtime/m6/qpa/qplatform_vulkan_compat.cpp:6` — `* Debian's Qt 5.11.3 QPA headers expose this trailing virtual because that`
 - `runtime/m6/qpa/qplatform_vulkan_compat.cpp:10` — `* The slot is the final virtual in QPlatformIntegration, so all preceding`
@@ -1025,10 +1028,7 @@
 - `.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml:63` — `name: hrt-m8-qt5113-hrtappkit-input-qpa`
 - `.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml:64` — `path: build/input/qpa`
 - `.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml:66` — `run-id: ${{ env.QPA_RUN_ID }}`
-- `.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml:130` — `python3 - build/input/qpa/libqhrtappkit.so.xz \`
-- `.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml:131` — `build/input/qpa/lock.json "$root$PLUGIN_GUEST" <<'PY'`
-- `.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml:142` — `pathlib.Path('build/proof/qpa-lock.json').write_text(`
-- … 700 more matches in JSON
+- … 703 more matches in JSON
 
 ## appkit
 
@@ -1089,17 +1089,20 @@
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:25` — `return new QHrtAppKitBackingStore(window);`
 - `runtime/m6/qpa/qhrtappkitintegration.h:8` — `class QHrtAppKitIntegration : public QOffscreenIntegration`
 - `runtime/m6/qpa/qhrtappkitintegration.h:11` — `QHrtAppKitIntegration();`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:11` — `QHrtAppKitWindow *QHrtAppKitWindow::s_nativeOwner = nullptr;`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:11` — `QHrtAppKitWindow *QHrtAppKitWindow::s_windows = nullptr;`
 - `runtime/m6/qpa/qhrtappkitwindow.cpp:13` — `QHrtAppKitWindow::QHrtAppKitWindow(QWindow *window)`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:23` — `QHrtAppKitWindow::~QHrtAppKitWindow()`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:28` — `qint64 QHrtAppKitWindow::hostWindowFor(const QWindow *candidate)`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:38` — `bool QHrtAppKitWindow::isNativeCandidate() const`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:46` — `void QHrtAppKitWindow::createNativeWindow()`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:88` — `void QHrtAppKitWindow::destroyNativeWindow()`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:104` — `void QHrtAppKitWindow::setVisible(bool visible)`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:114` — `void QHrtAppKitWindow::setGeometry(const QRect &rect)`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:124` — `void QHrtAppKitWindow::setWindowTitle(const QString &title)`
-- `runtime/m6/qpa/qhrtappkitwindow.cpp:134` — `void QHrtAppKitWindow::requestActivateWindow()`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:27` — `QHrtAppKitWindow::~QHrtAppKitWindow()`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:33` — `void QHrtAppKitWindow::unregisterWindow()`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:35` — `QHrtAppKitWindow **link = &s_windows;`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:48` — `qint64 QHrtAppKitWindow::hostWindowFor(const QWindow *candidate)`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:52` — `for (QHrtAppKitWindow *item = s_windows;`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:60` — `bool QHrtAppKitWindow::isNativeCandidate() const`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:68` — `void QHrtAppKitWindow::createNativeWindow()`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:110` — `void QHrtAppKitWindow::destroyNativeWindow()`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:124` — `void QHrtAppKitWindow::setVisible(bool visible)`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:134` — `void QHrtAppKitWindow::setGeometry(const QRect &rect)`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:144` — `void QHrtAppKitWindow::setWindowTitle(const QString &title)`
+- `runtime/m6/qpa/qhrtappkitwindow.cpp:154` — `void QHrtAppKitWindow::requestActivateWindow()`
 - `runtime/m6/qpa/qhrtappkitwindow.h:10` — `class QHrtAppKitWindow : public QOffscreenWindow`
 - `runtime/m6/qpa/qhrtappkitwindow.h:13` — `explicit QHrtAppKitWindow(QWindow *window);`
 - `runtime/m6/qpa/qhrtappkitwindow.h:14` — `~QHrtAppKitWindow() override;`
