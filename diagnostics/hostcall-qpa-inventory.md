@@ -1,15 +1,15 @@
 # Custom QPA and host-call inventory
 
-- Commit: `4580b90b83fd2b68ee79cc15420156cc1d93dcc8`
-- Matching files: `179`
+- Commit: `a1ece0c5c6280b420bb85365289a86b543189e66`
+- Matching files: `180`
 
-- `opcode_256`: `1205` matches
+- `opcode_256`: `1212` matches
 - `create_operation`: `104` matches
-- `host_call`: `598` matches
+- `host_call`: `599` matches
 - `custom_qpa`: `1000` matches
 - `appkit`: `180` matches
 - `rendering`: `263` matches
-- `input_ime`: `2886` matches
+- `input_ime`: `2895` matches
 
 ## opcode_256
 
@@ -313,7 +313,7 @@
 - `.github/workflows/hoffice-runtime-m10-run10-resource-overlay.yml:109` — `checksum=build/input/prepared/report/hword-m9-prepared-rootfs.tar.zst.sha256`
 - `.github/workflows/hoffice-runtime-m10-run10-resource-overlay.yml:112` — `actual=$(shasum -a 256 "$prepared" | awk '{print $1}')`
 - `.github/workflows/hoffice-runtime-m10-run10-resource-overlay.yml:162` — `'sha256': hashlib.sha256(data).hexdigest(),`
-- … 905 more matches in JSON
+- … 912 more matches in JSON
 
 ## create_operation
 
@@ -631,6 +631,7 @@
 - `.github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml:156` — `runtime/m6/hostcall_trampoline.c \`
 - `.github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml:182` — `clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \`
 - `.github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml:183` — `-o build/objects/hostcall-trampoline.o`
+- `.github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml:9` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-m11-documenttab-static-analysis.yml:8` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-m11-generate-fast-replay.yml:8` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-m11-korean-input-replay-v2.yml:8` — `workflow_dispatch:`
@@ -723,8 +724,7 @@
 - `.github/workflows/hoffice-runtime-m6-hword-appkit-coexist.yml:13` — `workflow_dispatch:`
 - `.github/workflows/hoffice-runtime-m6-hword-appkit-coexist.yml:93` — `- name: Generate the mature syscall and dormant host-call bridge`
 - `.github/workflows/hoffice-runtime-m6-hword-appkit-coexist.yml:120` — `python3 runtime/m6/augment_appkit_hostcall.py \`
-- `.github/workflows/hoffice-runtime-m6-hword-appkit-coexist.yml:136` — `grep -q 'case HRT_M6_HOSTCALL_SYSCALL' \`
-- … 298 more matches in JSON
+- … 299 more matches in JSON
 
 ## custom_qpa
 
@@ -1781,4 +1781,4 @@
 - `.github/workflows/hoffice-runtime-m1-v2.yml:24` — `clang -c -nostdlib -fPIC runtime/m1/test_interp.S \`
 - `.github/workflows/hoffice-runtime-m1-v2.yml:29` — `clang -c -nostdlib -fPIE runtime/m1/test_main.S \`
 - `.github/workflows/hoffice-runtime-m1-v2.yml:66` — `runtime/m1/main.c runtime/m1/common.c runtime/m1/elf_map.c \`
-- … 2586 more matches in JSON
+- … 2595 more matches in JSON

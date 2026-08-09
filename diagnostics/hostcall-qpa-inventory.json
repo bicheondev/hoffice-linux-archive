@@ -1,16 +1,16 @@
 {
   "schema": 1,
-  "commit": "4580b90b83fd2b68ee79cc15420156cc1d93dcc8",
-  "workflow_run": "31293305491",
-  "file_count": 179,
+  "commit": "a1ece0c5c6280b420bb85365289a86b543189e66",
+  "workflow_run": "31293494350",
+  "file_count": 180,
   "match_counts": {
-    "opcode_256": 1205,
+    "opcode_256": 1212,
     "create_operation": 104,
-    "host_call": 598,
+    "host_call": 599,
     "custom_qpa": 1000,
     "appkit": 180,
     "rendering": 263,
-    "input_ime": 2886
+    "input_ime": 2895
   },
   "files": [
     {
@@ -177,8 +177,8 @@
     },
     {
       "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-      "sha256": "bef5a63bccf70c32f1b7510b2e52a7d6e8e4254c9e83ca57a0b1948cd4ae65b9",
-      "size": 995,
+      "sha256": "7442557e987a329dde4613c4b90ec9721a8754c98c2ecefa2e41f13376d8566d",
+      "size": 981,
       "groups": [
         "appkit",
         "input_ime",
@@ -781,6 +781,16 @@
       "size": 11639,
       "groups": [
         "appkit",
+        "host_call",
+        "input_ime",
+        "opcode_256"
+      ]
+    },
+    {
+      "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+      "sha256": "16be97fb3b8b33e95037852f6fc53d3bdc7081c52260d9ce366c952bbf79d53c",
+      "size": 8268,
+      "groups": [
         "host_call",
         "input_ime",
         "opcode_256"
@@ -3678,6 +3688,41 @@
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 213,
         "text": "'binary_sha256': hashlib.sha256(binary.read_bytes()).hexdigest(),"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 21,
+        "text": "PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 47,
+        "text": "printf '%s  %s\\n' \"$PACKAGE_SHA256\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 48,
+        "text": "\"build/input/$ASSET_NAME\" | sha256sum -c -"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 56,
+        "text": "sha256sum \"build/input/$data_member\" \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 57,
+        "text": "| tee build/report/data-member.sha256"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 79,
+        "text": "sha256sum \"$binary\" | tee \"$out/sha256.txt\""
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 164,
+        "text": "f\"- SHA-256: `{item['sha256']}`\","
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis.yml",
@@ -9522,6 +9567,11 @@
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 183,
         "text": "-o build/objects/hostcall-trampoline.o"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 9,
+        "text": "workflow_dispatch:"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis.yml",
@@ -22685,6 +22735,51 @@
         "path": ".github/workflows/hoffice-runtime-m11-build-fs-korean-host.yml",
         "line": 206,
         "text": "input_source = Path('runtime/m8/appkit_input.m').read_text("
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 5,
+        "text": "branches: [codex/hoffice-runtime-from-scratch]"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 7,
+        "text": "- 'runtime/m11/scan_exact_documenttab_binaries.py'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 8,
+        "text": "- '.github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml'"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 26,
+        "text": "timeout-minutes: 45"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 63,
+        "text": "python3 runtime/m11/scan_exact_documenttab_binaries.py \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 82,
+        "text": "'DocumentTabImpl|HwordFrameManager|CreateFrame|Launcher|InputMethod|keyPress|keyRelease|ShortcutOverride|HorzScrollbar|VertScrollbar|SelectionChanged|Adding' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 94,
+        "text": "'DocumentTabImpl|HwordFrameManager|CreateFrame|Launcher|InputMethod|keyPress|keyRelease|ShortcutOverride|HorzScrollbar|VertScrollbar|SelectionChanged|Adding' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 97,
+        "text": "'DocumentTabImpl|HwordFrameManager|CreateFrame|Launcher|InputMethod|keyPress|keyRelease|ShortcutOverride|HorzScrollbar|VertScrollbar|SelectionChanged|Adding' \\"
+      },
+      {
+        "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml",
+        "line": 126,
+        "text": "'InputMethod', 'keyPress', 'keyRelease',"
       },
       {
         "path": ".github/workflows/hoffice-runtime-m11-documenttab-static-analysis.yml",
