@@ -24,11 +24,13 @@ private:
     bool isNativeCandidate() const;
     void createNativeWindow();
     void destroyNativeWindow();
+    void unregisterWindow();
 
     qint64 m_hostWindow;
     bool m_visible;
+    QHrtAppKitWindow *m_nextWindow;
 
-    static QHrtAppKitWindow *s_nativeOwner;
+    static QHrtAppKitWindow *s_windows;
 };
 
 QT_END_NAMESPACE
