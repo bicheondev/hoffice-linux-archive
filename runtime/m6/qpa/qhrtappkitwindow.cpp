@@ -8,31 +8,53 @@
 
 QT_BEGIN_NAMESPACE
 
-QHrtAppKitWindow *QHrtAppKitWindow::s_nativeOwner = nullptr;
+QHrtAppKitWindow *QHrtAppKitWindow::s_windows = nullptr;
 
 QHrtAppKitWindow::QHrtAppKitWindow(QWindow *window)
     : QOffscreenWindow(window)
     , m_hostWindow(0)
     , m_visible(false)
+    , m_nextWindow(s_windows)
 {
+    s_windows = this;
     const QByteArray title = window->title().toUtf8();
     qWarning("HRT M6 QPA: QPlatformWindow constructed type=%d title=%s",
              int(window->type()), title.constData());
+    qWarning("HRT M11 QPA: registered top-level qt-window=%p type=%d",
+             static_cast<void *>(window), int(window->type()));
 }
 
 QHrtAppKitWindow::~QHrtAppKitWindow()
 {
     destroyNativeWindow();
+    unregisterWindow();
+}
+
+void QHrtAppKitWindow::unregisterWindow()
+{
+    QHrtAppKitWindow **link = &s_windows;
+    while (*link != nullptr) {
+        if (*link == this) {
+            *link = m_nextWindow;
+            m_nextWindow = nullptr;
+            qWarning("HRT M11 QPA: unregistered top-level qt-window=%p",
+                     static_cast<void *>(window()));
+            return;
+        }
+        link = &((*link)->m_nextWindow);
+    }
 }
 
 qint64 QHrtAppKitWindow::hostWindowFor(const QWindow *candidate)
 {
-    if (candidate == nullptr || s_nativeOwner == nullptr ||
-        s_nativeOwner->m_hostWindow <= 0 ||
-        s_nativeOwner->window() != candidate) {
+    if (candidate == nullptr)
         return 0;
+    for (QHrtAppKitWindow *item = s_windows;
+         item != nullptr; item = item->m_nextWindow) {
+        if (item->window() == candidate && item->m_hostWindow > 0)
+            return item->m_hostWindow;
     }
-    return s_nativeOwner->m_hostWindow;
+    return 0;
 }
 
 bool QHrtAppKitWindow::isNativeCandidate() const
@@ -45,10 +67,8 @@ bool QHrtAppKitWindow::isNativeCandidate() const
 
 void QHrtAppKitWindow::createNativeWindow()
 {
-    if (m_hostWindow > 0 || s_nativeOwner != nullptr ||
-        !m_visible || !isNativeCandidate()) {
+    if (m_hostWindow > 0 || !m_visible || !isNativeCandidate())
         return;
-    }
 
     QByteArray title = window()->title().toUtf8();
     if (title.isEmpty())
@@ -70,7 +90,6 @@ void QHrtAppKitWindow::createNativeWindow()
     }
 
     m_hostWindow = handle;
-    s_nativeOwner = this;
     requestActivateWindow();
     const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 250);
     const qint64 flags = hrtM6HostCall(
@@ -83,6 +102,9 @@ void QHrtAppKitWindow::createNativeWindow()
              static_cast<long long>(pump),
              static_cast<unsigned long long>(flags),
              static_cast<long long>(capture));
+    qWarning("HRT M11 QPA: native host assigned qt-window=%p type=%d handle=%lld",
+             static_cast<void *>(window()), int(window()->type()),
+             static_cast<long long>(handle));
 }
 
 void QHrtAppKitWindow::destroyNativeWindow()
@@ -97,8 +119,6 @@ void QHrtAppKitWindow::destroyNativeWindow()
              static_cast<long long>(handle),
              static_cast<long long>(result));
     m_hostWindow = 0;
-    if (s_nativeOwner == this)
-        s_nativeOwner = nullptr;
 }
 
 void QHrtAppKitWindow::setVisible(bool visible)
