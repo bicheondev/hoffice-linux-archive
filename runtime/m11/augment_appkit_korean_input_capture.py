@@ -7,12 +7,13 @@ The locked M10 generator deliberately selected only an AppKit window titled
 the old one-shot M8 click-and-key sequence and never clicked the New toolbar
 button.
 
-After preserving that exact title rewrite, this wrapper applies the bounded M11
-multi-window transform.  The full product payload creates a real Qt dialog on
-the New-document path, and the adapter must retain the main NSWindow while
-materializing that secondary surface.  Both transforms remain separate and
-fail closed, including an explicit audit that the generated Objective-C log
-retains a literal ``\\n`` escape rather than a newline inside its string.
+After preserving that exact title rewrite, this wrapper arms the bounded HWord
+document-I/O trace immediately before each staged input action and applies the
+M11 multi-window transform.  The full product payload creates a real Qt dialog
+on the New-document path, and the adapter must retain the main NSWindow while
+materializing that secondary surface.  All transforms remain separate and fail
+closed, including an explicit audit that generated Objective-C log strings
+retain literal ``\\n`` escapes.
 """
 from __future__ import annotations
 
@@ -21,6 +22,13 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+
+
+def replace_once(text: str, needle: str, replacement: str, label: str) -> str:
+    count = text.count(needle)
+    if count != 1:
+        raise SystemExit(f"{label}: expected exactly one anchor, found {count}")
+    return text.replace(needle, replacement, 1)
 
 
 def run_m10_generator(source: Path, output: Path) -> None:
@@ -71,6 +79,64 @@ def allow_korean_title(path: Path) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def arm_document_io_stages(path: Path) -> None:
+    text = path.read_text(encoding="utf-8")
+    if "hrt_m11_docio_mark_stage" in text:
+        raise SystemExit("document-I/O stage markers are already present")
+
+    text = replace_once(
+        text,
+        "#include <string.h>\n",
+        "#include <string.h>\n\n"
+        "extern void hrt_m11_docio_mark_stage(unsigned int stage);\n",
+        "document-I/O stage declaration",
+    )
+    text = replace_once(
+        text,
+        "        if (g_m10_synthetic_stage == 0u) {\n"
+        "            const NSRect bounds =\n",
+        "        if (g_m10_synthetic_stage == 0u) {\n"
+        "            hrt_m11_docio_mark_stage(1u);\n"
+        "            const NSRect bounds =\n",
+        "toolbar document-I/O stage",
+    )
+    text = replace_once(
+        text,
+        "        if (g_m10_synthetic_stage == 1u) {\n"
+        "            const NSRect bounds =\n",
+        "        if (g_m10_synthetic_stage == 1u) {\n"
+        "            hrt_m11_docio_mark_stage(2u);\n"
+        "            const NSRect bounds =\n",
+        "document-focus I/O stage",
+    )
+    text = replace_once(
+        text,
+        "        if (g_m10_synthetic_stage == 2u) {\n"
+        "            NSArray<NSEvent *> *text_input = @[\n",
+        "        if (g_m10_synthetic_stage == 2u) {\n"
+        "            hrt_m11_docio_mark_stage(3u);\n"
+        "            NSArray<NSEvent *> *text_input = @[\n",
+        "text-input I/O stage",
+    )
+
+    required = {
+        "extern void hrt_m11_docio_mark_stage": 1,
+        "hrt_m11_docio_mark_stage(1u);": 1,
+        "hrt_m11_docio_mark_stage(2u);": 1,
+        "hrt_m11_docio_mark_stage(3u);": 1,
+        "HRT M10 APPKIT: staged toolbar new-document click": 1,
+        "HRT M10 APPKIT: staged document focus click": 1,
+        "HRT M10 APPKIT: staged text input after focus": 1,
+    }
+    for marker, expected in required.items():
+        actual = text.count(marker)
+        if actual != expected:
+            raise SystemExit(
+                f"document-I/O input marker {marker!r}: "
+                f"expected {expected}, found {actual}")
+    path.write_text(text, encoding="utf-8")
+
+
 def apply_multiwindow_adapter(path: Path) -> None:
     generator = Path(__file__).with_name("augment_appkit_multiwindow_v2.py")
     if not generator.is_file():
@@ -110,8 +176,10 @@ def main() -> None:
         raise SystemExit(f"usage: {sys.argv[0]} SOURCE.m OUTPUT.m")
     source = Path(sys.argv[1])
     output = Path(sys.argv[2])
+    input_source = Path("runtime/m8/appkit_input.m")
     run_m10_generator(source, output)
-    allow_korean_title(Path("runtime/m8/appkit_input.m"))
+    allow_korean_title(input_source)
+    arm_document_io_stages(input_source)
     apply_multiwindow_adapter(output)
 
 
