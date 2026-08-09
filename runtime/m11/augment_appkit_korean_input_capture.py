@@ -11,7 +11,8 @@ After preserving that exact title rewrite, this wrapper applies the bounded M11
 multi-window transform.  The full product payload creates a real Qt dialog on
 the New-document path, and the adapter must retain the main NSWindow while
 materializing that secondary surface.  Both transforms remain separate and
-fail closed.
+fail closed, including an explicit audit that the generated Objective-C log
+retains a literal ``\\n`` escape rather than a newline inside its string.
 """
 from __future__ import annotations
 
@@ -93,6 +94,7 @@ def apply_multiwindow_adapter(path: Path) -> None:
             "HRT M11 APPKIT: modal first-frame capture": 1,
             "HRT_M11_MODAL_CAPTURE_PATH": 2,
             "m11_select_window_number(": 5,
+            'input-window=%ld\\n",': 1,
         }
         for marker, expected in required.items():
             actual = text.count(marker)
