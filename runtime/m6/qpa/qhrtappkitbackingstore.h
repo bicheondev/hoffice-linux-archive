@@ -11,7 +11,7 @@ QT_BEGIN_NAMESPACE
 // composition fallback, a bounded editor-materialization wait, and Linux/X11
 // native key metadata.  The stable backing-store class ABI remains unchanged;
 // this revision retries the Qt 5.11.3 rebuild with a syntactically valid,
-// forward-declared credible-editor generator.
+// forward-declared credible-editor generator and the original member order.
 class QHrtAppKitBackingStore : public QOffscreenBackingStore
 {
 public:
@@ -25,8 +25,8 @@ private:
     void drainHostInput(QWindow *deliveryWindow);
 
     quint64 m_presentSequence;
-    quint64 m_mouseEventsDelivered;
     quint64 m_keyEventsDelivered;
+    quint64 m_mouseEventsDelivered;
     bool m_firstFrameAccepted;
 };
 
