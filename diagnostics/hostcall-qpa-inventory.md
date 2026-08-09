@@ -1,13 +1,13 @@
 # Custom QPA and host-call inventory
 
-- Commit: `711d471568795077d51e39ab3740c51f78c20e71`
+- Commit: `3f294827ad3165d084190c16e26c487e7525e7be`
 - Matching files: `180`
 
 - `opcode_256`: `1216` matches
 - `create_operation`: `104` matches
 - `host_call`: `599` matches
 - `custom_qpa`: `1003` matches
-- `appkit`: `184` matches
+- `appkit`: `186` matches
 - `rendering`: `263` matches
 - `input_ime`: `2904` matches
 
@@ -22,9 +22,9 @@
 - `runtime/m6/appkit_adapter.m:197` — `const size_t title_length = strnlen(guest_title, 256u);`
 - `runtime/m6/appkit_adapter.m:198` — `if (title_length == 0u || title_length == 256u) return -1003;`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:13` — `"qtbase_archive_sha256": "c6bf887732b83ce072eb72eddb7497bedcdf9ca794e7ed91261a93f063623e1c"`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:18` — `"sha256_before_prepatch": "47162252dcdea33aa7aabfcc2262e8b2846ef0d0706a1dc5a5c629938cc818fb",`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:19` — `"sha256_after_prepatch": "91ea0b0a7e885dc3bbd51cecd938551445ab4834734cf8a5ecd0067dc3a27143",`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:20` — `"xz_sha256": "0c8d3ed351861ed4d15fbd17450fca9fd2a2c2604ec6292aa6395a9260736d92",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:18` — `"sha256_before_prepatch": "e1729cf20bf1e67a697fbe40b53ff4ad2011a9c3cfd085a926d58950112811c0",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:19` — `"sha256_after_prepatch": "645f1ac84d5e0073c663a7bee75a696e3b4de7b6b6cb7f117087dbd6ac088c25",`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:20` — `"xz_sha256": "c072baaa97f9138f7b82f103218ea9913f5ec36b2587e613acc7c8460baaa38d",`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:5` — `: "${PROGRAM_SHA256:?PROGRAM_SHA256 is required}"`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:11` — `expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:12` — `actual=$(sha256sum build/input/hword-rootfs.tar.gz | awk '{print $1}')`
@@ -731,7 +731,7 @@
 - `runtime/m4/build_closure.py:10` — `QPA plugins that do not appear in DT_NEEDED. Guest paths are normalized with`
 - `runtime/m6/augment_stack_hrtappkit.py:30` — `'static const char qt_platform[] = "QT_QPA_PLATFORM=offscreen";',`
 - `runtime/m6/augment_stack_hrtappkit.py:31` — `'static const char qt_platform[] = "QT_QPA_PLATFORM=hrtappkit";',`
-- `runtime/m6/prebuilt/libqhrtappkit.lock.json:7` — `"qpa_source_tree": "cc02ad26d04b724180d3da8754b551322e045f8e"`
+- `runtime/m6/prebuilt/libqhrtappkit.lock.json:7` — `"qpa_source_tree": "a1ed6ea9b61dc66f88fe4fdc7cd6cd137b6bfe8f"`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:16` — `"guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so",`
 - `runtime/m6/prebuilt/libqhrtappkit.lock.json:17` — `"qpa_key": "hrtappkit",`
 - `runtime/m6/qpa/build_hrtappkit_root.sh:7` — `: "${QPA_GUEST:?QPA_GUEST is required}"`
@@ -1080,6 +1080,8 @@
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:159` — `void QHrtAppKitBackingStore::drainHostInput(QWindow *deliveryWindow)`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:286` — `void QHrtAppKitBackingStore::flush(QWindow *target,`
 - `runtime/m6/qpa/qhrtappkitbackingstore.cpp:293` — `const qint64 hostWindow = QHrtAppKitWindow::hostWindowFor(topLevel);`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:13` — `// this revision pairs it with QHrtAppKitWindow's per-top-level host registry so`
+- `runtime/m6/qpa/qhrtappkitbackingstore.h:14` — `// the real New-document modal can obtain and present through its own NSWindow.`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:15` — `class QHrtAppKitBackingStore : public QOffscreenBackingStore`
 - `runtime/m6/qpa/qhrtappkitbackingstore.h:18` — `explicit QHrtAppKitBackingStore(QWindow *window);`
 - `runtime/m6/qpa/qhrtappkitintegration.cpp:9` — `QHrtAppKitIntegration::QHrtAppKitIntegration()`

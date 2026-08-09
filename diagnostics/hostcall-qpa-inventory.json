@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "commit": "711d471568795077d51e39ab3740c51f78c20e71",
-  "workflow_run": "31305462269",
+  "commit": "3f294827ad3165d084190c16e26c487e7525e7be",
+  "workflow_run": "31305695859",
   "file_count": 180,
   "match_counts": {
     "opcode_256": 1216,
     "create_operation": 104,
     "host_call": 599,
     "custom_qpa": 1003,
-    "appkit": 184,
+    "appkit": 186,
     "rendering": 263,
     "input_ime": 2904
   },
@@ -127,7 +127,7 @@
     },
     {
       "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
-      "sha256": "971cdfc08a82e8e791933a5c22a43d95f597694c26a9893211f677a66ef1063f",
+      "sha256": "85529899bc4cfcbf4b862adf15ac8eca01c15944d2cabf32a47d07e3266e1071",
       "size": 1500,
       "groups": [
         "custom_qpa",
@@ -177,8 +177,8 @@
     },
     {
       "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
-      "sha256": "50b3a200d24c0737ea0684faefb8527cab500d4fef4c5d3ec3c71417dfd8d9f0",
-      "size": 1000,
+      "sha256": "872524faca621ab9b0d24c11aa0d0c2f902c48a81959a78dbf90ec2708c08cb4",
+      "size": 1009,
       "groups": [
         "appkit",
         "input_ime",
@@ -1997,17 +1997,17 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 18,
-        "text": "\"sha256_before_prepatch\": \"47162252dcdea33aa7aabfcc2262e8b2846ef0d0706a1dc5a5c629938cc818fb\","
+        "text": "\"sha256_before_prepatch\": \"e1729cf20bf1e67a697fbe40b53ff4ad2011a9c3cfd085a926d58950112811c0\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 19,
-        "text": "\"sha256_after_prepatch\": \"91ea0b0a7e885dc3bbd51cecd938551445ab4834734cf8a5ecd0067dc3a27143\","
+        "text": "\"sha256_after_prepatch\": \"645f1ac84d5e0073c663a7bee75a696e3b4de7b6b6cb7f117087dbd6ac088c25\","
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 20,
-        "text": "\"xz_sha256\": \"0c8d3ed351861ed4d15fbd17450fca9fd2a2c2604ec6292aa6395a9260736d92\","
+        "text": "\"xz_sha256\": \"c072baaa97f9138f7b82f103218ea9913f5ec36b2587e613acc7c8460baaa38d\","
       },
       {
         "path": "runtime/m6/qpa/build_hrtappkit_root.sh",
@@ -11568,7 +11568,7 @@
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
         "line": 7,
-        "text": "\"qpa_source_tree\": \"cc02ad26d04b724180d3da8754b551322e045f8e\""
+        "text": "\"qpa_source_tree\": \"a1ed6ea9b61dc66f88fe4fdc7cd6cd137b6bfe8f\""
       },
       {
         "path": "runtime/m6/prebuilt/libqhrtappkit.lock.json",
@@ -16806,6 +16806,16 @@
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.cpp",
         "line": 293,
         "text": "const qint64 hostWindow = QHrtAppKitWindow::hostWindowFor(topLevel);"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
+        "line": 13,
+        "text": "// this revision pairs it with QHrtAppKitWindow's per-top-level host registry so"
+      },
+      {
+        "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
+        "line": 14,
+        "text": "// the real New-document modal can obtain and present through its own NSWindow."
       },
       {
         "path": "runtime/m6/qpa/qhrtappkitbackingstore.h",
