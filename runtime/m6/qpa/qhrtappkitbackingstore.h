@@ -10,8 +10,8 @@ QT_BEGIN_NAMESPACE
 // M11 diagnostic builds generate document hierarchy inventory, delayed focus,
 // composition fallback, a bounded editor-materialization wait, and Linux/X11
 // native key metadata.  The stable backing-store class ABI remains unchanged;
-// this revision retries the Qt 5.11.3 build after making the chained native-key
-// generator independent of qmake's current working directory.
+// this revision triggers the Qt 5.11.3 rebuild with the complete credible-
+// editor generator invariant audit.
 class QHrtAppKitBackingStore : public QOffscreenBackingStore
 {
 public:
