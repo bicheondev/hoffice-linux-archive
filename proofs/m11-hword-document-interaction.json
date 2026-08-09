@@ -1,8 +1,8 @@
 {
-  "schema": 4,
+  "schema": 5,
   "milestone": "M11-korean-hword-input",
   "status": "PARTIAL_PASS",
-  "classification": "HWORD_CHROME_ACCEPTED_KEY_EDITOR_NOT_PROVEN",
+  "classification": "HWORD_FULL_PRODUCT_RESTORED_EDITOR_NOT_MATERIALIZED",
   "workflow_run": "31295686223",
   "commit": "053e5325734087a79679f762a24bec43d276304a",
   "host_run": "31295600664",
@@ -138,8 +138,10 @@
   "credible_direct_receiver_classes": [],
   "editor_materialized_classes": [],
   "prepared_editor_classes": [],
-  "raw_chrome_acceptance_classes": [
-    "hanul::DocumentTabImpl"
-  ],
-  "proof_gate": "credible HWord editor KeyPress acceptance plus post-capture visual change"
+  "raw_chrome_acceptance_classes": [],
+  "proof_gate": "credible HWord editor KeyPress acceptance plus post-capture visual change",
+  "full_product_payload_restored": true,
+  "full_product_payload_entry_count": 21640,
+  "full_product_payload_file_bytes": 2958572712,
+  "full_product_payload_manifest_sha256": "6e3cd25ad8268cc425768933504c611cb66cd26bbba75679fbe09857cc51a24c"
 }
