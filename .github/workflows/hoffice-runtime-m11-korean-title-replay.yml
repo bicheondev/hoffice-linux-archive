@@ -5,6 +5,7 @@ on:
     branches: [codex/hoffice-runtime-from-scratch]
     paths:
       - 'runtime/m11/run_korean_title_staged_replay.sh'
+      - 'runtime/m11/harden_text_input_proof.py'
       - '.github/workflows/hoffice-runtime-m11-korean-title-replay.yml'
   workflow_dispatch:
 
@@ -19,8 +20,8 @@ concurrency:
 env:
   PREPARED_RUN_ID: '31235068358'
   HOST_RUN_ID: '31272935552'
-  QPA_RUN_ID: '31293494359'
-  QPA_ARTIFACT_DIGEST: da16de2d896a500743bb9fdca2e1e642e915f4c98f3144df6c41d3c87c0087d1
+  QPA_RUN_ID: '31294953477'
+  QPA_ARTIFACT_DIGEST: 39d85aa902c9e8a92325d69c21c4b8535d06396ee59603e71613068c0b212dff
   ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
   RELEASE_TAG: linux-11.20-series
   PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
@@ -57,6 +58,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: runtime/m11/run_korean_title_staged_replay.sh
 
+      - name: Harden editor-level text credit
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -s diagnostics/m11-korean-title-staged-latest.json
+          test -s build/proof/stderr.txt
+          python3 runtime/m11/harden_text_input_proof.py
+
       - name: Commit the durable M11 input frontier
         if: always()
         run: |
@@ -65,14 +74,10 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add diagnostics/m11-korean-title-staged-*.json \
                   diagnostics/m11-korean-title-staged-latest.md 2>/dev/null || true
-          if test -f proofs/m11-hword-document-interaction.json; then
-            git add proofs/m11-hword-document-interaction.json
-          fi
-          if test -f proofs/m11-hword-text-input.json; then
-            git add proofs/m11-hword-text-input.json
-          fi
+          git add -A -- proofs/m11-hword-document-interaction.json \
+                        proofs/m11-hword-text-input.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'diagnostic: classify Korean-title HWord staged input'
+          git commit -m 'diagnostic: classify credible-editor HWord input'
           for attempt in $(seq 1 20); do
             if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
               exit 0
