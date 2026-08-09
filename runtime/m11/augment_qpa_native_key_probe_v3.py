@@ -39,12 +39,18 @@ def main() -> None:
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
 
+    generator = Path(__file__).with_name(
+        "augment_qpa_native_key_probe_v2.py"
+    )
+    if not generator.is_file():
+        raise SystemExit(f"native-key v2 generator not found: {generator}")
+
     with tempfile.TemporaryDirectory(prefix="hrt-m11-keyroute-v3-") as temporary:
         intermediate = Path(temporary) / "native-key-v2.cpp"
         subprocess.run(
             [
                 sys.executable,
-                "runtime/m11/augment_qpa_native_key_probe_v2.py",
+                str(generator),
                 str(args.source),
                 str(intermediate),
             ],
@@ -246,6 +252,7 @@ static void m11LinuxNativeKeyFields(int key, quint32 hostNative,
         "timer.elapsed() < 1500": 0,
         "const bool rawWindowAccepted": 1,
         "const bool windowAccepted = rawWindowAccepted": 1,
+        "augment_qpa_native_key_probe_v2.py": 1,
     }
     for marker, expected in required.items():
         actual = text.count(marker)
