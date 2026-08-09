@@ -5,12 +5,14 @@ on:
     branches: [codex/hoffice-runtime-from-scratch]
     paths:
       - 'runtime/m11/augment_appkit_korean_input_capture.py'
+      - 'runtime/m11/augment_clock_nanosleep.py'
       - 'runtime/m10/augment_appkit_input_capture.py'
       - 'runtime/m10/route_synthetic_events_directly.py'
       - 'runtime/m10/augment_fs_compat.py'
       - 'runtime/m10/augment_clone_compat_v2.py'
       - 'runtime/m10/augment_clone_compat_v4.py'
       - 'runtime/m10/augment_clone_compat_v6.py'
+      - 'runtime/m10/augment_clone_compat_v7.py'
       - 'runtime/m10/clone_trampoline.h'
       - 'runtime/m10/clone_trampoline.S'
       - 'runtime/m9/augment_stack_locale.py'
@@ -88,16 +90,18 @@ jobs:
             build/generated/stage6.c build/generated/stage7.c
           python3 runtime/m3/augment_posix_basics.py \
             build/generated/stage7.c build/generated/stage8.c
-          python3 runtime/m10/augment_fs_compat.py \
+          python3 runtime/m11/augment_clock_nanosleep.py \
             build/generated/stage8.c build/generated/stage9.c
-          python3 runtime/m3/augment_connect.py \
+          python3 runtime/m10/augment_fs_compat.py \
             build/generated/stage9.c build/generated/stage10.c
-          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+          python3 runtime/m3/augment_connect.py \
             build/generated/stage10.c build/generated/stage11.c
-          python3 runtime/m3/augment_darwin_syscall_abi.py \
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
             build/generated/stage11.c build/generated/stage12.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage12.c build/generated/stage13.c
           python3 runtime/m10/augment_clone_compat_v4.py \
-            build/generated/stage12.c build/generated/syscall_bridge.c
+            build/generated/stage13.c build/generated/syscall_bridge.c
 
           python3 - <<'PY'
           from pathlib import Path
@@ -118,6 +122,9 @@ jobs:
           grep -F 'case LINUX_SYS_CHMOD:' build/generated/syscall_bridge.c
           grep -F 'case LINUX_SYS_FSTATFS:' build/generated/syscall_bridge.c
           grep -F 'case LINUX_SYS_EVENTFD2:' build/generated/syscall_bridge.c
+          grep -F 'case LINUX_SYS_CLOCK_NANOSLEEP:' \
+            build/generated/syscall_bridge.c
+          grep -F 'HRT M11 SLEEP: clock=' build/generated/syscall_bridge.c
           grep -F 'case LINUX_SYS_CLONE:' build/generated/syscall_bridge.c
           grep -F 'case LINUX_SYS_CHDIR:' build/generated/syscall_bridge.c
           grep -F 'pthread_create(' build/generated/syscall_bridge.c
@@ -206,7 +213,7 @@ jobs:
           input_source = Path('runtime/m8/appkit_input.m').read_text(
               encoding='utf-8')
           lock = {
-              'schema': 2,
+              'schema': 3,
               'workflow_run': os.environ['GITHUB_RUN_ID'],
               'commit': os.environ['GITHUB_SHA'],
               'binary': str(binary),
@@ -229,6 +236,11 @@ jobs:
                   'fstatfs': 'case LINUX_SYS_FSTATFS:' in bridge,
                   'eventfd2': 'case LINUX_SYS_EVENTFD2:' in bridge,
               },
+              'timing_syscalls': {
+                  'clock_nanosleep':
+                      'case LINUX_SYS_CLOCK_NANOSLEEP:' in bridge,
+                  'bounded_trace': 'HRT M11 SLEEP: clock=' in bridge,
+              },
               'thread_syscalls': {
                   'clone': 'case LINUX_SYS_CLONE:' in bridge,
                   'chdir': 'case LINUX_SYS_CHDIR:' in bridge,
@@ -245,6 +257,7 @@ jobs:
           assert lock['document_focus_stage']
           assert lock['text_stage']
           assert all(lock['filesystem_syscalls'].values())
+          assert all(lock['timing_syscalls'].values())
           assert all(lock['thread_syscalls'].values())
           Path('build/output/fs-korean-host-lock.json').write_text(
               json.dumps(lock, indent=2) + '\n', encoding='utf-8')
