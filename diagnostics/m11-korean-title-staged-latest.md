@@ -1,8 +1,11 @@
-# Korean HWord complete-product staged input
+# Korean HWord product closure-fill staged input
 
-- Status: `PARTIAL_PASS`
-- Classification: `HWORD_FULL_PRODUCT_RESTORED_EDITOR_NOT_MATERIALIZED`
-- Product entries restored: `21640`
-- Product file bytes: `2958572712`
+- Status: `DIAGNOSTIC`
+- Classification: `HWORD_KOREAN_STAGED_INPUT_NOT_ACCEPTED`
+- Package entries: `21640`
+- Missing entries filled: `14065`
+- Existing entries preserved: `7575`
+- Prepatched objects preserved: `108`
+- Product file bytes: `3008948584`
 - Credible editor key press: `False`
 - Editor classes: `[]`
