@@ -21,9 +21,9 @@ concurrency:
 
 env:
   PREPARED_RUN_ID: '31235068358'
-  HOST_RUN_ID: '31295600664'
-  QPA_RUN_ID: '31294953477'
-  QPA_ARTIFACT_DIGEST: 39d85aa902c9e8a92325d69c21c4b8535d06396ee59603e71613068c0b212dff
+  HOST_RUN_ID: '31306136056'
+  QPA_RUN_ID: '31305695836'
+  QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
   ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
   RELEASE_TAG: linux-11.20-series
   PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
@@ -58,6 +58,7 @@ jobs:
       - name: Generate and run the product closure-fill replay
         env:
           GH_TOKEN: ${{ github.token }}
+          HRT_M11_MODAL_CAPTURE_PATH: ${{ github.workspace }}/build/proof/hword-modal-dialog.png
         run: |
           set -euxo pipefail
           mkdir -p build/generated
@@ -106,6 +107,7 @@ jobs:
           import hashlib
           import json
           import os
+          import struct
           from pathlib import Path
 
           summary_path = Path('diagnostics/m11-korean-title-staged-latest.json')
@@ -140,6 +142,22 @@ jobs:
           if before != after:
               raise SystemExit('prepatched object integrity changed during fill')
 
+          modal_path = Path('build/proof/hword-modal-dialog.png')
+          modal_capture = None
+          if modal_path.is_file() and modal_path.stat().st_size > 0:
+              modal_data = modal_path.read_bytes()
+              if modal_data[:8] != b'\x89PNG\r\n\x1a\n':
+                  raise SystemExit('modal capture is not a PNG')
+              modal_width, modal_height = struct.unpack(
+                  '>II', modal_data[16:24])
+              modal_capture = {
+                  'path': str(modal_path),
+                  'width': modal_width,
+                  'height': modal_height,
+                  'size': len(modal_data),
+                  'sha256': hashlib.sha256(modal_data).hexdigest(),
+              }
+
           for legacy_key in (
               'full_product_payload_restored',
               'full_product_payload_entry_count',
@@ -147,7 +165,7 @@ jobs:
               'full_product_payload_manifest_sha256',
           ):
               result.pop(legacy_key, None)
-          result['schema'] = max(int(result.get('schema', 0)), 6)
+          result['schema'] = max(int(result.get('schema', 0)), 7)
           result['product_closure_fill_completed'] = True
           result['product_package_entry_count'] = count
           result['product_missing_entry_count'] = missing_count
@@ -161,7 +179,16 @@ jobs:
               missing_manifest.read_bytes()).hexdigest()
           result['product_existing_manifest_sha256'] = hashlib.sha256(
               existing_manifest.read_bytes()).hexdigest()
-          if (result.get('document_interaction_credited') and
+          result['modal_native_window_materialized'] = modal_capture is not None
+          result['modal_native_window_capture'] = modal_capture
+          if (modal_capture is not None and
+                  result.get('document_interaction_credited') and
+                  not result.get('text_interaction_credited') and
+                  not result.get('editor_materialized_classes')):
+              result['classification'] = (
+                  'HWORD_PRODUCT_CLOSURE_MODAL_MATERIALIZED_'
+                  'EDITOR_NOT_MATERIALIZED')
+          elif (result.get('document_interaction_credited') and
                   not result.get('text_interaction_credited') and
                   not result.get('editor_materialized_classes')):
               result['classification'] = (
@@ -187,6 +214,8 @@ jobs:
               f"- Existing entries preserved: `{existing_count}`\n"
               f"- Prepatched objects preserved: `{before['object_count']}`\n"
               f"- Product file bytes: `{byte_count}`\n"
+              f"- Native modal materialized: `{modal_capture is not None}`\n"
+              f"- Native modal capture: `{modal_capture}`\n"
               f"- Credible editor key press: `{result.get('credible_editor_key_press')}`\n"
               f"- Editor classes: `{result.get('editor_materialized_classes', [])}`\n",
               encoding='utf-8')
@@ -203,7 +232,7 @@ jobs:
                   diagnostics/m11-korean-title-staged-latest.md 2>/dev/null || true
           git add -A -- proofs
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'diagnostic: classify product-closure HWord input'
+          git commit -m 'diagnostic: classify native-modal HWord input'
           for attempt in $(seq 1 20); do
             if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
               exit 0
