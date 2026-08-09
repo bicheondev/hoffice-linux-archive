@@ -91,33 +91,17 @@ def arm_document_io_stages(path: Path) -> None:
         "extern void hrt_m11_docio_mark_stage(unsigned int stage);\n",
         "document-I/O stage declaration",
     )
-    text = replace_once(
-        text,
-        "        if (g_m10_synthetic_stage == 0u) {\n"
-        "            const NSRect bounds =\n",
-        "        if (g_m10_synthetic_stage == 0u) {\n"
-        "            hrt_m11_docio_mark_stage(1u);\n"
-        "            const NSRect bounds =\n",
-        "toolbar document-I/O stage",
-    )
-    text = replace_once(
-        text,
-        "        if (g_m10_synthetic_stage == 1u) {\n"
-        "            const NSRect bounds =\n",
-        "        if (g_m10_synthetic_stage == 1u) {\n"
-        "            hrt_m11_docio_mark_stage(2u);\n"
-        "            const NSRect bounds =\n",
-        "document-focus I/O stage",
-    )
-    text = replace_once(
-        text,
-        "        if (g_m10_synthetic_stage == 2u) {\n"
-        "            NSArray<NSEvent *> *text_input = @[\n",
-        "        if (g_m10_synthetic_stage == 2u) {\n"
-        "            hrt_m11_docio_mark_stage(3u);\n"
-        "            NSArray<NSEvent *> *text_input = @[\n",
-        "text-input I/O stage",
-    )
+    for stage, label in (
+        (0, "toolbar document-I/O stage"),
+        (1, "document-focus I/O stage"),
+        (2, "text-input I/O stage"),
+    ):
+        guard = f"        if (g_m10_synthetic_stage == {stage}u) {{\n"
+        replacement = (
+            guard
+            + f"            hrt_m11_docio_mark_stage({stage + 1}u);\n"
+        )
+        text = replace_once(text, guard, replacement, label)
 
     required = {
         "extern void hrt_m11_docio_mark_stage": 1,
