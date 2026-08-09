@@ -8,7 +8,9 @@ used an exact block anchor and rejected that representational difference.
 
 Patch only that one generator section in memory.  Every other v1 source anchor
 and invariant remains unchanged.  The replacement still requires exactly one
-``hrt_m8_input_attach`` block and fails closed otherwise.
+``hrt_m8_input_attach`` block and fails closed otherwise.  ``re.sub`` is given
+a callable replacement so it cannot reinterpret ``\\n`` in the Objective-C
+source as a physical newline inside the generated string literal.
 """
 from __future__ import annotations
 
@@ -53,7 +55,7 @@ def main() -> None:
     fflush(stderr);
 '''
     text, attach_count = attach_pattern.subn(
-        attach_replacement, text, count=1)
+        lambda _match: attach_replacement, text, count=1)
     if attach_count != 1:
         raise SystemExit(
             f"primary-only input attachment: expected one regex anchor, "
