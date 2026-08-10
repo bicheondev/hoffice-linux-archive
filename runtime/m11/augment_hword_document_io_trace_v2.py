@@ -10,13 +10,21 @@ Patch only the generator's function-range helper in memory.  The replacement
 uses an opening brace already present in an exact one-line signature, otherwise
 finds the first brace after a multiline signature, and then scans to the
 matching close.  Every v1 anchor and marker audit remains intact.
+
+The public v2 entry point then runs the reviewed v3 open-callsite postprocessor.
+The nested v2 invocation made by v3 is identified both by an explicit
+environment guard and by v3's private temporary-directory prefix, preventing
+recursion while preserving direct invocation of either entry point.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
+import subprocess
+import sys
 
 
-def main() -> None:
+def run_brace_scoped_v2() -> None:
     generator = Path(__file__).with_name(
         "augment_hword_document_io_trace.py"
     )
@@ -89,6 +97,38 @@ def main() -> None:
     if entry is None:
         raise SystemExit("patched document-I/O generator has no main entry")
     entry()
+
+
+def should_run_v3() -> bool:
+    if os.environ.get("HRT_M11_DOCIO_V3_INNER") == "1":
+        return False
+    if len(sys.argv) != 3:
+        return False
+    output_parent = Path(sys.argv[2]).parent.name
+    if output_parent.startswith("hrt-m11-docio-v3-"):
+        return False
+    return True
+
+
+def run_v3() -> None:
+    generator = Path(__file__).with_name(
+        "augment_hword_document_io_trace_v3.py"
+    )
+    if not generator.is_file():
+        raise SystemExit(f"open-callsite v3 generator not found: {generator}")
+    environment = os.environ.copy()
+    environment["HRT_M11_DOCIO_V3_INNER"] = "1"
+    subprocess.run(
+        [sys.executable, str(generator), sys.argv[1], sys.argv[2]],
+        check=True,
+        env=environment,
+    )
+
+
+def main() -> None:
+    run_brace_scoped_v2()
+    if should_run_v3():
+        run_v3()
 
 
 if __name__ == "__main__":
