@@ -1,0 +1,181 @@
+name: HOffice runtime M5 HWord replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m5-hword-replay.yml'
+      - 'runtime/m3/**'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: hrt-m5-hword-replay-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN_ID: '31102898765'
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+
+jobs:
+  replay-on-apple-silicon:
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the already verified HWord shadow root
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/m5
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Verify and expand the transfer object
+        run: |
+          set -euxo pipefail
+          shasum -a 256 -c build/m5/hword-rootfs.tar.gz.sha256
+          mkdir -p build/m5/rootfs build/m5/host \
+                   build/m5/generated build/m5/proof
+          tar -xzf build/m5/hword-rootfs.tar.gz -C build/m5/rootfs
+          test -s build/m5/rootfs/.hrt-closure-v1.json
+          test -s build/m5/rootfs/.hrt-prepatched-v1
+          printf '%s  %s\n' "$PROGRAM_SHA256" \
+            "build/m5/rootfs${PROGRAM}" | shasum -a 256 -c -
+
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/m5/proof/x86-page-size.txt
+
+      - name: Compile the instrumented clean-room HWord host
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c \
+            build/m5/generated/syscall_bridge.c
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('build/m5/generated/syscall_bridge.c')
+          text = path.read_text()
+          text = text.replace('#define M3_TRACE_LIMIT 256u',
+                              '#define M3_TRACE_LIMIT 8192u')
+          path.write_text(text)
+          PY
+          grep -q '#define M3_TRACE_LIMIT 8192u' \
+            build/m5/generated/syscall_bridge.c
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Iruntime/m3 -Iruntime/m1 \
+            runtime/m3/main.c runtime/m1/common.c runtime/m3/elf_map.c \
+            runtime/m3/stack.c runtime/m3/patch.c \
+            build/m5/generated/syscall_bridge.c runtime/m1/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/m5/host/hrt-m5-replay
+          file build/m5/host/hrt-m5-replay \
+            | tee build/m5/proof/host-file.txt
+          codesign --force --sign - --timestamp=none \
+            build/m5/host/hrt-m5-replay
+          codesign --verify --strict build/m5/host/hrt-m5-replay
+
+      - name: Run exact HWord with the bundled offscreen QPA
+        run: |
+          set -uxo pipefail
+          : >build/m5/proof/stdout.txt
+          : >build/m5/proof/stderr.txt
+          /usr/bin/arch -x86_64 build/m5/host/hrt-m5-replay \
+            --root "$PWD/build/m5/rootfs" \
+            --program "$PROGRAM" \
+            >build/m5/proof/stdout.txt \
+            2>build/m5/proof/stderr.txt &
+          guest_pid=$!
+          reached_deadline=1
+          for _ in $(jot 240); do
+            if ! kill -0 "$guest_pid" 2>/dev/null; then
+              reached_deadline=0
+              break
+            fi
+            sleep 0.05
+          done
+          if [ "$reached_deadline" -ne 0 ]; then
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$guest_pid" \
+              >build/m5/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$guest_pid" 1 1 \
+              -file build/m5/proof/sample.txt >/dev/null 2>&1 || true
+            kill -TERM "$guest_pid" 2>/dev/null || true
+            sleep 0.2
+            kill -KILL "$guest_pid" 2>/dev/null || true
+          fi
+          set +e
+          wait "$guest_pid"
+          status=$?
+          set -e
+          if [ "$reached_deadline" -ne 0 ]; then status=124; fi
+          printf '%s\n' "$status" >build/m5/proof/exit-status.txt
+          printf '%s\n' "$reached_deadline" \
+            >build/m5/proof/reached-deadline.txt
+          echo '--- stderr tail ---'
+          tail -n 800 build/m5/proof/stderr.txt || true
+          echo '--- stdout tail ---'
+          tail -n 200 build/m5/proof/stdout.txt || true
+          echo '--- process ---'
+          cat build/m5/proof/process.txt 2>/dev/null || true
+          echo '--- sample key frames ---'
+          grep -E 'Call graph:|Thread_.*DispatchQueue|hrt-m5|libqoffscreen|Qt5|0x0*[0-9a-f]{6,}' \
+            build/m5/proof/sample.txt 2>/dev/null | head -n 240 || true
+          echo "--- status: $status; reached-deadline: $reached_deadline ---"
+
+      - name: Classify the M5 boundary without over-crediting it
+        run: |
+          set -euxo pipefail
+          grep -Fx \
+            'hrt-m3: verified instruction-boundary shadow root enabled' \
+            build/m5/proof/stderr.txt
+          grep -E 'interpreter .*syscalls=[1-9][0-9]*' \
+            build/m5/proof/stderr.txt
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          stderr = Path('build/m5/proof/stderr.txt').read_text(errors='replace')
+          stdout = Path('build/m5/proof/stdout.txt').read_text(errors='replace')
+          status = int(Path('build/m5/proof/exit-status.txt').read_text())
+          deadline = int(Path('build/m5/proof/reached-deadline.txt').read_text())
+          summary = {
+              'status': status,
+              'reached_deadline': bool(deadline),
+              'offscreen_plugin_observed': 'libqoffscreen.so' in stderr,
+              'qt_plugin_diagnostics_observed': 'QFactoryLoader' in stderr,
+              'fatal_signal_observed': 'fatal signal' in stderr,
+              'unsupported_syscalls': sorted(set(
+                  line.rsplit(' ', 1)[-1]
+                  for line in stderr.splitlines()
+                  if 'Linux syscall ENOSYS ' in line
+              )),
+              'stdout_tail': stdout[-1000:],
+          }
+          Path('build/m5/proof/summary.json').write_text(
+              json.dumps(summary, indent=2) + '\n')
+          print(json.dumps(summary, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m5-hword-replay-proof
+          path: |
+            build/m5/host/hrt-m5-replay
+            build/m5/generated/syscall_bridge.c
+            build/m5/proof
+          if-no-files-found: warn
+          retention-days: 14

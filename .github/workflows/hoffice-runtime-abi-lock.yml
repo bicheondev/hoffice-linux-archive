@@ -1,0 +1,103 @@
+name: HOffice runtime ABI lock
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/tools/lock_hoffice_abi.py'
+      - '.github/workflows/hoffice-runtime-abi-lock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  EXPECTED_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  LOCK_JSON: runtime/locks/hoffice-11.20.0.1520-h1-abi.json
+  LOCK_MARKDOWN: runtime/locks/hoffice-11.20.0.1520-h1-abi.md
+
+jobs:
+  lock:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/hoffice-runtime-from-scratch
+
+      - name: Install deterministic ELF inspection tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            binutils file python3 zstd
+
+      - name: Download and verify the exact HOffice package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/deb build/root build/control runtime/locks
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" \
+            --dir build/deb
+          printf '%s  %s\n' "$EXPECTED_SHA256" "build/deb/$ASSET_NAME" \
+            | sha256sum --check --strict -
+          dpkg-deb --control "build/deb/$ASSET_NAME" build/control
+          dpkg-deb --extract "build/deb/$ASSET_NAME" build/root
+
+      - name: Generate the machine-readable ABI lock
+        run: |
+          set -euxo pipefail
+          python3 runtime/tools/lock_hoffice_abi.py \
+            --root build/root \
+            --control build/control \
+            --output "$LOCK_JSON" \
+            --markdown "$LOCK_MARKDOWN"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path('runtime/locks/hoffice-11.20.0.1520-h1-abi.json')
+          report = json.loads(path.read_text(encoding='utf-8'))
+          package = report['source_package']
+          assert package['package'] == 'hoffice'
+          assert package['version'] == '11.20.0.1520+h1'
+          assert package['architecture'] == 'amd64'
+          assert set(report['applications']) == {'hwp', 'hword', 'hcell', 'hshow'}
+          for name, app in report['applications'].items():
+              assert app['header']['machine'] == 'Advanced Micro Devices X86-64'
+              assert app['program_headers']['interpreter']
+              assert app['dynamic']['needed']
+              assert len(app['sha256']) == 64
+              print(name, app['path'], app['program_headers']['interpreter'],
+                    len(app['dynamic']['needed']))
+          PY
+          cat "$LOCK_MARKDOWN"
+
+      - name: Upload the exact lock and extracted control metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: hoffice-11.20.0.1520-h1-abi-lock
+          path: |
+            runtime/locks/hoffice-11.20.0.1520-h1-abi.json
+            runtime/locks/hoffice-11.20.0.1520-h1-abi.md
+            build/control
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Commit deterministic lock files to the runtime branch
+        run: |
+          set -euxo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$LOCK_JSON" "$LOCK_MARKDOWN"
+          if git diff --cached --quiet; then
+            echo 'ABI lock is already current.'
+            exit 0
+          fi
+          git commit -m 'runtime: lock HOffice 11.20.0.1520+h1 ELF ABI'
+          git push origin HEAD:codex/hoffice-runtime-from-scratch

@@ -1,0 +1,162 @@
+name: HOffice runtime M5 HWord directory trace
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m3/augment_directory_syscalls.py'
+      - 'runtime/m3/augment_directory_trace.py'
+      - '.github/workflows/hoffice-runtime-m5-hword-dirtrace.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: hrt-m5-hword-dirtrace-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN_ID: '31102898765'
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+
+jobs:
+  trace-directory-bridge:
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Create the exact case-sensitive guest root
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated build/host build/proof
+          expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)
+          actual=$(shasum -a 256 build/input/hword-rootfs.tar.gz | awk '{print $1}')
+          test "$actual" = "$expected"
+          image="$RUNNER_TEMP/hrt-m5-dirtrace.sparsebundle"
+          root="$RUNNER_TEMP/hrt-m5-dirtrace-root"
+          rm -rf "$image" "$root"
+          mkdir -p "$root"
+          if ! hdiutil create -quiet -size 8g -fs APFSX \
+               -volname HRTM5T -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 8g -fs HFSX \
+              -volname HRTM5T -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >> "$GITHUB_ENV"
+          tar -xzf build/input/hword-rootfs.tar.gz -C "$root"
+          test -f "$root$PROGRAM"
+          test -d "$root/opt/hnc/hoffice11/Bin/Hword"
+          test -f "$root/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so"
+          python3 - "$root" "$PROGRAM" "$PROGRAM_SHA256" <<'PY'
+          import hashlib, json, pathlib, sys
+          root=pathlib.Path(sys.argv[1]); guest=sys.argv[2]
+          marker=json.loads((root/'.hrt-prepatched-v1').read_text())
+          record,=[x for x in marker['objects'] if x['path']==guest]
+          assert record['sha256_before']==sys.argv[3]
+          assert hashlib.sha256((root/guest.lstrip('/')).read_bytes()).hexdigest()==record['sha256_after']
+          PY
+
+      - name: Generate and compile the traced bridge
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_trace.py \
+            build/generated/stage2.c build/generated/syscall_bridge.c
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('build/generated/syscall_bridge.c')
+          p.write_text(p.read_text().replace('#define M3_TRACE_LIMIT 256u',
+                                             '#define M3_TRACE_LIMIT 8192u'))
+          PY
+          grep -Fq 'raw_trace_directory("host",' build/generated/syscall_bridge.c
+          grep -Fq 'raw_trace_directory("record",' build/generated/syscall_bridge.c
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Iruntime/m3 -Iruntime/m1 \
+            runtime/m3/main.c runtime/m1/common.c runtime/m3/elf_map.c \
+            runtime/m3/stack.c runtime/m3/patch.c \
+            build/generated/syscall_bridge.c runtime/m1/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/host/hrt-m5-dirtrace
+          file build/host/hrt-m5-dirtrace | tee build/proof/host-file.txt
+          codesign --force --sign - --timestamp=none build/host/hrt-m5-dirtrace
+          codesign --verify --strict build/host/hrt-m5-dirtrace
+
+      - name: Trace exact HWord through Qt directory discovery
+        run: |
+          set -uxo pipefail
+          /usr/bin/arch -x86_64 build/host/hrt-m5-dirtrace \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          deadline=1
+          for _ in $(jot 160); do
+            if ! kill -0 "$pid" 2>/dev/null; then deadline=0; break; fi
+            sleep 0.05
+          done
+          if [ "$deadline" -ne 0 ]; then
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.2
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e
+          wait "$pid"
+          status=$?
+          set -e
+          if [ "$deadline" -ne 0 ]; then status=124; fi
+          printf '%s\n' "$status" >build/proof/exit-status.txt
+          grep -E 'getdents stage=|QFactoryLoader|libqoffscreen|Qt platform plugin|ENOSYS 217|ENOSYS 157|fatal signal' \
+            build/proof/stderr.txt | tee build/proof/key-lines.txt || true
+          cat build/proof/key-lines.txt
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          text=Path('build/proof/stderr.txt').read_text(errors='replace')
+          records=[]
+          for line in text.splitlines():
+              if 'getdents stage=' in line:
+                  records.append(line)
+          summary={
+              'status':int(Path('build/proof/exit-status.txt').read_text()),
+              'directory_trace':records,
+              'offscreen_observed':'libqoffscreen.so' in text,
+              'qt_platform_error':'Qt platform plugin' in text,
+              'unsupported':sorted({int(m.group(1)) for line in text.splitlines()
+                  if (m:=re.search(r'Linux syscall ENOSYS ([0-9]+)',line))}),
+          }
+          Path('build/proof/summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+          print(json.dumps(summary,indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m5-hword-dirtrace-proof
+          path: |
+            build/generated/syscall_bridge.c
+            build/host/hrt-m5-dirtrace
+            build/proof
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach guest filesystem
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true

@@ -1,0 +1,279 @@
+name: HOffice runtime complete proof frontier v3
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-proof-frontier-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-complete-proof-frontier-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BRANCH: codex/hoffice-runtime-from-scratch
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 170
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/hoffice-runtime-from-scratch
+          fetch-depth: 0
+
+      - name: Wait for all launched evidence producers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/frontier-v3 diagnostics
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import time
+          from pathlib import Path
+
+          workflows = [
+              'hoffice-runtime-augmentors-static.yml',
+              'hoffice-runtime-m5-qoffscreen-symbol-inventory.yml',
+              'hoffice-runtime-m5-qt-symbol-inventory.yml',
+              'hoffice-runtime-m6-hword-symbol-inventory.yml',
+              'hoffice-runtime-m5-m6-qoffscreen-probe-matrix-v2.yml',
+              'hoffice-runtime-m6-qt-gui-probe-matrix-v3.yml',
+              'hoffice-runtime-m6-hword-candidate-probes-v3.yml',
+              'hoffice-runtime-m7-hostcall-inventory.yml',
+          ]
+          repository = os.environ['GITHUB_REPOSITORY']
+          branch = os.environ['BRANCH']
+          deadline = time.monotonic() + 155 * 60
+          latest = {}
+          while True:
+              unfinished = []
+              for workflow in workflows:
+                  completed = subprocess.run([
+                      'gh', 'run', 'list', '--repo', repository,
+                      '--workflow', workflow, '--branch', branch,
+                      '--limit', '1', '--json',
+                      'databaseId,status,conclusion,headSha,createdAt,'
+                      'updatedAt,url,workflowName',
+                  ], text=True, stdout=subprocess.PIPE,
+                     stderr=subprocess.PIPE, check=False)
+                  if completed.returncode != 0:
+                      latest[workflow] = {
+                          'status': 'lookup-error',
+                          'error': completed.stderr.strip(),
+                      }
+                      continue
+                  rows = json.loads(completed.stdout or '[]')
+                  if not rows:
+                      latest[workflow] = {'status': 'not-found'}
+                      continue
+                  latest[workflow] = rows[0]
+                  if rows[0].get('status') != 'completed':
+                      unfinished.append(workflow)
+              Path('build/frontier-v3/workflow-runs.json').write_text(
+                  json.dumps(latest, indent=2) + '\n')
+              print(json.dumps(latest, indent=2))
+              if not unfinished or time.monotonic() >= deadline:
+                  break
+              time.sleep(30)
+          PY
+
+      - name: Fetch the complete emitted evidence set
+        run: |
+          set -euxo pipefail
+          git fetch origin "$BRANCH"
+          git reset --hard "origin/$BRANCH"
+
+      - name: Build the complete machine-readable frontier
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          def read_json(path):
+              path = Path(path)
+              if not path.is_file():
+                  return None
+              try:
+                  return json.loads(path.read_text())
+              except Exception as error:
+                  return {'parse_error': str(error)}
+
+          def proof_records(pattern):
+              records=[]
+              for path in sorted(Path().glob(pattern)):
+                  data=read_json(path)
+                  if data is None:
+                      continue
+                  records.append({
+                      'path':str(path),
+                      'accepted':data.get('selected_symbol_entered') is True,
+                      'milestone':data.get('milestone'),
+                      'target_elf':data.get('target_elf_resolved') or
+                                   data.get('plugin'),
+                      'selected_symbol':data.get('selected_symbol'),
+                      'workflow_run':data.get('workflow_run'),
+                      'status':data.get('status'),
+                      'reached_deadline':data.get('reached_deadline'),
+                      'offscreen_library_loaded':
+                          data.get('offscreen_library_loaded'),
+                      'pipe2_called':data.get('pipe2_called'),
+                      'unsupported_syscalls':
+                          data.get('unsupported_syscalls'),
+                      'fatal_signals':data.get('fatal_signals'),
+                      'parse_error':data.get('parse_error'),
+                  })
+              return records
+
+          m3=read_json('proofs/m3-hword-entry.json')
+          qoffscreen=proof_records('proofs/v2/*.json')
+          qt=proof_records('proofs/qt-v3/*.json')
+          hword=proof_records('proofs/hword-v3/*.json')
+          accepted_q=[item for item in qoffscreen if item['accepted']]
+          accepted_qt=[item for item in qt if item['accepted']]
+          accepted_hw=[item for item in hword if item['accepted']]
+
+          qoffscreen_order=[
+              'm5-plugin-instance','m5-integration-create',
+              'm5-integration-constructor','m6-create-platform-window',
+              'm6-window-constructor','m6-create-backing-store',
+              'm6-backing-store-constructor','m6-paint-device','m6-flush',
+          ]
+          highest_q=None
+          for identifier in qoffscreen_order:
+              expected=f'proofs/v2/{identifier}.json'
+              if any(item['path']==expected and item['accepted']
+                     for item in qoffscreen):
+                  highest_q=identifier
+
+          qt_priority=[
+              'qgui-create-platform-integration',
+              'platform-integration-factory-create',
+              'qwindow-private-create','qwidget-private-create',
+              'qwindow-set-visible','qbackingstore-begin-paint',
+              'qbackingstore-end-paint','qbackingstore-flush',
+              'qcoreapplication-exec','qeventloop-exec',
+          ]
+          highest_qt=None
+          for identifier in qt_priority:
+              expected=f'proofs/qt-v3/{identifier}.json'
+              if any(item['path']==expected and item['accepted']
+                     for item in qt):
+                  highest_qt=identifier
+
+          inventories={
+              'qoffscreen':read_json(
+                  'diagnostics/qoffscreen-symbol-inventory.json'),
+              'qt':read_json('diagnostics/qt-runtime-symbol-inventory.json'),
+              'hword':read_json('diagnostics/hword-symbol-inventory.json'),
+              'hostcall':read_json(
+                  'diagnostics/hostcall-qpa-inventory.json'),
+              'static_validation':read_json(
+                  'diagnostics/runtime-augmentors-static.json'),
+              'hword_candidate_matrix':read_json(
+                  'diagnostics/hword-candidate-probe-matrix.json'),
+              'hword_candidate_summary':read_json(
+                  'diagnostics/hword-candidate-probe-summary.json'),
+          }
+          workflow_runs=read_json(
+              'build/frontier-v3/workflow-runs.json') or {}
+          frontier={
+              'schema':3,
+              'branch':'codex/hoffice-runtime-from-scratch',
+              'snapshot_workflow_run':'${{ github.run_id }}',
+              'snapshot_commit':'${{ github.sha }}',
+              'm3_exact_hword_entry_pass':bool(
+                  m3 and m3.get('status')=='PASS'),
+              'highest_qoffscreen_boundary':highest_q,
+              'highest_packaged_qt_boundary':highest_qt,
+              'accepted_hword_specific_probe_count':len(accepted_hw),
+              'accepted_qoffscreen_probes':accepted_q,
+              'accepted_packaged_qt_probes':accepted_qt,
+              'accepted_hword_specific_probes':accepted_hw,
+              'all_qoffscreen_probes':qoffscreen,
+              'all_packaged_qt_probes':qt,
+              'all_hword_specific_probes':hword,
+              'inventories':inventories,
+              'workflow_runs':workflow_runs,
+          }
+          Path('diagnostics/runtime-proof-frontier-v3.json').write_text(
+              json.dumps(frontier,indent=2)+'\n')
+
+          lines=[
+              '# HOffice runtime complete proof frontier v3','',
+              f"- M3 exact HWord entry: "
+              f"`{'PASS' if frontier['m3_exact_hword_entry_pass'] else 'PENDING'}`",
+              f"- Highest QOffscreen boundary: "
+              f"`{highest_q or 'none'}`",
+              f"- Highest packaged Qt boundary: "
+              f"`{highest_qt or 'none'}`",
+              f"- Accepted HWord-specific probes: "
+              f"`{len(accepted_hw)}`",'',
+              '## QOffscreen v2','',
+          ]
+          for item in qoffscreen:
+              state='PASS' if item['accepted'] else 'NO PROOF'
+              symbol=item.get('selected_symbol')
+              if isinstance(symbol,dict): symbol=symbol.get('name')
+              lines.append(
+                  f"- **{state}** — `{item['path']}` — `{symbol}`")
+          lines.extend(['','## Packaged Qt v3',''])
+          for item in qt:
+              state='PASS' if item['accepted'] else 'NO PROOF'
+              symbol=item.get('selected_symbol')
+              if isinstance(symbol,dict): symbol=symbol.get('name')
+              lines.append(
+                  f"- **{state}** — `{item['path']}` — `{symbol}`")
+          lines.extend(['','## Exact HWord v3',''])
+          for item in hword:
+              state='PASS' if item['accepted'] else 'NO PROOF'
+              symbol=item.get('selected_symbol')
+              if isinstance(symbol,dict): symbol=symbol.get('name')
+              lines.append(
+                  f"- **{state}** — `{item['path']}` — `{symbol}`")
+          lines.extend(['','## Evidence producers',''])
+          for workflow,run in workflow_runs.items():
+              lines.append(
+                  f"- `{workflow}` — `{run.get('status')}` / "
+                  f"`{run.get('conclusion')}`")
+          Path('diagnostics/runtime-proof-frontier-v3.md').write_text(
+              '\n'.join(lines)+'\n')
+          print(json.dumps({
+              'highest_qoffscreen_boundary':highest_q,
+              'highest_packaged_qt_boundary':highest_qt,
+              'accepted_hword_specific_probe_count':len(accepted_hw),
+          },indent=2))
+          PY
+
+      - name: Commit the complete proof frontier
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/runtime-proof-frontier-v3.json \
+                  diagnostics/runtime-proof-frontier-v3.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: consolidate complete HWord runtime frontier [skip ci]'
+          git pull --rebase origin "$BRANCH"
+          git push origin HEAD:"$BRANCH"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-complete-proof-frontier-v3
+          path: |
+            diagnostics/runtime-proof-frontier-v3.json
+            diagnostics/runtime-proof-frontier-v3.md
+            build/frontier-v3/workflow-runs.json
+          if-no-files-found: warn
+          retention-days: 45

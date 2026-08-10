@@ -1,0 +1,86 @@
+name: HOffice runtime Qt ABI lock
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/tools/lock_hoffice_qt.py'
+      - '.github/workflows/hoffice-runtime-qt-abi-lock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  EXPECTED_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  LOCK_JSON: runtime/locks/hoffice-11.20.0.1520-h1-qt-abi.json
+  LOCK_MD: runtime/locks/hoffice-11.20.0.1520-h1-qt-abi.md
+
+jobs:
+  lock-qt-and-qpa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/hoffice-runtime-from-scratch
+          fetch-depth: 0
+
+      - name: Install deterministic ELF tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            binutils file python3
+
+      - name: Download, verify, and extract the exact package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/deb build/root build/control
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" \
+            --dir build/deb
+          printf '%s  %s\n' "$EXPECTED_SHA256" "build/deb/$ASSET_NAME" \
+            | sha256sum --check --strict -
+          dpkg-deb --extract "build/deb/$ASSET_NAME" build/root
+          dpkg-deb --control "build/deb/$ASSET_NAME" build/control
+
+      - name: Generate the exact bundled Qt/QPA lock
+        run: |
+          set -euxo pipefail
+          python3 runtime/tools/lock_hoffice_qt.py \
+            --root build/root \
+            --control build/control \
+            --output "$LOCK_JSON" \
+            --markdown "$LOCK_MD"
+          python3 -m json.tool "$LOCK_JSON" >/dev/null
+          grep -F 'QPA platform plugins:' "$LOCK_MD"
+          test "$(python3 -c 'import json; print(json.load(open("'"$LOCK_JSON"'"))["summary"]["core_library_count"])')" -ge 3
+
+      - name: Commit the lock to the branch
+        run: |
+          set -euxo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$LOCK_JSON" "$LOCK_MD"
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'runtime: lock exact bundled Qt and QPA ABI [skip ci]'
+          git fetch origin codex/hoffice-runtime-from-scratch
+          git rebase origin/codex/hoffice-runtime-from-scratch
+          git push origin HEAD:codex/hoffice-runtime-from-scratch
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hoffice-11.20.0.1520-h1-qt-abi-lock
+          path: |
+            ${{ env.LOCK_JSON }}
+            ${{ env.LOCK_MD }}
+          if-no-files-found: error
+          retention-days: 7

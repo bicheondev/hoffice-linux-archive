@@ -1,0 +1,156 @@
+name: HOffice runtime M9 latest provider diagnosis v2
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m9/analyze_provider_artifact.py'
+      - 'runtime/m9/augment_int3_caller_probe.py'
+      - '.github/workflows/hoffice-runtime-m9-provider-latest-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m9-latest-provider-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-latest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select the newest complete direct-probe artifact
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          gh api --method GET \
+            "repos/$GITHUB_REPOSITORY/actions/artifacts" \
+            -f name=hrt-m9-hword-throw-int3-caller \
+            -f per_page=100 >build-artifacts.json
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          artifacts=json.loads(Path('build-artifacts.json').read_text())['artifacts']
+          candidates=[item for item in artifacts
+              if not item['expired'] and
+                 item.get('workflow_run',{}).get('head_branch')==
+                    'codex/hoffice-runtime-from-scratch']
+          candidates.sort(key=lambda item:item['created_at'],reverse=True)
+          if not candidates:
+              raise SystemExit('no complete direct-probe artifact exists')
+          selected=candidates[0]
+          with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as output:
+              output.write(f"run_id={selected['workflow_run']['id']}\n")
+              output.write(f"artifact_id={selected['id']}\n")
+              output.write(f"digest={selected.get('digest','')}\n")
+          Path('source-artifact.json').write_text(
+              json.dumps(selected,indent=2)+'\n')
+          print(json.dumps(selected,indent=2))
+          PY
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m9-hword-throw-int3-caller
+          path: build/input
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.source.outputs.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Analyze exact substring arguments and provider outputs
+        run: |
+          set -euxo pipefail
+          mkdir -p build/analysis diagnostics
+          python3 runtime/m9/analyze_provider_artifact.py \
+            build/input build/analysis \
+            --source-run '${{ steps.source.outputs.run_id }}'
+          start=$(cat build/analysis/caller-start.txt)
+          stop=$(cat build/analysis/caller-stop.txt)
+          object=build/analysis/libHwordApp.so
+          file "$object" | tee build/analysis/file.txt
+          readelf -Ws "$object" | tee build/analysis/symbols.txt
+          objdump -dC --start-address="$start" --stop-address="$stop" \
+            "$object" | tee build/analysis/callsite-disassembly.txt
+
+      - name: Persist the exact provider/substr diagnosis
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json,os,pathlib,re
+          root=pathlib.Path('build/analysis')
+          result=json.loads((root/'diagnosis.json').read_text())
+          target=int(result['caller_object_virtual_address'])
+          pattern=re.compile(
+              r'^\s*\d+:\s+([0-9a-fA-F]+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
+              r'(\S+)\s+(\S+)\s+(.*)$')
+          symbols=[]
+          for line in (root/'symbols.txt').read_text(errors='replace').splitlines():
+              match=pattern.match(line)
+              if not match: continue
+              value=int(match.group(1),16); size=int(match.group(2))
+              name=match.group(7).strip()
+              if value and name:
+                  symbols.append({'value':value,'size':size,
+                      'type':match.group(3),'binding':match.group(4),'name':name})
+          containing=[item for item in symbols if item['value']<=target and
+              (item['size']==0 or target<item['value']+item['size'])]
+          preceding=[item for item in symbols if item['value']<=target]
+          nearest=max(containing or preceding,key=lambda item:item['value'],default=None)
+          result['nearest_symbol']=nearest
+          result['offset_from_nearest_symbol']=target-nearest['value'] if nearest else None
+          result['callsite_disassembly']=(root/'callsite-disassembly.txt').read_text(errors='replace')
+          result['artifact_id']='${{ steps.source.outputs.artifact_id }}'
+          result['artifact_digest']='${{ steps.source.outputs.digest }}'
+          result['analysis_workflow_run']=os.environ['GITHUB_RUN_ID']
+          payload=json.dumps(result,indent=2)+'\n'
+          pathlib.Path(f"diagnostics/m9-hword-provider-substr-{os.environ['GITHUB_RUN_ID']}.json").write_text(payload)
+          pathlib.Path('diagnostics/m9-hword-provider-substr-latest.json').write_text(payload)
+          provider=result['provider']; substring=result['substring']
+          pathlib.Path('diagnostics/m9-hword-provider-substr-latest.md').write_text(
+              '# Exact HWord provider/substr diagnosis\n\n'
+              f"- Classification: `{result['classification']}`\n"
+              f"- Source run: `{result['source_workflow_run']}`\n"
+              f"- Position: `{substring['position']}`\n"
+              f"- Source size: `{substring['source_size']}`\n"
+              f"- Matched output: `{substring['matching_provider_sources']}`\n"
+              f"- Provider RTTI: `{provider['type_name']}`\n"
+              f"- First string ({provider['first_length']}): `{provider['first_string']}`\n"
+              f"- Second string ({provider['second_length']}): `{provider['second_string']}`\n"
+              f"- Slot 0x130: `{provider['method_130']}`\n"
+              f"- Slot 0x138: `{provider['method_138']}`\n"
+              f"- Caller file offset: `0x{result['caller_file_offset']:x}`\n"
+              f"- Nearest symbol: `{nearest['name'] if nearest else None}`\n")
+          print(payload)
+          PY
+
+      - name: Commit the durable diagnosis
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git add diagnostics/m9-hword-provider-substr-*.json \
+                  diagnostics/m9-hword-provider-substr-latest.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'diagnostic: resolve exact HWord provider substring failure'
+            git push origin HEAD:codex/hoffice-runtime-from-scratch
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m9-latest-provider-diagnosis-v2
+          path: |
+            source-artifact.json
+            build/analysis
+            diagnostics/m9-hword-provider-substr-*.json
+            diagnostics/m9-hword-provider-substr-latest.md
+          if-no-files-found: error
+          retention-days: 14

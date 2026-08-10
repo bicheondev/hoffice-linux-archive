@@ -1,0 +1,317 @@
+name: HOffice runtime M11 scoped guest fopen interposer replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-fopen-preload-replay-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-fopen-preload-replay-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREPARED_RUN_ID: '31235068358'
+  QPA_RUN_ID: '31305695836'
+  QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+  HOST_WORKFLOW_FILE: hoffice-runtime-m11-build-sendfile-trace-host.yml
+  HOST_ARTIFACT_NAME: hrt-m10-hword-main-window-input-proof
+  SHIM_WORKFLOW_FILE: hoffice-runtime-m11-build-fopen-preload-v3.yml
+  SHIM_ARTIFACT_NAME: hrt-m11-hword-fopen-preload-v3
+
+jobs:
+  replay:
+    runs-on: macos-14
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require the verified HWord frontier
+        run: |
+          set -euxo pipefail
+          test -s proofs/m10-hword-culture-resource-window.json
+          grep -F '"status": "PASS"' proofs/m10-hword-culture-resource-window.json
+          test -s proofs/m10-clone-chdir.json
+          grep -F '"status": "PASS"' proofs/m10-clone-chdir.json
+      - name: Resolve the exact sendfile host and scoped shim
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/host-meta build/input/preload build/proof diagnostics
+          python3 - <<'PY'
+          import json,os,subprocess,time,urllib.parse
+          from pathlib import Path
+          repository=os.environ['GITHUB_REPOSITORY']
+          branch=os.environ['GITHUB_REF_NAME']
+          requests=[
+              ('host',os.environ['HOST_WORKFLOW_FILE'],os.environ['HOST_ARTIFACT_NAME']),
+              ('shim',os.environ['SHIM_WORKFLOW_FILE'],os.environ['SHIM_ARTIFACT_NAME']),
+          ]
+          selected={}; deadline=time.monotonic()+50*60
+          while time.monotonic()<deadline and len(selected)<2:
+              for key,workflow,name in requests:
+                  if key in selected: continue
+                  query=urllib.parse.urlencode({'branch':branch,'per_page':20})
+                  try:
+                      runs=json.loads(subprocess.run([
+                          'gh','api','--method','GET',
+                          f'repos/{repository}/actions/workflows/{workflow}/runs?{query}',
+                      ],check=True,stdout=subprocess.PIPE,text=True).stdout
+                      ).get('workflow_runs',[])
+                  except subprocess.CalledProcessError:
+                      continue
+                  runs.sort(key=lambda item:item['created_at'],reverse=True)
+                  for run in runs:
+                      if run.get('status')!='completed' or run.get('conclusion')!='success':
+                          continue
+                      artifacts=json.loads(subprocess.run([
+                          'gh','api','--method','GET',
+                          f'repos/{repository}/actions/runs/{run["id"]}/artifacts?per_page=100',
+                      ],check=True,stdout=subprocess.PIPE,text=True).stdout
+                      ).get('artifacts',[])
+                      matches=[item for item in artifacts
+                          if item.get('name')==name and not item.get('expired')]
+                      if len(matches)==1:
+                          selected[key]={'run':run,'artifact':matches[0]}
+                          break
+              if len(selected)<2: time.sleep(20)
+          if len(selected)!=2:
+              raise SystemExit(f'failed to resolve scoped replay inputs: {json.dumps(selected)}')
+          compact={}
+          for key,item in selected.items():
+              artifact=item['artifact']; digest=artifact.get('digest') or ''
+              if not digest.startswith('sha256:'):
+                  raise SystemExit(f'{key} artifact digest missing')
+              compact[key]={
+                  'run_id':str(item['run']['id']),
+                  'head_sha':item['run']['head_sha'],
+                  'artifact_id':str(artifact['id']),
+                  'artifact_name':artifact['name'],
+                  'artifact_digest':digest.removeprefix('sha256:'),
+                  'artifact_size':artifact['size_in_bytes'],
+              }
+          Path('build/input/host-meta/selection.json').write_text(
+              json.dumps(compact,indent=2)+'\n',encoding='utf-8')
+          with Path(os.environ['GITHUB_ENV']).open('a',encoding='utf-8') as env:
+              env.write(f"HOST_RUN_ID={compact['host']['run_id']}\n")
+              env.write(f"HOST_ARTIFACT_DIGEST={compact['host']['artifact_digest']}\n")
+              env.write(f"SHIM_RUN_ID={compact['shim']['run_id']}\n")
+          print(json.dumps(compact,indent=2))
+          PY
+          SHIM_RUN_ID=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          selection=json.loads(Path('build/input/host-meta/selection.json').read_text())
+          print(selection['shim']['run_id'])
+          PY
+          )
+          test -n "$SHIM_RUN_ID"
+          gh run download "$SHIM_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name "$SHIM_ARTIFACT_NAME" --dir build/input/preload
+          test -s build/input/preload/libhrt_hword_fopen.so
+          test -s build/input/preload/lock.json
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          lock=json.loads(Path('build/input/preload/lock.json').read_text())
+          library=Path('build/input/preload/libhrt_hword_fopen.so')
+          assert hashlib.sha256(library.read_bytes()).hexdigest()==lock['sha256']
+          assert lock['source']=='runtime/m11/preload/hword_fopen_preload_v3.c'
+          assert lock['native_probe_passed'] is True
+          assert lock['scope']['requires_template_ready'] is True
+          print(json.dumps(lock,indent=2))
+          PY
+      - name: Generate the exact replay with the scoped preload
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated
+          python3 runtime/m11/augment_full_product_replay_v2.py \
+            runtime/m11/run_korean_title_staged_replay.sh \
+            build/generated/run_korean_title_fopen_preload_v3.sh
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('build/generated/run_korean_title_fopen_preload_v3.sh')
+          text=path.read_text(encoding='utf-8')
+          anchor='chmod 0755 "$root$PLUGIN_GUEST"\n'
+          if text.count(anchor)!=1:
+              raise SystemExit(f'preload install anchor count {text.count(anchor)}')
+          insertion=anchor+r'''
+          install -D -m 0755 build/input/preload/libhrt_hword_fopen.so \
+              "$root/opt/hrt/libhrt_hword_fopen.so"
+          mkdir -p "$root/etc"
+          printf '%s\n' '/opt/hrt/libhrt_hword_fopen.so' >"$root/etc/ld.so.preload"
+          test -s "$root/etc/ld.so.preload"
+          test -x "$root/opt/hrt/libhrt_hword_fopen.so"
+          printf 'HRT M11 PRELOAD V3 INSTALL: library=%s config=%s\n' \
+              "$root/opt/hrt/libhrt_hword_fopen.so" "$root/etc/ld.so.preload"
+          '''
+          path.write_text(text.replace(anchor,insertion,1),encoding='utf-8')
+          path.chmod(0o755)
+          PY
+          grep -F 'libhrt_hword_fopen.so' build/generated/run_korean_title_fopen_preload_v3.sh
+      - name: Replay exact HWord with the scoped guest interposer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HRT_M11_MODAL_CAPTURE_PATH: ${{ github.workspace }}/build/proof/hword-modal-dialog.png
+        run: |
+          set -euxo pipefail
+          build/generated/run_korean_title_fopen_preload_v3.sh
+      - name: Classify the scoped guest interposer
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -f build/proof/stderr.txt
+          python3 - <<'PY'
+          import hashlib,json,os,re
+          from pathlib import Path
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          lines=stderr.splitlines()
+          selection=json.loads(Path('build/input/host-meta/selection.json').read_text())
+          loaded='HRT M11 PRELOAD_FOPEN_V3: loaded=1' in stderr
+          events=[]
+          pattern=re.compile(
+              r'HRT M11 PRELOAD_FOPEN_V3: symbol=(\S+) observation=(\d+) '
+              r'index=(\d+) eligible=(\d+) applied=(\d+) template-ready=(\d+) '
+              r'mode=(\S*) reason=(\S+) caller=(0x[0-9a-f]+) '
+              r'caller-object=(\S+) caller-offset=(0x[0-9a-f]+)')
+          for line in lines:
+              match=pattern.search(line)
+              if match:
+                  events.append({
+                      'symbol':match.group(1),'observation':int(match.group(2)),
+                      'index':int(match.group(3)),'eligible':bool(int(match.group(4))),
+                      'applied':bool(int(match.group(5))),
+                      'template_ready':bool(int(match.group(6))),
+                      'mode':match.group(7),'reason':match.group(8),
+                      'caller':match.group(9),'caller_object':match.group(10),
+                      'caller_offset':match.group(11),'line':line,
+                  })
+          eligible=[item for item in events if item['eligible']]
+          applied=[item for item in events if item['applied']]
+          early=[item for item in events if not item['template_ready']]
+          non_hoffice=[item for item in events if item['reason']=='caller-not-hoffice']
+          loader_errors=[line for line in lines
+              if 'cannot be preloaded' in line.lower() or
+                 ('ld.so.preload' in line.lower() and 'PRELOAD V3 INSTALL' not in line)]
+          remaining_empty=[line for line in lines
+              if line.startswith('HRT M11 DOCIO:') and ' op=open ' in line and
+                 re.search(r' guest=(?:\s|$)',line)]
+          unsupported_40='Linux syscall ENOSYS 40' in stderr
+          sendfile_count=len(re.findall(r'HRT M11 SENDFILE:',stderr))
+          modal=(any('CREATE type=3 geometry=400x130 title=한워드' in line for line in lines) or
+                 'dlg_data_validate_stop.png' in stderr or
+                 Path('build/proof/hword-modal-dialog.png').is_file())
+          editor=any(value in stderr for value in ('hword::HwordAppView','HwordAppView'))
+          document_tab='DocumentTabImpl' in stderr
+          text_stage='staged text input after focus' in stderr
+          accepted=any(('key delivered' in line or 'key event delivered' in line) and
+                       ('accepted=1' in line or 'widget-accepted=1' in line) for line in lines)
+          post_capture='HRT M10 APPKIT: post-input capture result=1' in stderr
+          fatal='HRT M10 FATAL:' in stderr or 'fatal signal' in stderr.lower()
+          if fatal:
+              status='FAIL'; classification='HWORD_FOPEN_PRELOAD_V3_FATAL'
+          elif not loaded or loader_errors:
+              status='FAIL'; classification='HWORD_FOPEN_PRELOAD_V3_NOT_LOADED'
+          elif not eligible:
+              status='DIAGNOSTIC'; classification='HWORD_FOPEN_PRELOAD_V3_NO_ELIGIBLE_HOFFICE_CALL'
+          elif not applied:
+              status='DIAGNOSTIC'; classification='HWORD_FOPEN_PRELOAD_V3_ELIGIBLE_NOT_APPLIED'
+          elif modal:
+              status='DIAGNOSTIC'; classification='HWORD_FOPEN_PRELOAD_V3_MODAL_PERSISTS'
+          elif editor and text_stage and accepted and post_capture:
+              status='PASS'; classification='HWORD_FOPEN_PRELOAD_V3_TEXT_ACCEPTED'
+          elif editor:
+              status='PARTIAL_PASS'; classification='HWORD_FOPEN_PRELOAD_V3_EDITOR_MATERIALIZED'
+          elif document_tab:
+              status='DIAGNOSTIC'; classification='HWORD_FOPEN_PRELOAD_V3_NO_MODAL_DOCUMENT_TAB_ONLY'
+          else:
+              status='DIAGNOSTIC'; classification='HWORD_FOPEN_PRELOAD_V3_NO_MODAL_NO_EDITOR'
+          captures={}
+          for name in ('hword-main-window.png','hword-before-input.png',
+                       'hword-after-input.png','hword-modal-dialog.png'):
+              path=Path('build/proof')/name
+              if path.is_file():
+                  captures[name]={'size':path.stat().st_size,
+                      'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+          payload={
+              'schema':3,'milestone':'M11-scoped-guest-fopen-interposer',
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],'status':status,
+              'classification':classification,'selection':selection,
+              'preload_loaded':loaded,'events':events,
+              'observation_count':len(events),'eligible_count':len(eligible),
+              'applied_count':len(applied),'early_not_ready_count':len(early),
+              'non_hoffice_count':len(non_hoffice),
+              'remaining_empty_open_count':len(remaining_empty),
+              'loader_errors':loader_errors,'sendfile_trace_count':sendfile_count,
+              'unsupported_syscall_40':unsupported_40,'modal':modal,
+              'editor_materialized':editor,'document_tab_observed':document_tab,
+              'text_stage':text_stage,'accepted_key':accepted,
+              'post_capture':post_capture,'fatal':fatal,'captures':captures,
+              'stderr_tail':'\n'.join(lines[-700:]),
+          }
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          run_id=os.environ['GITHUB_RUN_ID']
+          Path(f'diagnostics/m11-fopen-preload-v3-{run_id}.json').write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-fopen-preload-v3-latest.json').write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-fopen-preload-v3-latest.md').write_text(
+              '# HWord scoped guest fopen interposer\n\n'
+              f"- Status: `{status}`\n- Classification: `{classification}`\n"
+              f"- Loaded: `{loaded}`\n- Observed: `{len(events)}`\n"
+              f"- Eligible: `{len(eligible)}`\n- Applied: `{len(applied)}`\n"
+              f"- Modal: `{modal}`\n- Editor: `{editor}`\n",
+              encoding='utf-8')
+          Path('build/proof/fopen-preload-v3-summary.json').write_text(
+              encoded,encoding='utf-8')
+          print(encoded)
+          PY
+      - name: Commit the durable scoped interposer result
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -s diagnostics/m11-fopen-preload-v3-latest.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-fopen-preload-v3-*.json \
+                  diagnostics/m11-fopen-preload-v3-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: classify the scoped HWord fopen interposer'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-hword-fopen-preload-v3-proof
+          path: |
+            build/generated/run_korean_title_fopen_preload_v3.sh
+            build/host/hrt-m11-korean-staged
+            build/input/host-meta
+            build/input/preload/lock.json
+            build/proof
+            diagnostics/m11-fopen-preload-v3-*.json
+            diagnostics/m11-fopen-preload-v3-latest.md
+          if-no-files-found: warn
+          retention-days: 14

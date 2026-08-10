@@ -1,0 +1,140 @@
+name: Probe Rosetta pthread GS capture
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-gs-capture-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: macos-14
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile and execute the x86-64 GS probe
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          mkdir -p build/gs-probe
+          cat >build/gs-probe/probe.c <<'EOF'
+          #define _DARWIN_C_SOURCE 1
+          #include <dlfcn.h>
+          #include <inttypes.h>
+          #include <mach/i386/thread_status.h>
+          #include <mach/mach.h>
+          #include <pthread.h>
+          #include <stdint.h>
+          #include <stdio.h>
+          #include <string.h>
+
+          struct pthread_layout_offsets_probe {
+              uint16_t version;
+              uint16_t pthread_tsd_base_offset;
+              uint16_t pthread_tsd_base_address_offset;
+              uint16_t pthread_tsd_entry_size;
+          };
+
+          static uintptr_t read_gs_zero(void) {
+              uintptr_t value = 0;
+              __asm__ volatile("movq %%gs:0, %0" : "=r"(value));
+              return value;
+          }
+
+          static uintptr_t layout_tsd_base(
+              uintptr_t self,
+              const struct pthread_layout_offsets_probe *layout) {
+              if (layout == NULL) return 0;
+              if (layout->pthread_tsd_base_offset != 0u) {
+                  return self + (uintptr_t)layout->pthread_tsd_base_offset;
+              }
+              if (layout->pthread_tsd_base_address_offset != 0u) {
+                  const uintptr_t *address = (const uintptr_t *)(
+                      self + (uintptr_t)layout->pthread_tsd_base_address_offset);
+                  return *address;
+              }
+              return 0;
+          }
+
+          static void report(const char *label) {
+              x86_thread_full_state64_t state;
+              mach_msg_type_number_t count = x86_THREAD_FULL_STATE64_COUNT;
+              memset(&state, 0, sizeof(state));
+              mach_port_t thread = mach_thread_self();
+              kern_return_t kr = thread_get_state(
+                  thread, x86_THREAD_FULL_STATE64,
+                  (thread_state_t)&state, &count);
+              mach_port_deallocate(mach_task_self(), thread);
+
+              uintptr_t self = (uintptr_t)pthread_self();
+              uintptr_t gs_zero = read_gs_zero();
+              const struct pthread_layout_offsets_probe *layout =
+                  (const struct pthread_layout_offsets_probe *)dlsym(
+                      RTLD_DEFAULT, "pthread_layout_offsets");
+              const uintptr_t tsd_base = layout_tsd_base(self, layout);
+              const uintptr_t tsd_zero = tsd_base != 0u
+                  ? *(const uintptr_t *)(uintptr_t)tsd_base : 0u;
+
+              printf("%s pthread_self=0x%" PRIxPTR
+                     " gs_zero=0x%" PRIxPTR
+                     " thread_get_state=%d state_gsbase=0x%llx"
+                     " layout=%p version=%u tsd-offset=%u"
+                     " tsd-address-offset=%u entry-size=%u"
+                     " derived-tsd-base=0x%" PRIxPTR
+                     " derived-tsd-zero=0x%" PRIxPTR
+                     " self_eq_gs0=%d self_eq_tsd0=%d"
+                     " self_eq_derived_base=%d\n",
+                     label, self, gs_zero, kr,
+                     (unsigned long long)state.__gsbase,
+                     (const void *)layout,
+                     layout != NULL ? layout->version : 0u,
+                     layout != NULL ? layout->pthread_tsd_base_offset : 0u,
+                     layout != NULL
+                         ? layout->pthread_tsd_base_address_offset : 0u,
+                     layout != NULL ? layout->pthread_tsd_entry_size : 0u,
+                     tsd_base, tsd_zero,
+                     self == gs_zero,
+                     self == tsd_zero,
+                     self == tsd_base);
+              fflush(stdout);
+          }
+
+          static void *child(void *unused) {
+              (void)unused;
+              report("child");
+              return NULL;
+          }
+
+          int main(void) {
+              report("main");
+              pthread_t thread;
+              int result = pthread_create(&thread, NULL, child, NULL);
+              if (result != 0) return 10 + result;
+              result = pthread_join(thread, NULL);
+              if (result != 0) return 20 + result;
+              return 0;
+          }
+          EOF
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -Wall -Wextra -Werror -Wpedantic \
+            build/gs-probe/probe.c -o build/gs-probe/probe
+          codesign --force --sign - --timestamp=none build/gs-probe/probe
+          /usr/bin/arch -x86_64 build/gs-probe/probe \
+            | tee build/gs-probe/output.txt
+          grep -F 'main pthread_self=' build/gs-probe/output.txt
+          grep -F 'child pthread_self=' build/gs-probe/output.txt
+          grep -F 'self_eq_tsd0=1' build/gs-probe/output.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m10-rosetta-gs-capture-probe
+          path: build/gs-probe
+          if-no-files-found: error
+          retention-days: 14

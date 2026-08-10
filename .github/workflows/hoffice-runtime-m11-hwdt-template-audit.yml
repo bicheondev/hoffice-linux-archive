@@ -1,0 +1,180 @@
+name: HOffice runtime M11 HWDT template audit
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-hwdt-template-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hrt-m11-hwdt-template-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RELEASE_TAG: linux-11.20-series
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  TEMPLATE_PATH: ./opt/hnc/hoffice11/Shared/HwordTemplate/Docx/ko-KR/Document.hwdt
+
+jobs:
+  audit-template:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deterministic archive and XML tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            --no-install-recommends binutils file unzip libxml2-utils python3
+
+      - name: Download and extract the exact product template
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input build/data build/templates build/reports build/expanded
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" \
+            --dir build/input
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/input/$ASSET_NAME" | sha256sum --check -
+
+          data_member=$(ar t "build/input/$ASSET_NAME" \
+            | awk '/^data\.tar/{print; exit}')
+          test -n "$data_member"
+          printf '%s\n' "$data_member" >build/reports/data-member.txt
+          ar p "build/input/$ASSET_NAME" "$data_member" \
+            >"build/data/$data_member"
+
+          tar -tf "build/data/$data_member" \
+            | LC_ALL=C grep -E '/HwordTemplate/.*\.hwdt$' \
+            | LC_ALL=C sort -u \
+            >build/reports/all-hwdt-paths.txt
+          test -s build/reports/all-hwdt-paths.txt
+          grep -Fx "$TEMPLATE_PATH" build/reports/all-hwdt-paths.txt
+
+          tar -xf "build/data/$data_member" -C build/templates "$TEMPLATE_PATH"
+          template="build/templates/${TEMPLATE_PATH#./}"
+          test -s "$template"
+          cp "$template" build/expanded/Document.hwdt
+          stat --printf='size=%s mode=%a\n' "$template" \
+            | tee build/reports/document-stat.txt
+          sha256sum "$template" | tee build/reports/document-sha256.txt
+          file "$template" | tee build/reports/document-file.txt
+          od -An -tx1 -N96 "$template" \
+            | tr -s ' ' | sed 's/^ //' \
+            >build/reports/document-first-96-bytes.txt
+          strings -a -n 3 "$template" \
+            >build/reports/document-strings.txt
+
+      - name: Validate the ZIP envelope and every member
+        run: |
+          set -euxo pipefail
+          template=build/expanded/Document.hwdt
+          unzip -t "$template" | tee build/reports/unzip-test.txt
+          zipinfo -v "$template" >build/reports/zipinfo-verbose.txt
+          unzip -l "$template" >build/reports/unzip-list.txt
+          unzip -q "$template" -d build/expanded/document
+
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import json
+          from pathlib import Path
+          import zipfile
+          import zlib
+
+          template = Path('build/expanded/Document.hwdt')
+          records = []
+          with zipfile.ZipFile(template) as archive:
+              bad = archive.testzip()
+              if bad is not None:
+                  raise SystemExit(f'CRC failure in {bad}')
+              for info in archive.infolist():
+                  data = archive.read(info)
+                  records.append({
+                      'name': info.filename,
+                      'compress_type': info.compress_type,
+                      'flag_bits': info.flag_bits,
+                      'crc32': f'{info.CRC:08x}',
+                      'computed_crc32': f'{zlib.crc32(data) & 0xffffffff:08x}',
+                      'compressed_size': info.compress_size,
+                      'uncompressed_size': info.file_size,
+                      'header_offset': info.header_offset,
+                      'external_attr': info.external_attr,
+                      'sha256': hashlib.sha256(data).hexdigest(),
+                      'first_64_bytes_hex': data[:64].hex(),
+                  })
+          payload = {
+              'schema': 1,
+              'template': str(template),
+              'template_size': template.stat().st_size,
+              'template_sha256': hashlib.sha256(template.read_bytes()).hexdigest(),
+              'member_count': len(records),
+              'members': records,
+          }
+          Path('build/reports/zip-members.json').write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8')
+          print(json.dumps(payload, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Parse every XML-like member and classify the package
+        run: |
+          set -euxo pipefail
+          find build/expanded/document -type f -print \
+            | LC_ALL=C sort >build/reports/extracted-member-paths.txt
+          : >build/reports/xml-validation.txt
+          while IFS= read -r path; do
+            case "$path" in
+              *.xml|*.rels|*.xsd|*.manifest)
+                printf '%s: ' "$path" >>build/reports/xml-validation.txt
+                xmllint --noout "$path"
+                printf 'PASS\n' >>build/reports/xml-validation.txt
+                ;;
+            esac
+          done <build/reports/extracted-member-paths.txt
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path('build/expanded/document')
+          names = sorted(str(path.relative_to(root)) for path in root.rglob('*')
+                         if path.is_file())
+          likely_ooxml = any(name == '[Content_Types].xml' for name in names)
+          likely_hwpx = any(name.startswith('Contents/') for name in names)
+          likely_hwp_binary = any(name == 'FileHeader' for name in names)
+          classification = {
+              'schema': 1,
+              'members': names,
+              'likely_ooxml': likely_ooxml,
+              'likely_hwpx': likely_hwpx,
+              'likely_hwp_binary': likely_hwp_binary,
+              'has_mimetype': 'mimetype' in names,
+              'has_manifest': any('manifest' in name.lower() for name in names),
+          }
+          Path('build/reports/template-classification.json').write_text(
+              json.dumps(classification, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8')
+          print(json.dumps(classification, ensure_ascii=False, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m11-hwdt-template-audit
+          path: |
+            build/expanded/Document.hwdt
+            build/expanded/document
+            build/reports
+          if-no-files-found: error
+          retention-days: 14

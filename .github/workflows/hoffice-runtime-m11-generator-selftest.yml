@@ -1,0 +1,168 @@
+name: HOffice runtime M11 generator self-test
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m11/augment_sendfile.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v7.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v8.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v9.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v10.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v11.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v12.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v13.py'
+      - '.github/workflows/hoffice-runtime-m11-generator-selftest.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test-generators:
+    runs-on: macos-14
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Compose the common bridge frontier
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated build/results diagnostics
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m11/augment_clock_nanosleep.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m11/augment_sendfile.py \
+            build/generated/stage9.c build/generated/stage10.c
+          python3 runtime/m10/augment_fs_compat.py \
+            build/generated/stage10.c build/generated/stage11.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage11.c build/generated/stage12.c
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+            build/generated/stage12.c build/generated/stage13.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage13.c build/generated/stage14.c
+          python3 runtime/m10/augment_clone_compat_v4.py \
+            build/generated/stage14.c build/generated/common.c
+          test -s build/generated/common.c
+          grep -F 'case LINUX_SYS_SENDFILE:' build/generated/common.c
+      - name: Run every document tracer fail-closed
+        if: always()
+        run: |
+          set -u
+          python3 - <<'PY'
+          from __future__ import annotations
+          import hashlib,json,os,subprocess,sys,time
+          from pathlib import Path
+
+          source=Path('build/generated/common.c')
+          generators=[
+              ('classifier_caller','runtime/m11/augment_hword_document_io_trace_v7.py'),
+              ('host_fallback','runtime/m11/augment_hword_document_io_trace_v9.py'),
+              ('masked_fallback','runtime/m11/augment_hword_document_io_trace_v10.py'),
+              ('full_buffer','runtime/m11/augment_hword_document_io_trace_v11.py'),
+              ('short_buffer','runtime/m11/augment_hword_document_io_trace_v13.py'),
+          ]
+          results=[]
+          for name,generator in generators:
+              output=Path('build/generated')/f'{name}.c'
+              started=time.monotonic()
+              process=subprocess.run(
+                  [sys.executable,generator,str(source),str(output)],
+                  stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+              result={
+                  'name':name,'generator':generator,
+                  'exit_status':process.returncode,
+                  'duration_seconds':round(time.monotonic()-started,3),
+                  'stdout':process.stdout[-8000:],
+                  'stderr':process.stderr[-12000:],
+                  'output_exists':output.is_file(),
+                  'output_size':output.stat().st_size if output.is_file() else 0,
+                  'output_sha256':hashlib.sha256(output.read_bytes()).hexdigest()
+                      if output.is_file() else None,
+              }
+              markers={
+                  'classifier_caller':'HRT M11 CLASSIFIERCALLER:',
+                  'host_fallback':'HRT M11 EMPTYFALLBACK:',
+                  'masked_fallback':'HRT M11 EMPTYMASK:',
+                  'full_buffer':'HRT M11 EMPTYBUFFER:',
+                  'short_buffer':'HRT M11 SHORTBUFFER:',
+              }
+              text=output.read_text(encoding='utf-8') if output.is_file() else ''
+              result['required_marker']=markers[name]
+              result['marker_present']=markers[name] in text
+              result['sendfile_present']='case LINUX_SYS_SENDFILE:' in text
+              result['passed']=(process.returncode==0 and result['marker_present']
+                                and result['sendfile_present'])
+              results.append(result)
+              Path('build/results') .joinpath(f'{name}.json').write_text(
+                  json.dumps(result,indent=2)+'\n',encoding='utf-8')
+
+          payload={
+              'schema':1,'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'status':'PASS' if all(item['passed'] for item in results) else 'FAIL',
+              'passed_count':sum(item['passed'] for item in results),
+              'failed_count':sum(not item['passed'] for item in results),
+              'results':results,
+          }
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          Path('diagnostics/m11-generator-selftest-latest.json').write_text(
+              encoded,encoding='utf-8')
+          Path(f"diagnostics/m11-generator-selftest-{os.environ['GITHUB_RUN_ID']}.json").write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-generator-selftest-latest.md').write_text(
+              '# HOffice M11 generator self-test\n\n'
+              f"- Status: `{payload['status']}`\n"
+              f"- Passed: `{payload['passed_count']}`\n"
+              f"- Failed: `{payload['failed_count']}`\n\n"+
+              '\n'.join(
+                  f"- `{item['name']}`: `{'PASS' if item['passed'] else 'FAIL'}` "
+                  f"(exit `{item['exit_status']}`)"
+                  for item in results)+'\n',encoding='utf-8')
+          print(encoded)
+          PY
+      - name: Commit the durable generator health result
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -s diagnostics/m11-generator-selftest-latest.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-generator-selftest-*.json \
+                  diagnostics/m11-generator-selftest-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: self-test the current HOffice M11 generators'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-generator-selftest
+          path: |
+            build/results
+            diagnostics/m11-generator-selftest-*.json
+            diagnostics/m11-generator-selftest-latest.md
+          if-no-files-found: warn
+          retention-days: 14

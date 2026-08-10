@@ -1,0 +1,15 @@
+{
+  "schema": 2,
+  "status": "FAIL",
+  "stage": "qpa-publish",
+  "started_at": "2026-08-07T06:05:41Z",
+  "branch": "codex/hoffice-runtime-from-scratch",
+  "head": "4aadf70053c9db51befc5151500ceb5576da3640",
+  "publish": {
+    "run": 31152764192,
+    "url": "https://github.com/bicheondev/hoffice-linux-archive/actions/runs/31152764192",
+    "conclusion": "success"
+  },
+  "m8_prebuilt_ready": false,
+  "durable_proof_present": false
+}

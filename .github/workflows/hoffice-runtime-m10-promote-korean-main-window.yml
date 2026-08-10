@@ -1,0 +1,114 @@
+name: Promote verified Korean HWord main window
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-promote-korean-main-window.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hrt-m10-promote-korean-main-window-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  promote:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate and promote the exact Korean main-window record
+        run: |
+          set -euxo pipefail
+          mkdir -p proofs diagnostics
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          source_path = Path('diagnostics/m10-culture-resource-latest.json')
+          source = json.loads(source_path.read_text())
+
+          assert str(source['workflow_run']) == '31255392803', source
+          assert source['program'] == '/opt/hnc/hoffice11/Bin/hword', source
+          assert source['program_sha256'] == \
+              '55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb', source
+          assert source['package_sha256'] == \
+              '23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46', source
+          assert source['culture_redirect_patch']['sha256_after'] == \
+              'ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8', source
+          assert 'Exception' not in source['window_titles'], source
+          assert '한워드' in source['window_titles'], source
+          assert [800, 600] in source['window_geometries'], source
+          assert source['fatal_signal_observed'] is False, source
+          assert source['substr_exception_observed'] is False, source
+          assert source['alive_at_observation'] is True, source
+          frame = source['frame']
+          assert frame['width'] == 800 and frame['height'] == 628, frame
+          assert frame['sha256'] == \
+              'c58d241a91f742dc2d14f869f8a2fe4cb02923c0698e9b235d9be0efe986cf8c', frame
+
+          proof = dict(source)
+          proof['status'] = 'PASS'
+          proof['classification'] = \
+              'HWORD_KOREAN_MAIN_WINDOW_AFTER_CULTURE_AND_RESOURCE_REPAIR'
+          proof['credited_boundary'] = {
+              'native_window_title': '한워드',
+              'qt_content_geometry': [800, 600],
+              'captured_window_geometry': [800, 628],
+              'culture_redirect_verified': True,
+              'bootstrap_resources_restored': True,
+              'process_alive_at_observation': True,
+          }
+          proof['remaining_runtime_frontier'] = {
+              'unsupported_syscalls': source.get('unsupported_syscalls', []),
+              'not_credited': [
+                  'document creation',
+                  'document editing',
+                  'keyboard acceptance',
+                  'IME composition',
+                  'save or load',
+                  'clean shutdown',
+              ],
+          }
+          payload = json.dumps(proof, ensure_ascii=False, indent=2) + '\n'
+          Path('proofs/m10-hword-culture-resource-window.json').write_text(payload)
+          Path('diagnostics/m10-culture-resource-promoted-latest.json').write_text(payload)
+          Path('diagnostics/m10-culture-resource-promoted-latest.md').write_text(
+              '# Exact HWord Korean main-window proof\n\n'
+              '- Status: `PASS`\n'
+              '- Classification: '
+              '`HWORD_KOREAN_MAIN_WINDOW_AFTER_CULTURE_AND_RESOURCE_REPAIR`\n'
+              '- Window: `한워드`, Qt content `800×600`\n'
+              '- Capture: `800×628`, SHA-256 '
+              '`c58d241a91f742dc2d14f869f8a2fe4cb02923c0698e9b235d9be0efe986cf8c`\n'
+              '- Fatal signal: `false`\n'
+              '- `basic_string::substr` exception: `false`\n'
+              '- Process alive at observation: `true`\n'
+              '- Remaining syscall frontier: `[40, 56, 80]`\n')
+          print(payload)
+          PY
+
+      - name: Commit the durable M10 main-window proof
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add proofs/m10-hword-culture-resource-window.json \
+                  diagnostics/m10-culture-resource-promoted-latest.json \
+                  diagnostics/m10-culture-resource-promoted-latest.md
+          git commit -m 'proof: credit the exact Korean HWord main window'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1

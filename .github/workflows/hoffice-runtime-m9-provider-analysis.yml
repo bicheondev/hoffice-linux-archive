@@ -1,0 +1,351 @@
+name: HOffice runtime M9 provider object analysis
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m9-provider-analysis.yml'
+      - 'runtime/m9/augment_int3_caller_probe.py'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m9-provider-analysis-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN_ID: '31171219264'
+  ROOTFS_ARTIFACT_ID: '8968324706'
+  ROOTFS_ARTIFACT_SHA256: 3e301d3c6269926c62804bff18671136fcf8c0b0b22b3952072e427a8fa9918a
+  ROOTFS_ARCHIVE_SHA256: 322fcf228092b296a34edbfa7ee43f9a7b237d5bcedaee50109ac4bb44d9ca28
+
+jobs:
+  analyze:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download the exact provider-probe artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m9-hword-throw-int3-caller
+          path: build/input/probe
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download and verify the exact prepatched HWord root
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/rootfs build/rootfs build/analysis/objects \
+                   diagnostics
+          curl --fail --location --retry 5 --retry-delay 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ROOTFS_ARTIFACT_ID/zip" \
+            -o build/input/rootfs-artifact.zip
+          printf '%s  %s\n' "$ROOTFS_ARTIFACT_SHA256" \
+            build/input/rootfs-artifact.zip | sha256sum -c -
+          unzip -q build/input/rootfs-artifact.zip -d build/input/rootfs
+          archive=$(find build/input/rootfs -type f -name hword-rootfs.tar.gz -print -quit)
+          test -n "$archive"
+          printf '%s  %s\n' "$ROOTFS_ARCHIVE_SHA256" "$archive" \
+            | sha256sum -c -
+          tar -xzf "$archive" -C build/rootfs
+          test -s build/rootfs/.hrt-prepatched-v1
+          test -f build/rootfs/opt/hnc/hoffice11/Bin/libHwordApp.so
+
+      - name: Resolve provider type, virtual methods, strings, and callsite
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import re
+          import shutil
+          import struct
+          import subprocess
+
+          probe_root = pathlib.Path('build/input/probe')
+          rootfs = pathlib.Path('build/rootfs')
+          analysis = pathlib.Path('build/analysis')
+          objects = analysis / 'objects'
+          objects.mkdir(parents=True, exist_ok=True)
+
+          attribution_path = next(probe_root.rglob('caller-attribution.json'))
+          stderr_path = next(probe_root.rglob('stderr.txt'))
+          attribution = json.loads(attribution_path.read_text())
+          stderr = stderr_path.read_text(errors='replace')
+
+          object_lines = [line for line in stderr.splitlines()
+                          if line.startswith('HRT M9 THROW OBJECT:')]
+          assert len(object_lines) == 1, object_lines
+          line = object_lines[0]
+          object_pattern = re.compile(
+              r'HRT M9 THROW OBJECT: '
+              r'rbx=(0x[0-9a-f]+) r12=(0x[0-9a-f]+) '
+              r'r13=(0x[0-9a-f]+) r14=(0x[0-9a-f]+) '
+              r'r15=(0x[0-9a-f]+) rbp=(0x[0-9a-f]+) '
+              r'vtable=(0x[0-9a-f]+) offset-to-top=(0x[0-9a-f]+) '
+              r'typeinfo=(0x[0-9a-f]+) type-name-pointer=(0x[0-9a-f]+) '
+              r'type-name=(.*?) method130=(0x[0-9a-f]+) '
+              r'method138=(0x[0-9a-f]+) first-data=(0x[0-9a-f]+) '
+              r'first-length=(0x[0-9a-f]+) first=(.*?) '
+              r'second-data=(0x[0-9a-f]+) second-length=(0x[0-9a-f]+) '
+              r'second=(.*)$')
+          match = object_pattern.fullmatch(line)
+          assert match, line
+          fields = {
+              'rbx': match.group(1),
+              'r12': match.group(2),
+              'r13': match.group(3),
+              'r14': match.group(4),
+              'r15': match.group(5),
+              'rbp': match.group(6),
+              'vtable': match.group(7),
+              'offset_to_top': match.group(8),
+              'typeinfo': match.group(9),
+              'type_name_pointer': match.group(10),
+              'type_name': match.group(11),
+              'method130': match.group(12),
+              'method138': match.group(13),
+              'first_data': match.group(14),
+              'first_length': int(match.group(15), 16),
+              'first': match.group(16),
+              'second_data': match.group(17),
+              'second_length': int(match.group(18), 16),
+              'second': match.group(19),
+          }
+
+          map_pattern = re.compile(
+              r'HRT M9 MAP: start=(0x[0-9a-f]+) end=(0x[0-9a-f]+) '
+              r'offset=(0x[0-9a-f]+) fd=(\d+) path=(.*)$')
+          mappings = []
+          for map_line in stderr.splitlines():
+              mapped = map_pattern.fullmatch(map_line)
+              if mapped:
+                  mappings.append({
+                      'start': int(mapped.group(1), 16),
+                      'end': int(mapped.group(2), 16),
+                      'file_offset': int(mapped.group(3), 16),
+                      'fd': int(mapped.group(4)),
+                      'host_path': mapped.group(5),
+                  })
+
+          def guest_path_from_host(host_path: str) -> str:
+              match = re.search(
+                  r'(/(?:opt|lib|lib64|usr|bin|sbin|etc)/.*)$', host_path)
+              assert match, host_path
+              return match.group(1)
+
+          ELF_HEADER = struct.Struct('<16sHHIQQQIHHHHHH')
+          PROGRAM_HEADER = struct.Struct('<IIQQQQQQ')
+          SECTION_HEADER = struct.Struct('<IIQQQQIIQQ')
+          SYMBOL = struct.Struct('<IBBHQQ')
+          PT_LOAD = 1
+          SHT_SYMTAB = 2
+          SHT_DYNSYM = 11
+
+          def c_string(data: bytes, offset: int) -> str:
+              if offset < 0 or offset >= len(data):
+                  return ''
+              end = data.find(b'\0', offset)
+              if end < 0:
+                  end = len(data)
+              return data[offset:end].decode('utf-8', errors='replace')
+
+          def inspect_elf(path: pathlib.Path, file_offset: int) -> dict:
+              blob = path.read_bytes()
+              header = ELF_HEADER.unpack_from(blob, 0)
+              ident = header[0]
+              assert ident[:4] == b'\x7fELF' and ident[4] == 2 and ident[5] == 1
+              phoff, shoff = header[5], header[6]
+              phentsize, phnum = header[9], header[10]
+              shentsize, shnum, shstrndx = header[11], header[12], header[13]
+              assert phentsize == PROGRAM_HEADER.size
+              assert shentsize == SECTION_HEADER.size
+
+              virtual = None
+              load_segment = None
+              for index in range(phnum):
+                  values = PROGRAM_HEADER.unpack_from(
+                      blob, phoff + index * phentsize)
+                  p_type, p_flags, p_offset, p_vaddr, _paddr, p_filesz, p_memsz, p_align = values
+                  if p_type == PT_LOAD and p_offset <= file_offset < p_offset + p_filesz:
+                      virtual = p_vaddr + file_offset - p_offset
+                      load_segment = {
+                          'index': index,
+                          'flags': p_flags,
+                          'file_offset': p_offset,
+                          'virtual_address': p_vaddr,
+                          'file_size': p_filesz,
+                          'memory_size': p_memsz,
+                          'alignment': p_align,
+                      }
+                      break
+              assert virtual is not None, (path, file_offset)
+
+              sections = [SECTION_HEADER.unpack_from(
+                  blob, shoff + index * shentsize) for index in range(shnum)]
+              symbols = []
+              for section in sections:
+                  section_type = section[1]
+                  section_offset = section[4]
+                  section_size = section[5]
+                  section_link = section[6]
+                  section_entry_size = section[9]
+                  if section_type not in (SHT_SYMTAB, SHT_DYNSYM):
+                      continue
+                  if section_entry_size != SYMBOL.size or section_link >= len(sections):
+                      continue
+                  string_section = sections[section_link]
+                  strings = blob[
+                      string_section[4]:string_section[4] + string_section[5]]
+                  for symbol_index in range(section_size // section_entry_size):
+                      offset = section_offset + symbol_index * section_entry_size
+                      name_offset, info, other, shndx, value, size = SYMBOL.unpack_from(blob, offset)
+                      name = c_string(strings, name_offset)
+                      if value == 0 or not name:
+                          continue
+                      symbols.append({
+                          'name': name,
+                          'value': value,
+                          'size': size,
+                          'type': info & 0x0f,
+                          'binding': info >> 4,
+                          'visibility': other & 0x03,
+                          'section_index': shndx,
+                      })
+              containing = [item for item in symbols
+                            if item['value'] <= virtual and item['size'] != 0 and
+                            virtual < item['value'] + item['size']]
+              preceding = [item for item in symbols if item['value'] <= virtual]
+              nearest = max(containing or preceding,
+                            key=lambda item: item['value'], default=None)
+              if nearest:
+                  demangled = subprocess.run(
+                      ['c++filt', nearest['name']], check=True,
+                      text=True, stdout=subprocess.PIPE).stdout.strip()
+                  nearest = dict(nearest)
+                  nearest['demangled'] = demangled
+                  nearest['offset'] = virtual - nearest['value']
+
+              start = max(0, virtual - 128)
+              stop = virtual + 160
+              disassembly = subprocess.run(
+                  ['objdump', '-dC', f'--start-address={start}',
+                   f'--stop-address={stop}', str(path)],
+                  check=True, text=True, stdout=subprocess.PIPE,
+                  stderr=subprocess.STDOUT).stdout
+              return {
+                  'file_offset': file_offset,
+                  'virtual_address': virtual,
+                  'load_segment': load_segment,
+                  'nearest_symbol': nearest,
+                  'disassembly': disassembly,
+              }
+
+          def locate_address(label: str, address_hex: str) -> dict:
+              address = int(address_hex, 16)
+              owner = next((item for item in mappings
+                            if item['start'] <= address < item['end']), None)
+              assert owner is not None, (label, address_hex)
+              guest_path = guest_path_from_host(owner['host_path'])
+              source = rootfs / guest_path.lstrip('/')
+              assert source.is_file(), (guest_path, source)
+              copy = objects / f'{label}-{source.name}'
+              shutil.copy2(source, copy)
+              file_offset = owner['file_offset'] + address - owner['start']
+              result = inspect_elf(copy, file_offset)
+              result.update({
+                  'label': label,
+                  'runtime_address': address_hex,
+                  'guest_path': guest_path,
+                  'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
+                  'owner_mapping': owner,
+                  'analysis_copy': str(copy),
+              })
+              return result
+
+          caller_copy = next(probe_root.rglob('libHwordApp.so'))
+          caller_file_offset = int(attribution['caller_file_offset'])
+          caller_result = inspect_elf(caller_copy, caller_file_offset)
+          caller_result.update({
+              'label': 'caller',
+              'runtime_address': attribution['return_address'],
+              'guest_path': '/opt/hnc/hoffice11/Bin/libHwordApp.so',
+              'source_sha256': hashlib.sha256(caller_copy.read_bytes()).hexdigest(),
+              'analysis_copy': str(caller_copy),
+          })
+
+          method130 = locate_address('method130', fields['method130'])
+          method138 = locate_address('method138', fields['method138'])
+
+          result = {
+              'schema': 1,
+              'milestone': 'M9-provider-object-analysis',
+              'status': 'PASS',
+              'workflow_run': os.environ['GITHUB_RUN_ID'],
+              'source_probe_run': os.environ['SOURCE_RUN_ID'],
+              'provider': fields,
+              'first_string_empty': fields['first_length'] == 0,
+              'second_string_empty': fields['second_length'] == 0,
+              'caller': caller_result,
+              'method130': method130,
+              'method138': method138,
+              'executable_mapping_count': len(mappings),
+              'source_attribution': attribution,
+          }
+          payload = json.dumps(result, indent=2) + '\n'
+          pathlib.Path('diagnostics/m9-hword-provider-object-latest.json').write_text(payload)
+          pathlib.Path(
+              f"diagnostics/m9-hword-provider-object-{os.environ['GITHUB_RUN_ID']}.json"
+          ).write_text(payload)
+          pathlib.Path('diagnostics/m9-hword-provider-object-latest.md').write_text(
+              '# HWord M9 provider-object analysis\n\n'
+              f"- Provider RTTI: `{fields['type_name']}`\n"
+              f"- First virtual result length: `{fields['first_length']}`\n"
+              f"- First virtual result: `{fields['first']}`\n"
+              f"- Second virtual result length: `{fields['second_length']}`\n"
+              f"- Second virtual result: `{fields['second']}`\n"
+              f"- Throw caller: `{caller_result['nearest_symbol']}`\n"
+              f"- vtable+0x130 target: `{method130['nearest_symbol']}`\n"
+              f"- vtable+0x138 target: `{method138['nearest_symbol']}`\n"
+          )
+          print(payload)
+          PY
+
+      - name: Commit the durable provider analysis
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git add diagnostics/m9-hword-provider-object-*.json \
+                  diagnostics/m9-hword-provider-object-latest.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'diagnostic: resolve exact HWord provider bootstrap strings'
+            git push origin HEAD:codex/hoffice-runtime-from-scratch
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m9-hword-provider-object-analysis
+          path: |
+            build/analysis
+            diagnostics/m9-hword-provider-object-*.json
+            diagnostics/m9-hword-provider-object-latest.md
+          if-no-files-found: error
+          retention-days: 14

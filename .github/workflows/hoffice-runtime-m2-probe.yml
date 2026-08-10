@@ -1,0 +1,96 @@
+name: HOffice runtime M2 TLS probe
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - runtime/m2/fsgsbase_probe.c
+      - runtime/m2/fs_thread_state_probe.c
+      - .github/workflows/hoffice-runtime-m2-probe.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe-tls:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+      - name: Compile x86-64 TLS probes
+        run: |
+          set -euxo pipefail
+          mkdir -p build/m2-probe
+          clang -arch x86_64 -std=c17 -O2 -g -mfsgsbase \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra -Werror -Wpedantic \
+            runtime/m2/fsgsbase_probe.c \
+            -o build/m2-probe/tls-probe
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra -Werror -Wpedantic \
+            runtime/m2/fs_thread_state_probe.c \
+            -o build/m2-probe/fs-thread-state-probe
+          file build/m2-probe/tls-probe \
+               build/m2-probe/fs-thread-state-probe
+          codesign --force --sign - --timestamp=none \
+            build/m2-probe/tls-probe \
+            build/m2-probe/fs-thread-state-probe
+          codesign --verify --strict build/m2-probe/tls-probe
+          codesign --verify --strict build/m2-probe/fs-thread-state-probe
+      - name: Execute GS fallback probe under Rosetta
+        run: |
+          set -uxo pipefail
+          set +e
+          /usr/bin/arch -x86_64 build/m2-probe/tls-probe \
+            >build/m2-probe/stdout.txt 2>build/m2-probe/stderr.txt
+          status=$?
+          set -e
+          printf '%s\n' "$status" > build/m2-probe/exit-status.txt
+          echo '--- stderr ---'
+          cat build/m2-probe/stderr.txt
+          echo '--- stdout ---'
+          cat build/m2-probe/stdout.txt
+          echo "--- exit status: $status ---"
+          test "$status" -eq 0
+          grep -Fx \
+            'HRT M2 probe: guest GS updates persist through SIGILL under Rosetta' \
+            build/m2-probe/stdout.txt
+          grep -E 'direct-fs=no trapped=yes' build/m2-probe/stdout.txt
+          grep -E 'initial-set-return=0x0*[1-9a-f][0-9a-f]*' \
+            build/m2-probe/stdout.txt
+          grep -E 'guest-gs-after=0x4852544d32544c42' \
+            build/m2-probe/stdout.txt
+      - name: Execute Mach FS-base probe under Rosetta
+        run: |
+          set -uxo pipefail
+          set +e
+          /usr/bin/arch -x86_64 build/m2-probe/fs-thread-state-probe \
+            >build/m2-probe/fs-stdout.txt \
+            2>build/m2-probe/fs-stderr.txt
+          status=$?
+          set -e
+          printf '%s\n' "$status" > build/m2-probe/fs-exit-status.txt
+          echo '--- FS stderr ---'
+          cat build/m2-probe/fs-stderr.txt
+          echo '--- FS stdout ---'
+          cat build/m2-probe/fs-stdout.txt
+          echo "--- FS exit status: $status ---"
+          test "$status" -eq 0
+          grep -Fx \
+            'HRT M2 FS state probe: Mach thread_set_state controls FS under Rosetta' \
+            build/m2-probe/fs-stdout.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m2-tls-probe
+          path: build/m2-probe
+          if-no-files-found: error
+          retention-days: 2

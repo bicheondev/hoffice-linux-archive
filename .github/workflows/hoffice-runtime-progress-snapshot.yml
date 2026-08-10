@@ -1,0 +1,341 @@
+name: HOffice runtime proof frontier snapshot
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-progress-snapshot.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-proof-frontier-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BRANCH: codex/hoffice-runtime-from-scratch
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/hoffice-runtime-from-scratch
+          fetch-depth: 0
+
+      - name: Wait for the currently launched frontier workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/frontier diagnostics
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import time
+          from pathlib import Path
+
+          repository = os.environ['GITHUB_REPOSITORY']
+          branch = os.environ['BRANCH']
+          workflows = [
+              'hoffice-runtime-m5-qoffscreen-symbol-inventory.yml',
+              'hoffice-runtime-m5-m6-qoffscreen-probe-matrix.yml',
+              'hoffice-runtime-chain-m5-plugin-instance.yml',
+          ]
+          deadline = time.monotonic() + 55 * 60
+          latest = {}
+
+          while True:
+              unfinished = []
+              for workflow in workflows:
+                  command = [
+                      'gh', 'run', 'list', '--repo', repository,
+                      '--workflow', workflow, '--branch', branch,
+                      '--limit', '1',
+                      '--json', 'databaseId,status,conclusion,headSha,'
+                                'createdAt,updatedAt,url,workflowName',
+                  ]
+                  completed = subprocess.run(
+                      command, text=True, stdout=subprocess.PIPE,
+                      stderr=subprocess.PIPE, check=False)
+                  if completed.returncode != 0:
+                      latest[workflow] = {
+                          'lookup_error': completed.stderr.strip(),
+                      }
+                      continue
+                  rows = json.loads(completed.stdout or '[]')
+                  if not rows:
+                      latest[workflow] = {'status': 'not-found'}
+                      continue
+                  row = rows[0]
+                  latest[workflow] = row
+                  if row.get('status') not in ('completed', None):
+                      unfinished.append(workflow)
+
+              Path('build/frontier/workflow-runs.json').write_text(
+                  json.dumps(latest, indent=2) + '\n')
+              print(json.dumps(latest, indent=2))
+              if not unfinished or time.monotonic() >= deadline:
+                  break
+              time.sleep(20)
+          PY
+
+      - name: Fetch all proof commits produced during the wait
+        run: |
+          set -euxo pipefail
+          git fetch origin "$BRANCH"
+          git reset --hard "origin/$BRANCH"
+
+      - name: Build the accepted proof frontier
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          ordered = [
+              {
+                  'id': 'm3-hword-entry',
+                  'title': 'Exact HWord original ELF entry',
+                  'files': ['proofs/m3-hword-entry.json'],
+                  'predicate': 'm3',
+              },
+              {
+                  'id': 'm5-plugin-instance',
+                  'title': 'Qt offscreen plugin instance',
+                  'files': [
+                      'proofs/chain/m5-plugin-instance.json',
+                      'proofs/m5-hword-offscreen-plugin-instance-matrix.json',
+                      'proofs/m5-hword-offscreen-plugin-instance-v2.json',
+                      'proofs/m5-hword-offscreen-plugin-instance.json',
+                  ],
+                  'predicate': 'symbol',
+              },
+              {
+                  'id': 'm5-integration-create',
+                  'title': 'QOffscreenIntegrationPlugin::create',
+                  'files': [
+                      'proofs/chain/m5-integration-create.json',
+                      'proofs/m5-hword-offscreen-integration-create-matrix.json',
+                      'proofs/m5-hword-offscreen-integration-create.json',
+                  ],
+                  'predicate': 'symbol-or-create',
+              },
+              {
+                  'id': 'm5-integration-constructor',
+                  'title': 'QOffscreenIntegration constructor',
+                  'files': [
+                      'proofs/chain/m5-integration-constructor.json',
+                      'proofs/m5-hword-offscreen-integration-constructor-matrix.json',
+                      'proofs/m5-hword-offscreen-integration-constructor.json',
+                  ],
+                  'predicate': 'symbol',
+              },
+              {
+                  'id': 'm6-create-platform-window',
+                  'title': 'createPlatformWindow',
+                  'files': [
+                      'proofs/chain/m6-create-platform-window.json',
+                      'proofs/m6-hword-offscreen-create-platform-window-matrix.json',
+                      'proofs/m6-hword-offscreen-create-platform-window.json',
+                  ],
+                  'predicate': 'symbol',
+              },
+              {
+                  'id': 'm6-window-constructor',
+                  'title': 'QOffscreenWindow constructor',
+                  'files': [
+                      'proofs/chain/m6-window-constructor.json',
+                      'proofs/m6-hword-offscreen-window-constructor-matrix.json',
+                      'proofs/m6-hword-offscreen-window-constructor.json',
+                  ],
+                  'predicate': 'symbol',
+              },
+              {
+                  'id': 'm6-create-backing-store',
+                  'title': 'createPlatformBackingStore',
+                  'files': [
+                      'proofs/chain/m6-create-backing-store.json',
+                      'proofs/m6-hword-offscreen-create-backing-store-matrix.json',
+                      'proofs/m6-hword-offscreen-create-backing-store.json',
+                  ],
+                  'predicate': 'symbol',
+              },
+              {
+                  'id': 'm6-backing-store-constructor',
+                  'title': 'QOffscreenBackingStore constructor',
+                  'files': [
+                      'proofs/chain/m6-backing-store-constructor.json',
+                      'proofs/m6-hword-offscreen-backing-store-constructor-matrix.json',
+                      'proofs/m6-hword-offscreen-backing-store-constructor.json',
+                  ],
+                  'predicate': 'symbol',
+              },
+              {
+                  'id': 'm6-paint-device',
+                  'title': 'QOffscreenBackingStore::paintDevice',
+                  'files': [
+                      'proofs/chain/m6-paint-device.json',
+                      'proofs/m6-hword-offscreen-paint-device-matrix.json',
+                      'proofs/m6-hword-offscreen-paint-device.json',
+                  ],
+                  'predicate': 'symbol',
+              },
+              {
+                  'id': 'm6-flush',
+                  'title': 'QOffscreenBackingStore::flush',
+                  'files': [
+                      'proofs/chain/m6-flush.json',
+                      'proofs/m6-hword-offscreen-flush-matrix.json',
+                      'proofs/m6-hword-offscreen-flush.json',
+                  ],
+                  'predicate': 'symbol',
+              },
+          ]
+
+          def accepted(data, predicate):
+              if data.get('schema') != 1:
+                  return False
+              if predicate == 'm3':
+                  return data.get('status') == 'PASS'
+              if predicate == 'symbol-or-create':
+                  return bool(
+                      data.get('selected_symbol_entered') or
+                      data.get('integration_create_entered'))
+              return bool(
+                  data.get('selected_symbol_entered') or
+                  data.get('qt_plugin_instance_entered'))
+
+          frontier = []
+          highest = None
+          for boundary in ordered:
+              evidence = []
+              for filename in boundary['files']:
+                  path = Path(filename)
+                  if not path.is_file():
+                      continue
+                  try:
+                      data = json.loads(path.read_text())
+                  except Exception as error:
+                      evidence.append({
+                          'path': filename,
+                          'accepted': False,
+                          'parse_error': str(error),
+                      })
+                      continue
+                  is_accepted = accepted(data, boundary['predicate'])
+                  evidence.append({
+                      'path': filename,
+                      'accepted': is_accepted,
+                      'commit': data.get('commit'),
+                      'workflow_run': data.get('workflow_run'),
+                      'milestone': data.get('milestone'),
+                      'selected_symbol': data.get('selected_symbol'),
+                      'reached_deadline': data.get('reached_deadline'),
+                      'unsupported_syscalls': data.get('unsupported_syscalls'),
+                  })
+              boundary_record = {
+                  'id': boundary['id'],
+                  'title': boundary['title'],
+                  'accepted': any(item['accepted'] for item in evidence),
+                  'evidence': evidence,
+              }
+              frontier.append(boundary_record)
+              if boundary_record['accepted']:
+                  highest = boundary_record['id']
+
+          workflow_runs_path = Path('build/frontier/workflow-runs.json')
+          workflow_runs = (
+              json.loads(workflow_runs_path.read_text())
+              if workflow_runs_path.is_file() else {})
+          inventory = Path('diagnostics/qoffscreen-symbol-inventory.json')
+          inventory_summary = None
+          if inventory.is_file():
+              data = json.loads(inventory.read_text())
+              inventory_summary = {
+                  'plugin': data.get('plugin'),
+                  'plugin_sha256': data.get('plugin_sha256'),
+                  'symbol_count': data.get('symbol_count'),
+                  'method_group_counts': {
+                      key: len(value)
+                      for key, value in data.get('method_groups', {}).items()
+                  },
+              }
+
+          result = {
+              'schema': 1,
+              'branch': 'codex/hoffice-runtime-from-scratch',
+              'snapshot_workflow_run': '${{ github.run_id }}',
+              'snapshot_commit': '${{ github.sha }}',
+              'highest_accepted_boundary': highest,
+              'frontier': frontier,
+              'qoffscreen_symbol_inventory': inventory_summary,
+              'observed_workflow_runs': workflow_runs,
+          }
+          json_path = Path('diagnostics/runtime-progress-latest.json')
+          json_path.write_text(json.dumps(result, indent=2) + '\n')
+
+          lines = [
+              '# HOffice runtime proof frontier',
+              '',
+              f"- Branch: `{result['branch']}`",
+              f"- Snapshot run: `{result['snapshot_workflow_run']}`",
+              f"- Highest accepted boundary: `{highest or 'none'}`",
+              '',
+              '## Boundaries',
+              '',
+          ]
+          for item in frontier:
+              mark = 'PASS' if item['accepted'] else 'PENDING'
+              lines.append(f"- **{mark}** — `{item['id']}`: {item['title']}")
+              for evidence in item['evidence']:
+                  state = 'accepted' if evidence['accepted'] else 'not accepted'
+                  lines.append(f"  - `{evidence['path']}` — {state}")
+          if inventory_summary:
+              lines.extend([
+                  '',
+                  '## Bundled QOffscreen inventory',
+                  '',
+                  f"- Plugin SHA-256: `{inventory_summary['plugin_sha256']}`",
+                  f"- Matching symbols: `{inventory_summary['symbol_count']}`",
+              ])
+              for key, count in inventory_summary['method_group_counts'].items():
+                  lines.append(f"- `{key}`: `{count}`")
+          lines.extend(['', '## Workflow runs', ''])
+          for workflow, run in workflow_runs.items():
+              lines.append(
+                  f"- `{workflow}` — status `{run.get('status')}`, "
+                  f"conclusion `{run.get('conclusion')}`")
+          Path('diagnostics/runtime-progress-latest.md').write_text(
+              '\n'.join(lines) + '\n')
+          print(json.dumps(result, indent=2))
+          PY
+
+      - name: Commit the consolidated frontier
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/runtime-progress-latest.json \
+                  diagnostics/runtime-progress-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: consolidate the current HWord proof frontier [skip ci]'
+          git pull --rebase origin "$BRANCH"
+          git push origin HEAD:"$BRANCH"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-proof-frontier-snapshot
+          path: |
+            diagnostics/runtime-progress-latest.json
+            diagnostics/runtime-progress-latest.md
+            build/frontier/workflow-runs.json
+          if-no-files-found: warn
+          retention-days: 30

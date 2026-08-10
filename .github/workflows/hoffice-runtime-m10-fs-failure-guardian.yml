@@ -1,0 +1,188 @@
+name: Guard M10 filesystem replay failures
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-fs-failure-guardian.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m10-fs-failure-guardian-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TARGET_BRANCH: codex/hoffice-runtime-from-scratch
+  TARGET_WORKFLOW: hoffice-runtime-m10-hword-fs-compat.yml
+  TARGET_ARTIFACT: hrt-m10-hword-fs-compat-proof
+
+jobs:
+  guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Wait for a filesystem replay launched after this guardian
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/report diagnostics
+          start=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          printf '%s\n' "$start" >build/report/start.txt
+
+          run_id=
+          status=
+          conclusion=
+          for attempt in $(seq 1 180); do
+            response=$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/$TARGET_WORKFLOW/runs" \
+              -f branch="$TARGET_BRANCH" -f per_page=30)
+            run_id=$(printf '%s' "$response" | jq -r --arg start "$start" \
+              '[.workflow_runs[] | select(.created_at >= $start)] | sort_by(.created_at) | last | .id // empty')
+            status=$(printf '%s' "$response" | jq -r --arg start "$start" \
+              '[.workflow_runs[] | select(.created_at >= $start)] | sort_by(.created_at) | last | .status // empty')
+            conclusion=$(printf '%s' "$response" | jq -r --arg start "$start" \
+              '[.workflow_runs[] | select(.created_at >= $start)] | sort_by(.created_at) | last | .conclusion // empty')
+            echo "attempt=$attempt run=$run_id status=$status conclusion=$conclusion"
+            if test -n "$run_id" && test "$status" = completed; then break; fi
+            sleep 20
+          done
+          test -n "$run_id"
+          test "$status" = completed
+          printf '%s\n' "$run_id" >build/report/source-run-id.txt
+          printf '%s\n' "$conclusion" >build/report/source-conclusion.txt
+
+          gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json \
+            databaseId,displayTitle,event,headBranch,headSha,status,conclusion,jobs \
+            >build/report/run.json
+          gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --log \
+            >build/report/full.log 2>&1 || true
+          gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --log-failed \
+            >build/report/failed.log 2>&1 || true
+
+          artifact_count=$(gh api \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" \
+            --jq '[.artifacts[] | select(.name == "'"$TARGET_ARTIFACT"'")] | length')
+          printf '%s\n' "$artifact_count" >build/report/artifact-count.txt
+
+      - name: Classify only infrastructure or generator failures
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          run = json.loads(Path('build/report/run.json').read_text())
+          run_id = str(run['databaseId'])
+          conclusion = str(run.get('conclusion'))
+          artifact_count = int(Path(
+              'build/report/artifact-count.txt').read_text())
+          full = Path('build/report/full.log').read_text(errors='replace')
+          failed = Path('build/report/failed.log').read_text(errors='replace')
+          text = failed + '\n' + full
+
+          if conclusion == 'success' and artifact_count > 0:
+              classification = 'SOURCE_REPLAY_SUCCEEDED_WITH_PROOF'
+              status = 'SKIPPED'
+          elif 'augment_path_trace' in text and (
+                  'expected exactly one anchor' in text or
+                  'expected one anchor' in text):
+              classification = 'PATH_TRACE_ANCHOR_MISMATCH'
+              status = 'DIAGNOSTIC'
+          elif 'augment_eventfd2' in text and (
+                  'expected exactly one anchor' in text or
+                  'expected one anchor' in text):
+              classification = 'EVENTFD2_ANCHOR_MISMATCH'
+              status = 'DIAGNOSTIC'
+          elif 'composed marker' in text or 'generated marker' in text:
+              classification = 'COMPOSED_BRIDGE_VALIDATION_FAILURE'
+              status = 'DIAGNOSTIC'
+          elif re.search(r'error:|fatal error:|undefined reference', text,
+                         re.IGNORECASE):
+              classification = 'M10_HOST_COMPILE_OR_LINK_FAILURE'
+              status = 'DIAGNOSTIC'
+          elif conclusion in {'cancelled', 'timed_out'}:
+              classification = 'SOURCE_REPLAY_CANCELLED_OR_TIMED_OUT'
+              status = 'DIAGNOSTIC'
+          elif artifact_count == 0:
+              classification = 'SOURCE_REPLAY_PRODUCED_NO_PROOF_ARTIFACT'
+              status = 'DIAGNOSTIC'
+          else:
+              classification = 'UNCLASSIFIED_SOURCE_REPLAY_FAILURE'
+              status = 'DIAGNOSTIC'
+
+          interesting = []
+          for line in text.splitlines():
+              lower = line.lower()
+              if any(token in lower for token in (
+                  'error', 'failed', 'fatal', 'anchor', 'marker',
+                  'augment_', 'traceback', 'undefined', 'timeout')):
+                  interesting.append(line[-1800:])
+          interesting = interesting[-600:]
+
+          result = {
+              'schema': 1,
+              'milestone': 'M10-filesystem-replay-guardian',
+              'status': status,
+              'classification': classification,
+              'source_workflow_run': run_id,
+              'source_conclusion': conclusion,
+              'source_head_sha': run.get('headSha'),
+              'artifact_count': artifact_count,
+              'interesting_log_lines': interesting,
+              'failed_log_tail': failed[-24000:],
+          }
+          payload = json.dumps(result, indent=2) + '\n'
+          Path(f'diagnostics/m10-fs-replay-guardian-{run_id}.json').write_text(payload)
+          Path('diagnostics/m10-fs-replay-guardian-latest.json').write_text(payload)
+          Path('diagnostics/m10-fs-replay-guardian-latest.md').write_text(
+              '# M10 filesystem replay guardian\n\n'
+              f'- Source run: `{run_id}`\n'
+              f'- Conclusion: `{conclusion}`\n'
+              f'- Artifact count: `{artifact_count}`\n'
+              f'- Classification: `{classification}`\n'
+          )
+          Path('build/report/summary.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Commit a durable failure diagnosis when needed
+        run: |
+          set -euxo pipefail
+          classification=$(jq -r .classification build/report/summary.json)
+          if test "$classification" = SOURCE_REPLAY_SUCCEEDED_WITH_PROOF; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m10-fs-replay-guardian-*.json \
+                  diagnostics/m10-fs-replay-guardian-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: persist M10 filesystem replay failure'
+          for attempt in $(seq 1 20); do
+            if git push origin "HEAD:$TARGET_BRANCH"; then exit 0; fi
+            git fetch origin "$TARGET_BRANCH"
+            git rebase "origin/$TARGET_BRANCH"
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m10-fs-replay-guardian
+          path: |
+            build/report
+            diagnostics/m10-fs-replay-guardian-*.json
+            diagnostics/m10-fs-replay-guardian-latest.md
+          if-no-files-found: warn
+          retention-days: 14

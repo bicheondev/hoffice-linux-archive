@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "milestone": "M9-bootstrap",
+  "status": "DIAGNOSTIC",
+  "classification": "INITIALIZATION_ERROR_REMAINS",
+  "workflow_run": "31167132258",
+  "commit": "6d1b9fc5707e5bded150429b4ace15dd66c1998c",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "rootfs_artifact_id": "8968324706",
+  "qpa_run_id": "31166152504",
+  "guest_cwd_lines": [
+    "/tmp/h9b-31167132258/opt/hnc/hoffice11/Bin"
+  ],
+  "guest_cwd_correct": true,
+  "window_titles": [
+    "Initialization Error"
+  ],
+  "window_geometries": [
+    [
+      390,
+      128
+    ]
+  ],
+  "initialization_error_observed": true,
+  "frame_present": true,
+  "frame_sha256": "a30d0dea3b2971079e5e1ec35fc2b6e5797ed4dacf80bad85c345abe7eff4a45",
+  "font_database_files": [
+    "/tmp/h9b-31167132258/opt/hnc/hoffice11/Bin/FontDB/FontMap.dat",
+    "/tmp/h9b-31167132258/opt/hnc/hoffice11/Bin/FontDB/fontinfo.dat",
+    "/tmp/h9b-31167132258/opt/hnc/hoffice11/Bin/Shared/Fonts/fontinfo.dat"
+  ],
+  "raw_exit_status": 143
+}

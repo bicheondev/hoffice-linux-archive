@@ -1,0 +1,181 @@
+name: HOffice runtime M5 QOffscreen symbol inventory
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m5-qoffscreen-symbol-inventory.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m5-qoffscreen-symbols-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN_ID: '31102898765'
+  PLUGIN: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so
+
+jobs:
+  inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Verify and extract only the bundled offscreen plugin
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends binutils file
+          mkdir -p build/root build/report diagnostics
+          expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)
+          actual=$(sha256sum build/input/hword-rootfs.tar.gz | awk '{print $1}')
+          test "$actual" = "$expected"
+          tar -xzf build/input/hword-rootfs.tar.gz -C build/root \
+            ".${PLUGIN}"
+          test -f "build/root${PLUGIN}"
+          file "build/root${PLUGIN}" | tee build/report/plugin-file.txt
+          sha256sum "build/root${PLUGIN}" | tee build/report/plugin.sha256
+          readelf -hW "build/root${PLUGIN}" > build/report/plugin-elf-header.txt
+          readelf -WsW "build/root${PLUGIN}" > build/report/plugin-symbols-readelf.txt
+          nm -a --defined-only --format=posix "build/root${PLUGIN}" \
+            > build/report/plugin-symbols-nm-posix.txt
+
+      - name: Build the exact QOffscreen symbol inventory
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import subprocess
+
+          plugin = pathlib.Path('build/root/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so')
+          raw = pathlib.Path('build/report/plugin-symbols-nm-posix.txt').read_text(
+              errors='replace').splitlines()
+          records = []
+          for line in raw:
+              parts = line.rsplit(maxsplit=3)
+              if len(parts) < 3:
+                  continue
+              if len(parts) == 3:
+                  name, symbol_type, value = parts
+                  size = None
+              else:
+                  name, symbol_type, value, size = parts
+              try:
+                  completed = subprocess.run(
+                      ['c++filt', '-n', name], text=True,
+                      stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                      check=True)
+                  demangled = completed.stdout.rstrip('\n')
+              except subprocess.CalledProcessError:
+                  demangled = name
+              if not (
+                  'QOffscreen' in demangled or
+                  name in {'qt_plugin_instance', 'qt_plugin_query_metadata'} or
+                  'QGenericUnixServices' in demangled
+              ):
+                  continue
+              records.append({
+                  'mangled': name,
+                  'demangled': demangled,
+                  'type': symbol_type,
+                  'value_hex': value,
+                  'size_hex': size,
+              })
+
+          records.sort(key=lambda item: (
+              int(item['value_hex'], 16) if item['value_hex'] else 0,
+              item['mangled']))
+          digest = hashlib.sha256(plugin.read_bytes()).hexdigest()
+          inventory = {
+              'schema': 1,
+              'source_rootfs_run': '${{ env.SOURCE_RUN_ID }}',
+              'plugin': '${{ env.PLUGIN }}',
+              'plugin_sha256': digest,
+              'symbol_count': len(records),
+              'symbols': records,
+              'method_groups': {
+                  'plugin_entry': [r for r in records
+                                   if r['mangled'] == 'qt_plugin_instance'],
+                  'integration_plugin_create': [r for r in records
+                      if 'IntegrationPlugin::create' in r['demangled']],
+                  'integration_constructors': [r for r in records
+                      if 'QOffscreenIntegration::QOffscreenIntegration' in
+                         r['demangled']],
+                  'create_platform_window': [r for r in records
+                      if 'createPlatformWindow' in r['demangled']],
+                  'window_constructors': [r for r in records
+                      if 'QOffscreenWindow::QOffscreenWindow' in r['demangled']],
+                  'create_backing_store': [r for r in records
+                      if 'createPlatformBackingStore' in r['demangled']],
+                  'backing_store_constructors': [r for r in records
+                      if 'QOffscreenBackingStore::QOffscreenBackingStore' in
+                         r['demangled']],
+                  'paint_device': [r for r in records
+                      if 'QOffscreenBackingStore::paintDevice' in r['demangled']],
+                  'flush': [r for r in records
+                      if 'QOffscreenBackingStore::flush' in r['demangled']],
+              },
+          }
+          target = pathlib.Path('diagnostics/qoffscreen-symbol-inventory.json')
+          target.write_text(json.dumps(inventory, indent=2) + '\n')
+          lines = [
+              f"plugin: {inventory['plugin']}",
+              f"sha256: {inventory['plugin_sha256']}",
+              f"matching symbols: {inventory['symbol_count']}",
+              '',
+          ]
+          for record in records:
+              lines.append(
+                  f"{record['value_hex']} {record['type']} "
+                  f"{record['mangled']}\n    {record['demangled']}")
+          pathlib.Path('diagnostics/qoffscreen-symbol-inventory.txt').write_text(
+              '\n'.join(lines) + '\n')
+          print(json.dumps(inventory['method_groups'], indent=2))
+
+          required = inventory['method_groups']
+          assert required['plugin_entry']
+          assert required['integration_plugin_create']
+          assert required['integration_constructors']
+          assert required['create_platform_window']
+          assert required['window_constructors']
+          PY
+
+      - name: Commit the immutable symbol inventory
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/qoffscreen-symbol-inventory.json \
+                  diagnostics/qoffscreen-symbol-inventory.txt
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: lock exact bundled QOffscreen symbols [skip ci]'
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git push origin HEAD:codex/hoffice-runtime-from-scratch
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m5-qoffscreen-symbol-inventory
+          path: |
+            diagnostics/qoffscreen-symbol-inventory.json
+            diagnostics/qoffscreen-symbol-inventory.txt
+            build/report
+          if-no-files-found: warn
+          retention-days: 30

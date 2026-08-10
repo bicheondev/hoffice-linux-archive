@@ -1,0 +1,1109 @@
+{
+  "schema": 1,
+  "workflow_run": "31408901408",
+  "commit": "044062111a112a33606a67474677b4adf3804730",
+  "branch": "codex/hoffice-runtime-from-scratch",
+  "workflow_count": 13,
+  "successful_count": 1,
+  "failure_count": 6,
+  "active_count": 6,
+  "completed_count": 7,
+  "entries": [
+    {
+      "workflow": "hoffice-runtime-m11-build-empty-fallback-host.yml",
+      "run_id": "31408445825",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_sha": "029394416a64475526102f359cb95f59d53bd2f9",
+      "display_title": "Build HWord empty-path HWDT fallback host",
+      "created_at": "2026-08-10T16:20:43Z",
+      "updated_at": "2026-08-10T16:20:58Z",
+      "html_url": "https://github.com/bicheondev/hoffice-linux-archive/actions/runs/31408445825",
+      "jobs": [
+        {
+          "id": "93520436651",
+          "name": "build-host",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Generate the bounded empty-path compatibility bridge",
+              "status": "completed",
+              "conclusion": "failure"
+            },
+            {
+              "number": 4,
+              "name": "Compile, sign, and lock the x86-64 diagnostic host",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 5,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 10,
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ],
+      "failed_job_log_tails": [
+        {
+          "job_id": "93520436651",
+          "tail": "2026-08-10T16:20:51.9253760Z  * [new branch]      codex/hoffice-runtime-m3-hword-entry -> origin/codex/hoffice-runtime-m3-hword-entry\n2026-08-10T16:20:51.9255530Z  * [new branch]      codex/hoffice-runtime-m4-qt-offscreen -> origin/codex/hoffice-runtime-m4-qt-offscreen\n2026-08-10T16:20:51.9257260Z  * [new branch]      codex/hoffice-runtime-m5-appkit-bridge -> origin/codex/hoffice-runtime-m5-appkit-bridge\n2026-08-10T16:20:51.9260700Z  * [new branch]      codex/hoffice-runtime-m5-custom-qpa -> origin/codex/hoffice-runtime-m5-custom-qpa\n2026-08-10T16:20:51.9261700Z  * [new branch]      codex/hoffice-runtime-m5-hword-window -> origin/codex/hoffice-runtime-m5-hword-window\n2026-08-10T16:20:51.9262230Z  * [new branch]      main               -> origin/main\n2026-08-10T16:20:51.9262590Z  * [new tag]         linux-11.20-series -> linux-11.20-series\n2026-08-10T16:20:51.9262980Z  * [new tag]         linux-11.20.0      -> linux-11.20.0\n2026-08-10T16:20:51.9317370Z [command]/opt/homebrew/bin/git branch --list --remote origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:20:51.9426250Z   origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:20:51.9441410Z [command]/opt/homebrew/bin/git rev-parse refs/remotes/origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:20:51.9526520Z 029394416a64475526102f359cb95f59d53bd2f9\n2026-08-10T16:20:51.9542570Z ##[endgroup]\n2026-08-10T16:20:51.9544180Z ##[group]Determining the checkout info\n2026-08-10T16:20:51.9545310Z ##[endgroup]\n2026-08-10T16:20:51.9545940Z [command]/opt/homebrew/bin/git sparse-checkout disable\n2026-08-10T16:20:51.9625110Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig\n2026-08-10T16:20:51.9705740Z ##[group]Checking out the ref\n2026-08-10T16:20:51.9711910Z [command]/opt/homebrew/bin/git checkout --progress --force -B codex/hoffice-runtime-from-scratch refs/remotes/origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:20:52.0779280Z Switched to a new branch 'codex/hoffice-runtime-from-scratch'\n2026-08-10T16:20:52.0879620Z branch 'codex/hoffice-runtime-from-scratch' set up to track 'origin/codex/hoffice-runtime-from-scratch'.\n2026-08-10T16:20:52.1187300Z ##[endgroup]\n2026-08-10T16:20:52.1492260Z [command]/opt/homebrew/bin/git log -1 --format=%H\n2026-08-10T16:20:52.1590560Z 029394416a64475526102f359cb95f59d53bd2f9\n2026-08-10T16:20:52.2234920Z ##[group]Run set -euxo pipefail\n2026-08-10T16:20:52.2236200Z \u001b[36;1mset -euxo pipefail\u001b[0m\n2026-08-10T16:20:52.2237080Z \u001b[36;1mif ! /usr/bin/arch -x86_64 /usr/bin/true; then\u001b[0m\n2026-08-10T16:20:52.2238110Z \u001b[36;1m  sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license\u001b[0m\n2026-08-10T16:20:52.2239020Z \u001b[36;1mfi\u001b[0m\n2026-08-10T16:20:52.2239660Z \u001b[36;1mmkdir -p build/generated build/objects build/output\u001b[0m\n2026-08-10T16:20:52.2240580Z \u001b[36;1m/usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \\\u001b[0m\n2026-08-10T16:20:52.2241390Z \u001b[36;1m  | tee build/output/x86-page-size.txt\u001b[0m\n2026-08-10T16:20:52.2242150Z \u001b[36;1msw_vers | tee build/output/sw-vers.txt\u001b[0m\n2026-08-10T16:20:52.2242820Z \u001b[36;1m\u001b[0m\n2026-08-10T16:20:52.2243470Z \u001b[36;1mpython3 runtime/m8/augment_appkit_adapter_input.py \\\u001b[0m\n2026-08-10T16:20:52.2244320Z \u001b[36;1m  runtime/m6/appkit_adapter.m \\\u001b[0m\n2026-08-10T16:20:52.2245060Z \u001b[36;1m  build/generated/appkit_adapter_m8.m\u001b[0m\n2026-08-10T16:20:52.2246160Z \u001b[36;1mpython3 runtime/m11/augment_appkit_korean_input_capture.py \\\u001b[0m\n2026-08-10T16:20:52.2247250Z \u001b[36;1m  build/generated/appkit_adapter_m8.m \\\u001b[0m\n2026-08-10T16:20:52.2248540Z \u001b[36;1m  build/generated/appkit_adapter_m11.m\u001b[0m\n2026-08-10T16:20:52.2249050Z \u001b[36;1m\u001b[0m\n2026-08-10T16:20:52.2249330Z \u001b[36;1mpython3 runtime/m6/augment_stack_hrtappkit.py \\\u001b[0m\n2026-08-10T16:20:52.2249680Z \u001b[36;1m  runtime/m3/stack.c build/generated/stack-m6.c\u001b[0m\n2026-08-10T16:20:52.2250020Z \u001b[36;1mpython3 runtime/m9/augment_stack_locale.py \\\u001b[0m\n2026-08-10T16:20:52.2250390Z \u001b[36;1m  build/generated/stack-m6.c build/generated/stack.c\u001b[0m\n2026-08-10T16:20:52.2250710Z \u001b[36;1m\u001b[0m\n2026-08-10T16:20:52.2250990Z \u001b[36;1mpython3 runtime/m3/augment_syscalls.py \\\u001b[0m\n2026-08-10T16:20:52.2251400Z \u001b[36;1m  runtime/m3/syscall_bridge.c build/generated/stage1.c\u001b[0m\n2026-08-10T16:20:52.2251800Z \u001b[36;1mpython3 runtime/m3/augment_directory_syscalls.py \\\u001b[0m\n2026-08-10T16:20:52.2252200Z \u001b[36;1m  build/generated/stage1.c build/generated/stage2.c\u001b[0m\n2026-08-10T16:20:52.2253340Z \u001b[36;1mpython3 runtime/m3/augment_directory_stream.py \\\u001b[0m\n2026-08-10T16:20:52.2253750Z \u001b[36;1m  build/generated/stage2.c build/generated/stage3.c\u001b[0m\n2026-08-10T16:20:52.2254120Z \u001b[36;1mpython3 runtime/m3/augment_pipe2.py \\\u001b[0m\n2026-08-10T16:20:52.2254440Z \u001b[36;1m  build/generated/stage3.c build/generated/stage4.c\u001b[0m\n2026-08-10T16:20:52.2254780Z \u001b[36;1mpython3 runtime/m3/augment_eventfd2.py \\\u001b[0m\n2026-08-10T16:20:52.2255100Z \u001b[36;1m  build/generated/stage4.c build/generated/stage5.c\u001b[0m\n2026-08-10T16:20:52.2255430Z \u001b[36;1mpython3 runtime/m3/augment_crash_signals.py \\\u001b[0m\n2026-08-10T16:20:52.2255760Z \u001b[36;1m  build/generated/stage5.c build/generated/stage6.c\u001b[0m\n2026-08-10T16:20:52.2256070Z \u001b[36;1mpython3 runtime/m3/augment_poll.py \\\u001b[0m\n2026-08-10T16:20:52.2256410Z \u001b[36;1m  build/generated/stage6.c build/generated/stage7.c\u001b[0m\n2026-08-10T16:20:52.2256780Z \u001b[36;1mpython3 runtime/m3/augment_posix_basics.py \\\u001b[0m\n2026-08-10T16:20:52.2257120Z \u001b[36;1m  build/generated/stage7.c build/generated/stage8.c\u001b[0m\n2026-08-10T16:20:52.2257470Z \u001b[36;1mpython3 runtime/m11/augment_clock_nanosleep.py \\\u001b[0m\n2026-08-10T16:20:52.2257810Z \u001b[36;1m  build/generated/stage8.c build/generated/stage9.c\u001b[0m\n2026-08-10T16:20:52.2258140Z \u001b[36;1mpython3 runtime/m10/augment_fs_compat.py \\\u001b[0m\n2026-08-10T16:20:52.2258460Z \u001b[36;1m  build/generated/stage9.c build/generated/stage10.c\u001b[0m\n2026-08-10T16:20:52.2258780Z \u001b[36;1mpython3 runtime/m3/augment_connect.py \\\u001b[0m\n2026-08-10T16:20:52.2259110Z \u001b[36;1m  build/generated/stage10.c build/generated/stage11.c\u001b[0m\n2026-08-10T16:20:52.2259460Z \u001b[36;1mpython3 runtime/m6/augment_appkit_hostcall_deferred.py \\\u001b[0m\n2026-08-10T16:20:52.2259840Z \u001b[36;1m  build/generated/stage11.c build/generated/stage12.c\u001b[0m\n2026-08-10T16:20:52.2260190Z \u001b[36;1mpython3 runtime/m3/augment_darwin_syscall_abi.py \\\u001b[0m\n2026-08-10T16:20:52.2260530Z \u001b[36;1m  build/generated/stage12.c build/generated/stage13.c\u001b[0m\n2026-08-10T16:20:52.2260870Z \u001b[36;1mpython3 runtime/m10/augment_clone_compat_v4.py \\\u001b[0m\n2026-08-10T16:20:52.2261760Z \u001b[36;1m  build/generated/stage13.c build/generated/stage14.c\u001b[0m\n2026-08-10T16:20:52.2262190Z \u001b[36;1mpython3 runtime/m11/augment_hword_document_io_trace_v9.py \\\u001b[0m\n2026-08-10T16:20:52.2262590Z \u001b[36;1m  build/generated/stage14.c build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:20:52.2262940Z \u001b[36;1m\u001b[0m\n2026-08-10T16:20:52.2263230Z \u001b[36;1mpython3 - <<'PY'\u001b[0m\n2026-08-10T16:20:52.2263630Z \u001b[36;1mfrom pathlib import Path\u001b[0m\n2026-08-10T16:20:52.2264750Z \u001b[36;1mpath = Path('build/generated/syscall_bridge.c')\u001b[0m\n2026-08-10T16:20:52.2265110Z \u001b[36;1mtext = path.read_text(encoding='utf-8')\u001b[0m\n2026-08-10T16:20:52.2265410Z \u001b[36;1manchor = '#define M3_TRACE_LIMIT 256u'\u001b[0m\n2026-08-10T16:20:52.2265720Z \u001b[36;1mif text.count(anchor) != 1:\u001b[0m\n2026-08-10T16:20:52.2265970Z \u001b[36;1m    raise SystemExit(\u001b[0m\n2026-08-10T16:20:52.2266340Z \u001b[36;1m        f'trace-limit anchor: expected one, found {text.count(anchor)}')\u001b[0m\n2026-08-10T16:20:52.2266760Z \u001b[36;1mpath.write_text(\u001b[0m\n2026-08-10T16:20:52.2267080Z \u001b[36;1m    text.replace(anchor, '#define M3_TRACE_LIMIT 24000u'),\u001b[0m\n2026-08-10T16:20:52.2267420Z \u001b[36;1m    encoding='utf-8')\u001b[0m\n2026-08-10T16:20:52.2267650Z \u001b[36;1mPY\u001b[0m\n2026-08-10T16:20:52.2267830Z \u001b[36;1m\u001b[0m\n2026-08-10T16:20:52.2268050Z \u001b[36;1mgrep -F 'HRT M11 EMPTYFALLBACK: index=1' \\\u001b[0m\n2026-08-10T16:20:52.2268390Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:20:52.2268680Z \u001b[36;1mgrep -F 'HRT M11 EMPTYFALLBACK: index=2' \\\u001b[0m\n2026-08-10T16:20:52.2268970Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:20:52.2269260Z \u001b[36;1mgrep -F 'HRT M11 EMPTYFALLBACK: index=3' \\\u001b[0m\n2026-08-10T16:20:52.2269540Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:20:52.2269840Z \u001b[36;1mgrep -F 'HRT M11 CLASSIFIERCALLER:' \\\u001b[0m\n2026-08-10T16:20:52.2270160Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:20:52.2270490Z \u001b[36;1mgrep -F 'HRT M11 FRAMECTX:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:20:52.2270950Z \u001b[36;1mgrep -F 'case LINUX_SYS_CLONE:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:20:52.2271780Z \u001b[36;1mgrep -F 'case LINUX_SYS_CLOCK_NANOSLEEP:' \\\u001b[0m\n2026-08-10T16:20:52.2272080Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:20:52.2272390Z \u001b[36;1mgrep -F '#define M3_TRACE_LIMIT 24000u' \\\u001b[0m\n2026-08-10T16:20:52.2272680Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:20:52.2275060Z \u001b[36;1m\u001b[0m\n2026-08-10T16:20:52.2275770Z \u001b[36;1mshasum -a 256 build/generated/syscall_bridge.c \\\u001b[0m\n2026-08-10T16:20:52.2276700Z \u001b[36;1m  >build/output/generated-bridge.sha256\u001b[0m\n2026-08-10T16:20:52.2278350Z \u001b[36;1mshasum -a 256 build/generated/appkit_adapter_m11.m \\\u001b[0m\n2026-08-10T16:20:52.2279510Z \u001b[36;1m  >build/output/generated-appkit-adapter.sha256\u001b[0m\n2026-08-10T16:20:52.2401160Z shell: /bin/bash -e {0}\n2026-08-10T16:20:52.2401520Z ##[endgroup]\n2026-08-10T16:20:52.2914680Z + /usr/bin/arch -x86_64 /usr/bin/true\n2026-08-10T16:20:52.6130780Z + mkdir -p build/generated build/objects build/output\n2026-08-10T16:20:52.6165340Z + /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE\n2026-08-10T16:20:52.6172260Z + tee build/output/x86-page-size.txt\n2026-08-10T16:20:52.8791260Z 4096\n2026-08-10T16:20:52.8812050Z + sw_vers\n2026-08-10T16:20:52.8815350Z + tee build/output/sw-vers.txt\n2026-08-10T16:20:52.8896330Z ProductName:\t\tmacOS\n2026-08-10T16:20:52.8897060Z + python3 runtime/m8/augment_appkit_adapter_input.py runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m\n2026-08-10T16:20:52.8897540Z ProductVersion:\t\t14.8.7\n2026-08-10T16:20:52.8897930Z BuildVersion:\t\t23J520\n2026-08-10T16:20:53.1296290Z + python3 runtime/m11/augment_appkit_korean_input_capture.py build/generated/appkit_adapter_m8.m build/generated/appkit_adapter_m11.m\n2026-08-10T16:20:53.3385520Z + python3 runtime/m6/augment_stack_hrtappkit.py runtime/m3/stack.c build/generated/stack-m6.c\n2026-08-10T16:20:53.4036680Z + python3 runtime/m9/augment_stack_locale.py build/generated/stack-m6.c build/generated/stack.c\n2026-08-10T16:20:53.4721930Z + python3 runtime/m3/augment_syscalls.py runtime/m3/syscall_bridge.c build/generated/stage1.c\n2026-08-10T16:20:53.5286930Z + python3 runtime/m3/augment_directory_syscalls.py build/generated/stage1.c build/generated/stage2.c\n2026-08-10T16:20:53.5868510Z + python3 runtime/m3/augment_directory_stream.py build/generated/stage2.c build/generated/stage3.c\n2026-08-10T16:20:53.6330070Z + python3 runtime/m3/augment_pipe2.py build/generated/stage3.c build/generated/stage4.c\n2026-08-10T16:20:53.6825720Z + python3 runtime/m3/augment_eventfd2.py build/generated/stage4.c build/generated/stage5.c\n2026-08-10T16:20:53.9032240Z + python3 runtime/m3/augment_crash_signals.py build/generated/stage5.c build/generated/stage6.c\n2026-08-10T16:20:53.9516690Z + python3 runtime/m3/augment_poll.py build/generated/stage6.c build/generated/stage7.c\n2026-08-10T16:20:54.0014000Z + python3 runtime/m3/augment_posix_basics.py build/generated/stage7.c build/generated/stage8.c\n2026-08-10T16:20:54.0457670Z + python3 runtime/m11/augment_clock_nanosleep.py build/generated/stage8.c build/generated/stage9.c\n2026-08-10T16:20:54.0871420Z + python3 runtime/m10/augment_fs_compat.py build/generated/stage9.c build/generated/stage10.c\n2026-08-10T16:20:54.2089810Z + python3 runtime/m3/augment_connect.py build/generated/stage10.c build/generated/stage11.c\n2026-08-10T16:20:54.2487760Z + python3 runtime/m6/augment_appkit_hostcall_deferred.py build/generated/stage11.c build/generated/stage12.c\n2026-08-10T16:20:54.2932310Z + python3 runtime/m3/augment_darwin_syscall_abi.py build/generated/stage12.c build/generated/stage13.c\n2026-08-10T16:20:54.3337630Z + python3 runtime/m10/augment_clone_compat_v4.py build/generated/stage13.c build/generated/stage14.c\n2026-08-10T16:20:54.5042000Z + python3 runtime/m11/augment_hword_document_io_trace_v9.py build/generated/stage14.c build/generated/syscall_bridge.c\n2026-08-10T16:20:54.8050420Z empty-path fallback marker mismatch for 'HRT M11 CLASSIFIERCALLER:': expected 1, found 0\n2026-08-10T16:20:54.8135690Z ##[error]Process completed with exit code 1.\n2026-08-10T16:20:54.8275230Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/\n2026-08-10T16:20:54.8277160Z Post job cleanup.\n2026-08-10T16:20:54.9664750Z [command]/opt/homebrew/bin/git version\n2026-08-10T16:20:54.9748050Z git version 2.54.0\n2026-08-10T16:20:54.9771480Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/6d2b3729-6c4d-4ee3-949c-f8f5a2ae422f/.gitconfig'\n2026-08-10T16:20:54.9783660Z Temporarily overriding HOME='/Users/runner/work/_temp/6d2b3729-6c4d-4ee3-949c-f8f5a2ae422f' before making global git config changes\n2026-08-10T16:20:54.9784850Z Adding repository directory to the temporary git global config as a safe directory\n2026-08-10T16:20:54.9792790Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/hoffice-linux-archive/hoffice-linux-archive\n2026-08-10T16:20:54.9848880Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2026-08-10T16:20:54.9898390Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2026-08-10T16:20:55.0578860Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2026-08-10T16:20:55.0630990Z http.https://github.com/.extraheader\n2026-08-10T16:20:55.0651170Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader\n2026-08-10T16:20:55.0707130Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"\n2026-08-10T16:20:55.1339960Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\\.gitdir:\n2026-08-10T16:20:55.1393390Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url\n2026-08-10T16:20:55.2186880Z Cleaning up orphan processes\n2026-08-10T16:20:55.5718530Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+        }
+      ]
+    },
+    {
+      "workflow": "hoffice-runtime-m11-empty-fallback-replay-v2.yml",
+      "run_id": "31408448028",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "029394416a64475526102f359cb95f59d53bd2f9",
+      "display_title": "HOffice runtime M11 empty-path HWDT fallback replay v2",
+      "created_at": "2026-08-10T16:20:44Z",
+      "updated_at": "2026-08-10T16:21:16Z",
+      "html_url": "https://github.com/bicheondev/hoffice-linux-archive/actions/runs/31408448028",
+      "jobs": [
+        {
+          "id": "93520561662",
+          "name": "replay",
+          "status": "in_progress",
+          "conclusion": null,
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Require the verified Korean HWord runtime frontier",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Wait for and lock the latest successful fallback host",
+              "status": "in_progress",
+              "conclusion": null
+            },
+            {
+              "number": 5,
+              "name": "Replay the exact product closure with bounded empty-path fallback",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 6,
+              "name": "Classify the empty-path compatibility experiment",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 7,
+              "name": "Commit the durable fallback classification",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 8,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 16,
+              "name": "Post Run actions/checkout@v4",
+              "status": "pending",
+              "conclusion": null
+            }
+          ]
+        }
+      ],
+      "failed_job_log_tails": []
+    },
+    {
+      "workflow": "hoffice-runtime-m11-build-sendfile-fallback-host.yml",
+      "run_id": "31408449938",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_sha": "029394416a64475526102f359cb95f59d53bd2f9",
+      "display_title": "Build HWord sendfile plus empty-path fallback host",
+      "created_at": "2026-08-10T16:20:46Z",
+      "updated_at": "2026-08-10T16:21:19Z",
+      "html_url": "https://github.com/bicheondev/hoffice-linux-archive/actions/runs/31408449938",
+      "jobs": [
+        {
+          "id": "93520452731",
+          "name": "build-host",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Generate the sendfile and empty-path compatibility bridge",
+              "status": "completed",
+              "conclusion": "failure"
+            },
+            {
+              "number": 4,
+              "name": "Compile, sign, and lock the x86-64 diagnostic host",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 5,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 10,
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ],
+      "failed_job_log_tails": [
+        {
+          "job_id": "93520452731",
+          "tail": "2026-08-10T16:21:12.6163830Z [command]/opt/homebrew/bin/git branch --list --remote origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:21:12.6280990Z   origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:21:12.6343570Z [command]/opt/homebrew/bin/git rev-parse refs/remotes/origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:21:12.6345510Z 9bd86780a34bc7d50339db2252a15d57b01bb145\n2026-08-10T16:21:12.6353080Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules origin +029394416a64475526102f359cb95f59d53bd2f9:refs/remotes/origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:21:12.6496600Z From https://github.com/bicheondev/hoffice-linux-archive\n2026-08-10T16:21:12.6498280Z  + 9bd8678...0293944 029394416a64475526102f359cb95f59d53bd2f9 -> origin/codex/hoffice-runtime-from-scratch  (forced update)\n2026-08-10T16:21:12.6614680Z ##[endgroup]\n2026-08-10T16:21:12.6615740Z ##[group]Determining the checkout info\n2026-08-10T16:21:12.6617670Z ##[endgroup]\n2026-08-10T16:21:12.6618290Z [command]/opt/homebrew/bin/git sparse-checkout disable\n2026-08-10T16:21:12.6764900Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig\n2026-08-10T16:21:12.6802450Z ##[group]Checking out the ref\n2026-08-10T16:21:12.6806130Z [command]/opt/homebrew/bin/git checkout --progress --force -B codex/hoffice-runtime-from-scratch refs/remotes/origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:21:12.7697750Z Switched to a new branch 'codex/hoffice-runtime-from-scratch'\n2026-08-10T16:21:12.7709410Z branch 'codex/hoffice-runtime-from-scratch' set up to track 'origin/codex/hoffice-runtime-from-scratch'.\n2026-08-10T16:21:12.7722060Z ##[endgroup]\n2026-08-10T16:21:12.7799960Z [command]/opt/homebrew/bin/git log -1 --format=%H\n2026-08-10T16:21:12.7860490Z 029394416a64475526102f359cb95f59d53bd2f9\n2026-08-10T16:21:12.8080080Z ##[group]Run set -euxo pipefail\n2026-08-10T16:21:12.8081120Z \u001b[36;1mset -euxo pipefail\u001b[0m\n2026-08-10T16:21:12.8081930Z \u001b[36;1mif ! /usr/bin/arch -x86_64 /usr/bin/true; then\u001b[0m\n2026-08-10T16:21:12.8083180Z \u001b[36;1m  sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license\u001b[0m\n2026-08-10T16:21:12.8084420Z \u001b[36;1mfi\u001b[0m\n2026-08-10T16:21:12.8085570Z \u001b[36;1mmkdir -p build/generated build/objects build/output\u001b[0m\n2026-08-10T16:21:12.8086830Z \u001b[36;1m/usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \\\u001b[0m\n2026-08-10T16:21:12.8087860Z \u001b[36;1m  | tee build/output/x86-page-size.txt\u001b[0m\n2026-08-10T16:21:12.8088780Z \u001b[36;1msw_vers | tee build/output/sw-vers.txt\u001b[0m\n2026-08-10T16:21:12.8089590Z \u001b[36;1m\u001b[0m\n2026-08-10T16:21:12.8090600Z \u001b[36;1mpython3 runtime/m8/augment_appkit_adapter_input.py \\\u001b[0m\n2026-08-10T16:21:12.8091770Z \u001b[36;1m  runtime/m6/appkit_adapter.m \\\u001b[0m\n2026-08-10T16:21:12.8092660Z \u001b[36;1m  build/generated/appkit_adapter_m8.m\u001b[0m\n2026-08-10T16:21:12.8093950Z \u001b[36;1mpython3 runtime/m11/augment_appkit_korean_input_capture.py \\\u001b[0m\n2026-08-10T16:21:12.8095150Z \u001b[36;1m  build/generated/appkit_adapter_m8.m \\\u001b[0m\n2026-08-10T16:21:12.8096190Z \u001b[36;1m  build/generated/appkit_adapter_m11.m\u001b[0m\n2026-08-10T16:21:12.8097000Z \u001b[36;1m\u001b[0m\n2026-08-10T16:21:12.8098230Z \u001b[36;1mpython3 runtime/m6/augment_stack_hrtappkit.py \\\u001b[0m\n2026-08-10T16:21:12.8099400Z \u001b[36;1m  runtime/m3/stack.c build/generated/stack-m6.c\u001b[0m\n2026-08-10T16:21:12.8100610Z \u001b[36;1mpython3 runtime/m9/augment_stack_locale.py \\\u001b[0m\n2026-08-10T16:21:12.8101710Z \u001b[36;1m  build/generated/stack-m6.c build/generated/stack.c\u001b[0m\n2026-08-10T16:21:12.8103130Z \u001b[36;1m\u001b[0m\n2026-08-10T16:21:12.8103810Z \u001b[36;1mpython3 runtime/m3/augment_syscalls.py \\\u001b[0m\n2026-08-10T16:21:12.8104880Z \u001b[36;1m  runtime/m3/syscall_bridge.c build/generated/stage1.c\u001b[0m\n2026-08-10T16:21:12.8106010Z \u001b[36;1mpython3 runtime/m3/augment_directory_syscalls.py \\\u001b[0m\n2026-08-10T16:21:12.8107060Z \u001b[36;1m  build/generated/stage1.c build/generated/stage2.c\u001b[0m\n2026-08-10T16:21:12.8108060Z \u001b[36;1mpython3 runtime/m3/augment_directory_stream.py \\\u001b[0m\n2026-08-10T16:21:12.8109070Z \u001b[36;1m  build/generated/stage2.c build/generated/stage3.c\u001b[0m\n2026-08-10T16:21:12.8109980Z \u001b[36;1mpython3 runtime/m3/augment_pipe2.py \\\u001b[0m\n2026-08-10T16:21:12.8110910Z \u001b[36;1m  build/generated/stage3.c build/generated/stage4.c\u001b[0m\n2026-08-10T16:21:12.8111870Z \u001b[36;1mpython3 runtime/m3/augment_eventfd2.py \\\u001b[0m\n2026-08-10T16:21:12.8112830Z \u001b[36;1m  build/generated/stage4.c build/generated/stage5.c\u001b[0m\n2026-08-10T16:21:12.8115360Z \u001b[36;1mpython3 runtime/m3/augment_crash_signals.py \\\u001b[0m\n2026-08-10T16:21:12.8116480Z \u001b[36;1m  build/generated/stage5.c build/generated/stage6.c\u001b[0m\n2026-08-10T16:21:12.8118030Z \u001b[36;1mpython3 runtime/m3/augment_poll.py \\\u001b[0m\n2026-08-10T16:21:12.8119120Z \u001b[36;1m  build/generated/stage6.c build/generated/stage7.c\u001b[0m\n2026-08-10T16:21:12.8120200Z \u001b[36;1mpython3 runtime/m3/augment_posix_basics.py \\\u001b[0m\n2026-08-10T16:21:12.8121330Z \u001b[36;1m  build/generated/stage7.c build/generated/stage8.c\u001b[0m\n2026-08-10T16:21:12.8122400Z \u001b[36;1mpython3 runtime/m11/augment_clock_nanosleep.py \\\u001b[0m\n2026-08-10T16:21:12.8123450Z \u001b[36;1m  build/generated/stage8.c build/generated/stage9.c\u001b[0m\n2026-08-10T16:21:12.8124430Z \u001b[36;1mpython3 runtime/m11/augment_sendfile.py \\\u001b[0m\n2026-08-10T16:21:12.8125410Z \u001b[36;1m  build/generated/stage9.c build/generated/stage10.c\u001b[0m\n2026-08-10T16:21:12.8126420Z \u001b[36;1mpython3 runtime/m10/augment_fs_compat.py \\\u001b[0m\n2026-08-10T16:21:12.8127570Z \u001b[36;1m  build/generated/stage10.c build/generated/stage11.c\u001b[0m\n2026-08-10T16:21:12.8128670Z \u001b[36;1mpython3 runtime/m3/augment_connect.py \\\u001b[0m\n2026-08-10T16:21:12.8129630Z \u001b[36;1m  build/generated/stage11.c build/generated/stage12.c\u001b[0m\n2026-08-10T16:21:12.8130780Z \u001b[36;1mpython3 runtime/m6/augment_appkit_hostcall_deferred.py \\\u001b[0m\n2026-08-10T16:21:12.8131930Z \u001b[36;1m  build/generated/stage12.c build/generated/stage13.c\u001b[0m\n2026-08-10T16:21:12.8133010Z \u001b[36;1mpython3 runtime/m3/augment_darwin_syscall_abi.py \\\u001b[0m\n2026-08-10T16:21:12.8134660Z \u001b[36;1m  build/generated/stage13.c build/generated/stage14.c\u001b[0m\n2026-08-10T16:21:12.8135710Z \u001b[36;1mpython3 runtime/m10/augment_clone_compat_v4.py \\\u001b[0m\n2026-08-10T16:21:12.8136690Z \u001b[36;1m  build/generated/stage14.c build/generated/stage15.c\u001b[0m\n2026-08-10T16:21:12.8137840Z \u001b[36;1mpython3 runtime/m11/augment_hword_document_io_trace_v9.py \\\u001b[0m\n2026-08-10T16:21:12.8139060Z \u001b[36;1m  build/generated/stage15.c build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:21:12.8140040Z \u001b[36;1m\u001b[0m\n2026-08-10T16:21:12.8140510Z \u001b[36;1mpython3 - <<'PY'\u001b[0m\n2026-08-10T16:21:12.8141110Z \u001b[36;1mfrom pathlib import Path\u001b[0m\n2026-08-10T16:21:12.8141880Z \u001b[36;1mpath = Path('build/generated/syscall_bridge.c')\u001b[0m\n2026-08-10T16:21:12.8143850Z \u001b[36;1mtext = path.read_text(encoding='utf-8')\u001b[0m\n2026-08-10T16:21:12.8144730Z \u001b[36;1manchor = '#define M3_TRACE_LIMIT 256u'\u001b[0m\n2026-08-10T16:21:12.8145550Z \u001b[36;1mif text.count(anchor) != 1:\u001b[0m\n2026-08-10T16:21:12.8146230Z \u001b[36;1m    raise SystemExit(\u001b[0m\n2026-08-10T16:21:12.8147170Z \u001b[36;1m        f'trace-limit anchor: expected one, found {text.count(anchor)}')\u001b[0m\n2026-08-10T16:21:12.8148340Z \u001b[36;1mpath.write_text(\u001b[0m\n2026-08-10T16:21:12.8149140Z \u001b[36;1m    text.replace(anchor, '#define M3_TRACE_LIMIT 24000u'),\u001b[0m\n2026-08-10T16:21:12.8150610Z \u001b[36;1m    encoding='utf-8')\u001b[0m\n2026-08-10T16:21:12.8151250Z \u001b[36;1mPY\u001b[0m\n2026-08-10T16:21:12.8151720Z \u001b[36;1m\u001b[0m\n2026-08-10T16:21:12.8152260Z \u001b[36;1mgrep -F 'case LINUX_SYS_SENDFILE:' \\\u001b[0m\n2026-08-10T16:21:12.8153060Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:21:12.8154230Z \u001b[36;1mgrep -F 'HRT M11 SENDFILE: out=' \\\u001b[0m\n2026-08-10T16:21:12.8155000Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:21:12.8155850Z \u001b[36;1mgrep -F 'HRT M11 EMPTYFALLBACK: index=1' \\\u001b[0m\n2026-08-10T16:21:12.8156670Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:21:12.8157470Z \u001b[36;1mgrep -F 'HRT M11 EMPTYFALLBACK: index=2' \\\u001b[0m\n2026-08-10T16:21:12.8158290Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:21:12.8159110Z \u001b[36;1mgrep -F 'HRT M11 EMPTYFALLBACK: index=3' \\\u001b[0m\n2026-08-10T16:21:12.8159950Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:21:12.8160790Z \u001b[36;1mgrep -F 'HRT M11 CLASSIFIERCALLER:' \\\u001b[0m\n2026-08-10T16:21:12.8161600Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:21:12.8162550Z \u001b[36;1mgrep -F 'HRT M11 FRAMECTX:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:21:12.8163780Z \u001b[36;1mgrep -F 'case LINUX_SYS_CLONE:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:21:12.8164850Z \u001b[36;1mgrep -F '#define M3_TRACE_LIMIT 24000u' \\\u001b[0m\n2026-08-10T16:21:12.8165680Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:21:12.8166420Z \u001b[36;1m\u001b[0m\n2026-08-10T16:21:12.8167030Z \u001b[36;1mshasum -a 256 build/generated/syscall_bridge.c \\\u001b[0m\n2026-08-10T16:21:12.8167960Z \u001b[36;1m  >build/output/generated-bridge.sha256\u001b[0m\n2026-08-10T16:21:12.8168940Z \u001b[36;1mshasum -a 256 build/generated/appkit_adapter_m11.m \\\u001b[0m\n2026-08-10T16:21:12.8169960Z \u001b[36;1m  >build/output/generated-appkit-adapter.sha256\u001b[0m\n2026-08-10T16:21:12.8241570Z shell: /bin/bash -e {0}\n2026-08-10T16:21:12.8242270Z ##[endgroup]\n2026-08-10T16:21:12.8555330Z + /usr/bin/arch -x86_64 /usr/bin/true\n2026-08-10T16:21:13.2098660Z + mkdir -p build/generated build/objects build/output\n2026-08-10T16:21:13.2141180Z + /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE\n2026-08-10T16:21:13.2144400Z + tee build/output/x86-page-size.txt\n2026-08-10T16:21:13.4359000Z 4096\n2026-08-10T16:21:13.4460950Z + sw_vers\n2026-08-10T16:21:13.4561360Z + tee build/output/sw-vers.txt\n2026-08-10T16:21:13.4562760Z ProductName:\t\tmacOS\n2026-08-10T16:21:13.4664770Z + python3 runtime/m8/augment_appkit_adapter_input.py runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m\n2026-08-10T16:21:13.4665750Z ProductVersion:\t\t14.8.7\n2026-08-10T16:21:13.4765400Z BuildVersion:\t\t23J520\n2026-08-10T16:21:13.7593810Z + python3 runtime/m11/augment_appkit_korean_input_capture.py build/generated/appkit_adapter_m8.m build/generated/appkit_adapter_m11.m\n2026-08-10T16:21:13.9687710Z + python3 runtime/m6/augment_stack_hrtappkit.py runtime/m3/stack.c build/generated/stack-m6.c\n2026-08-10T16:21:14.0155870Z + python3 runtime/m9/augment_stack_locale.py build/generated/stack-m6.c build/generated/stack.c\n2026-08-10T16:21:14.0637220Z + python3 runtime/m3/augment_syscalls.py runtime/m3/syscall_bridge.c build/generated/stage1.c\n2026-08-10T16:21:14.1114780Z + python3 runtime/m3/augment_directory_syscalls.py build/generated/stage1.c build/generated/stage2.c\n2026-08-10T16:21:14.1610430Z + python3 runtime/m3/augment_directory_stream.py build/generated/stage2.c build/generated/stage3.c\n2026-08-10T16:21:14.2114290Z + python3 runtime/m3/augment_pipe2.py build/generated/stage3.c build/generated/stage4.c\n2026-08-10T16:21:14.2703930Z + python3 runtime/m3/augment_eventfd2.py build/generated/stage4.c build/generated/stage5.c\n2026-08-10T16:21:14.4860230Z + python3 runtime/m3/augment_crash_signals.py build/generated/stage5.c build/generated/stage6.c\n2026-08-10T16:21:14.5289550Z + python3 runtime/m3/augment_poll.py build/generated/stage6.c build/generated/stage7.c\n2026-08-10T16:21:14.5764680Z + python3 runtime/m3/augment_posix_basics.py build/generated/stage7.c build/generated/stage8.c\n2026-08-10T16:21:14.6250830Z + python3 runtime/m11/augment_clock_nanosleep.py build/generated/stage8.c build/generated/stage9.c\n2026-08-10T16:21:14.6783490Z + python3 runtime/m11/augment_sendfile.py build/generated/stage9.c build/generated/stage10.c\n2026-08-10T16:21:14.7295840Z + python3 runtime/m10/augment_fs_compat.py build/generated/stage10.c build/generated/stage11.c\n2026-08-10T16:21:14.9510570Z + python3 runtime/m3/augment_connect.py build/generated/stage11.c build/generated/stage12.c\n2026-08-10T16:21:15.0069720Z + python3 runtime/m6/augment_appkit_hostcall_deferred.py build/generated/stage12.c build/generated/stage13.c\n2026-08-10T16:21:15.0541590Z + python3 runtime/m3/augment_darwin_syscall_abi.py build/generated/stage13.c build/generated/stage14.c\n2026-08-10T16:21:15.0968190Z + python3 runtime/m10/augment_clone_compat_v4.py build/generated/stage14.c build/generated/stage15.c\n2026-08-10T16:21:15.3412080Z + python3 runtime/m11/augment_hword_document_io_trace_v9.py build/generated/stage15.c build/generated/syscall_bridge.c\n2026-08-10T16:21:15.6706300Z empty-path fallback marker mismatch for 'HRT M11 CLASSIFIERCALLER:': expected 1, found 0\n2026-08-10T16:21:15.6825850Z ##[error]Process completed with exit code 1.\n2026-08-10T16:21:15.7087280Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/\n2026-08-10T16:21:15.7088820Z Post job cleanup.\n2026-08-10T16:21:15.8365780Z [command]/opt/homebrew/bin/git version\n2026-08-10T16:21:15.8451320Z git version 2.54.0\n2026-08-10T16:21:15.8489020Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/00374120-7cdb-49fb-9e39-de384b819bab/.gitconfig'\n2026-08-10T16:21:15.8504610Z Temporarily overriding HOME='/Users/runner/work/_temp/00374120-7cdb-49fb-9e39-de384b819bab' before making global git config changes\n2026-08-10T16:21:15.8511590Z Adding repository directory to the temporary git global config as a safe directory\n2026-08-10T16:21:15.8514290Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/hoffice-linux-archive/hoffice-linux-archive\n2026-08-10T16:21:15.8570160Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2026-08-10T16:21:15.8653900Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2026-08-10T16:21:15.9901250Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2026-08-10T16:21:15.9922990Z http.https://github.com/.extraheader\n2026-08-10T16:21:15.9924450Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader\n2026-08-10T16:21:15.9926120Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"\n2026-08-10T16:21:16.0653650Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\\.gitdir:\n2026-08-10T16:21:16.0705870Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url\n2026-08-10T16:21:16.2268880Z Cleaning up orphan processes\n2026-08-10T16:21:16.5630640Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+        }
+      ]
+    },
+    {
+      "workflow": "hoffice-runtime-m11-sendfile-fallback-replay.yml",
+      "run_id": "31408451929",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "029394416a64475526102f359cb95f59d53bd2f9",
+      "display_title": "HOffice runtime M11 sendfile plus empty-path fallback replay",
+      "created_at": "2026-08-10T16:20:47Z",
+      "updated_at": "2026-08-10T16:21:15Z",
+      "html_url": "https://github.com/bicheondev/hoffice-linux-archive/actions/runs/31408451929",
+      "jobs": [
+        {
+          "id": "93520545359",
+          "name": "replay",
+          "status": "in_progress",
+          "conclusion": null,
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Require the verified runtime frontier",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Wait for and lock the latest successful combined host",
+              "status": "in_progress",
+              "conclusion": null
+            },
+            {
+              "number": 5,
+              "name": "Replay exact HWord with sendfile and bounded fallback",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 6,
+              "name": "Classify the combined compatibility experiment",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 7,
+              "name": "Commit the durable combined classification",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 8,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 16,
+              "name": "Post Run actions/checkout@v4",
+              "status": "pending",
+              "conclusion": null
+            }
+          ]
+        }
+      ],
+      "failed_job_log_tails": []
+    },
+    {
+      "workflow": "hoffice-runtime-m11-build-empty-mask-matrix.yml",
+      "run_id": "31406061456",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_sha": "31f03ed7df19cc12528b5e25a763332bc67f3d34",
+      "display_title": "fix: audit the exact sendfile pread expression",
+      "created_at": "2026-08-10T15:53:51Z",
+      "updated_at": "2026-08-10T15:54:18Z",
+      "html_url": "https://github.com/bicheondev/hoffice-linux-archive/actions/runs/31406061456",
+      "jobs": [
+        {
+          "id": "93512579723",
+          "name": "build-host (2)",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Generate the sendfile and masked-empty-open bridge",
+              "status": "completed",
+              "conclusion": "failure"
+            },
+            {
+              "number": 4,
+              "name": "Compile and sign mask 2",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 5,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 10,
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": "93512579797",
+          "name": "build-host (4)",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Generate the sendfile and masked-empty-open bridge",
+              "status": "completed",
+              "conclusion": "failure"
+            },
+            {
+              "number": 4,
+              "name": "Compile and sign mask 4",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 5,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 10,
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": "93512579862",
+          "name": "build-host (7)",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Generate the sendfile and masked-empty-open bridge",
+              "status": "completed",
+              "conclusion": "failure"
+            },
+            {
+              "number": 4,
+              "name": "Compile and sign mask 7",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 5,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 10,
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": "93512579913",
+          "name": "build-host (1)",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Generate the sendfile and masked-empty-open bridge",
+              "status": "completed",
+              "conclusion": "failure"
+            },
+            {
+              "number": 4,
+              "name": "Compile and sign mask 1",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 5,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 10,
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ],
+      "failed_job_log_tails": [
+        {
+          "job_id": "93512579723",
+          "tail": "2026-08-10T15:54:00.6530600Z \u001b[36;1mfrom pathlib import Path\u001b[0m\n2026-08-10T15:54:00.6531360Z \u001b[36;1mpath = Path('build/generated/syscall_bridge.c')\u001b[0m\n2026-08-10T15:54:00.6532220Z \u001b[36;1mtext = path.read_text(encoding='utf-8')\u001b[0m\n2026-08-10T15:54:00.6533100Z \u001b[36;1manchor = '#define M3_TRACE_LIMIT 256u'\u001b[0m\n2026-08-10T15:54:00.6533990Z \u001b[36;1mif text.count(anchor) != 1:\u001b[0m\n2026-08-10T15:54:00.6534660Z \u001b[36;1m    raise SystemExit(\u001b[0m\n2026-08-10T15:54:00.6535650Z \u001b[36;1m        f'trace-limit anchor: expected one, found {text.count(anchor)}')\u001b[0m\n2026-08-10T15:54:00.6536590Z \u001b[36;1mpath.write_text(\u001b[0m\n2026-08-10T15:54:00.6537340Z \u001b[36;1m    text.replace(anchor, '#define M3_TRACE_LIMIT 24000u'),\u001b[0m\n2026-08-10T15:54:00.6538170Z \u001b[36;1m    encoding='utf-8')\u001b[0m\n2026-08-10T15:54:00.6538750Z \u001b[36;1mPY\u001b[0m\n2026-08-10T15:54:00.6539220Z \u001b[36;1m\u001b[0m\n2026-08-10T15:54:00.6539940Z \u001b[36;1mgrep -F 'case LINUX_SYS_SENDFILE:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:54:00.6541050Z \u001b[36;1mgrep -F 'HRT M11 EMPTYMASK: index=1 applied=1' \\\u001b[0m\n2026-08-10T15:54:00.6541880Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:54:00.6543010Z \u001b[36;1mgrep -F 'HRT M11 EMPTYMASK: index=1 applied=0' \\\u001b[0m\n2026-08-10T15:54:00.6543400Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:54:00.6543710Z \u001b[36;1mgrep -F 'HRT M11 CLASSIFIERCALLER:' \\\u001b[0m\n2026-08-10T15:54:00.6544010Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:54:00.6544370Z \u001b[36;1mshasum -a 256 build/generated/syscall_bridge.c \\\u001b[0m\n2026-08-10T15:54:00.6545130Z \u001b[36;1m  >build/output/generated-bridge.sha256\u001b[0m\n2026-08-10T15:54:00.6644450Z shell: /bin/bash -e {0}\n2026-08-10T15:54:00.6644740Z ##[endgroup]\n2026-08-10T15:54:00.7222430Z + /usr/bin/arch -x86_64 /usr/bin/true\n2026-08-10T15:54:01.0286670Z + mkdir -p build/generated build/objects build/output\n2026-08-10T15:54:01.0337470Z + /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE\n2026-08-10T15:54:01.0338710Z + tee build/output/x86-page-size.txt\n2026-08-10T15:54:01.3189970Z 4096\n2026-08-10T15:54:01.3223450Z + sw_vers\n2026-08-10T15:54:01.3230330Z + tee build/output/sw-vers.txt\n2026-08-10T15:54:01.3406300Z ProductName:\t\tmacOS\n2026-08-10T15:54:01.3408340Z + python3 runtime/m8/augment_appkit_adapter_input.py runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m\n2026-08-10T15:54:01.3409590Z ProductVersion:\t\t14.8.7\n2026-08-10T15:54:01.3410230Z BuildVersion:\t\t23J520\n2026-08-10T15:54:01.5900440Z + python3 runtime/m11/augment_appkit_korean_input_capture.py build/generated/appkit_adapter_m8.m build/generated/appkit_adapter_m11.m\n2026-08-10T15:54:01.7763350Z + python3 runtime/m6/augment_stack_hrtappkit.py runtime/m3/stack.c build/generated/stack-m6.c\n2026-08-10T15:54:01.8365630Z + python3 runtime/m9/augment_stack_locale.py build/generated/stack-m6.c build/generated/stack.c\n2026-08-10T15:54:01.8784990Z + python3 runtime/m3/augment_syscalls.py runtime/m3/syscall_bridge.c build/generated/stage1.c\n2026-08-10T15:54:01.9213390Z + python3 runtime/m3/augment_directory_syscalls.py build/generated/stage1.c build/generated/stage2.c\n2026-08-10T15:54:01.9632610Z + python3 runtime/m3/augment_directory_stream.py build/generated/stage2.c build/generated/stage3.c\n2026-08-10T15:54:02.0058820Z + python3 runtime/m3/augment_pipe2.py build/generated/stage3.c build/generated/stage4.c\n2026-08-10T15:54:02.0524150Z + python3 runtime/m3/augment_eventfd2.py build/generated/stage4.c build/generated/stage5.c\n2026-08-10T15:54:02.2549560Z + python3 runtime/m3/augment_crash_signals.py build/generated/stage5.c build/generated/stage6.c\n2026-08-10T15:54:02.2958100Z + python3 runtime/m3/augment_poll.py build/generated/stage6.c build/generated/stage7.c\n2026-08-10T15:54:02.3374930Z + python3 runtime/m3/augment_posix_basics.py build/generated/stage7.c build/generated/stage8.c\n2026-08-10T15:54:02.3802720Z + python3 runtime/m11/augment_clock_nanosleep.py build/generated/stage8.c build/generated/stage9.c\n2026-08-10T15:54:02.4235430Z + python3 runtime/m11/augment_sendfile.py build/generated/stage9.c build/generated/stage10.c\n2026-08-10T15:54:02.4657780Z + python3 runtime/m10/augment_fs_compat.py build/generated/stage10.c build/generated/stage11.c\n2026-08-10T15:54:02.6039180Z + python3 runtime/m3/augment_connect.py build/generated/stage11.c build/generated/stage12.c\n2026-08-10T15:54:02.6508350Z + python3 runtime/m6/augment_appkit_hostcall_deferred.py build/generated/stage12.c build/generated/stage13.c\n2026-08-10T15:54:02.7009540Z + python3 runtime/m3/augment_darwin_syscall_abi.py build/generated/stage13.c build/generated/stage14.c\n2026-08-10T15:54:02.7583940Z + python3 runtime/m10/augment_clone_compat_v4.py build/generated/stage14.c build/generated/stage15.c\n2026-08-10T15:54:02.9240180Z + python3 runtime/m11/augment_hword_document_io_trace_v10.py build/generated/stage15.c build/generated/syscall_bridge.c\n2026-08-10T15:54:03.1979510Z Traceback (most recent call last):\n2026-08-10T15:54:03.1986460Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py\", line 139, in <module>\n2026-08-10T15:54:03.1988380Z     main()\n2026-08-10T15:54:03.1989420Z     ~~~~^^\n2026-08-10T15:54:03.1990780Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py\", line 133, in main\n2026-08-10T15:54:03.1992310Z     run_brace_scoped_v2()\n2026-08-10T15:54:03.1993290Z     ~~~~~~~~~~~~~~~~~~~^^\n2026-08-10T15:54:03.1996800Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py\", line 98, in run_brace_scoped_v2\n2026-08-10T15:54:03.1998500Z     exec(compile(patched, str(generator), \"exec\"), namespace)\n2026-08-10T15:54:03.1998910Z          ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:03.1999560Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace.py\", line 75\n2026-08-10T15:54:03.2000430Z     tail = function[-2400:].replace(\"\n2026-08-10T15:54:03.2000750Z                                     ^\n2026-08-10T15:54:03.2001230Z SyntaxError: unterminated string literal (detected at line 75)\n2026-08-10T15:54:03.2108080Z Traceback (most recent call last):\n2026-08-10T15:54:03.2110560Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v4.py\", line 72, in <module>\n2026-08-10T15:54:03.2112030Z     main()\n2026-08-10T15:54:03.2112410Z     ~~~~^^\n2026-08-10T15:54:03.2113650Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v4.py\", line 68, in main\n2026-08-10T15:54:03.2115980Z     entry()\n2026-08-10T15:54:03.2118020Z     ~~~~~^^\n2026-08-10T15:54:03.2119330Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v3.py\", line 53, in main\n2026-08-10T15:54:03.2120720Z     subprocess.run(\n2026-08-10T15:54:03.2121140Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:03.2121830Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:03.2122720Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:03.2123380Z         check=True,\n2026-08-10T15:54:03.2123790Z         ^^^^^^^^^^^\n2026-08-10T15:54:03.2124210Z     )\n2026-08-10T15:54:03.2126140Z     ^\n2026-08-10T15:54:03.2126650Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:03.2127180Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:03.2129950Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:03.2133480Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v3-l0e5qehw/syscall_bridge_docio_v2.c']' returned non-zero exit status 1.\n2026-08-10T15:54:03.2239540Z Traceback (most recent call last):\n2026-08-10T15:54:03.2242650Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v6.py\", line 58, in <module>\n2026-08-10T15:54:03.2243190Z     main()\n2026-08-10T15:54:03.2243340Z     ~~~~^^\n2026-08-10T15:54:03.2243940Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v6.py\", line 54, in main\n2026-08-10T15:54:03.2244430Z     entry()\n2026-08-10T15:54:03.2244630Z     ~~~~~^^\n2026-08-10T15:54:03.2245060Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v5.py\", line 49, in main\n2026-08-10T15:54:03.2245560Z     subprocess.run(\n2026-08-10T15:54:03.2245720Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:03.2245990Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:03.2246330Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:03.2246560Z         check=True,\n2026-08-10T15:54:03.2246690Z         ^^^^^^^^^^^\n2026-08-10T15:54:03.2246830Z     )\n2026-08-10T15:54:03.2246940Z     ^\n2026-08-10T15:54:03.2247370Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:03.2249860Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:03.2250170Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:03.2251990Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v4.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v5-_k9d95xb/syscall_bridge_openctx32.c']' returned non-zero exit status 1.\n2026-08-10T15:54:03.2411160Z Traceback (most recent call last):\n2026-08-10T15:54:03.2412530Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v7.py\", line 220, in <module>\n2026-08-10T15:54:03.2413120Z     main()\n2026-08-10T15:54:03.2413380Z     ~~~~^^\n2026-08-10T15:54:03.2414160Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v7.py\", line 51, in main\n2026-08-10T15:54:03.2414740Z     subprocess.run(\n2026-08-10T15:54:03.2414950Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:03.2415310Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:03.2415740Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:03.2416060Z         check=True,\n2026-08-10T15:54:03.2416330Z         ^^^^^^^^^^^\n2026-08-10T15:54:03.2416620Z     )\n2026-08-10T15:54:03.2416830Z     ^\n2026-08-10T15:54:03.2417300Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:03.2417890Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:03.2418210Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:03.2419990Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v6.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v7-m9pr6eg8/syscall_bridge_framectx.c']' returned non-zero exit status 1.\n2026-08-10T15:54:03.2588190Z Traceback (most recent call last):\n2026-08-10T15:54:03.2626130Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v10.py\", line 154, in <module>\n2026-08-10T15:54:03.2627050Z     main()\n2026-08-10T15:54:03.2627450Z     ~~~~^^\n2026-08-10T15:54:03.2628290Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v10.py\", line 53, in main\n2026-08-10T15:54:03.2630590Z     subprocess.run(\n2026-08-10T15:54:03.2630870Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:03.2631240Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:03.2631770Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:03.2632150Z         check=True,\n2026-08-10T15:54:03.2635410Z         ^^^^^^^^^^^\n2026-08-10T15:54:03.2636760Z     )\n2026-08-10T15:54:03.2637170Z     ^\n2026-08-10T15:54:03.2637830Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:03.2638390Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:03.2638690Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:03.2639950Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v7.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v10-hjx9vn5z/syscall_bridge_classifier.c']' returned non-zero exit status 1.\n2026-08-10T15:54:03.2656950Z ##[error]Process completed with exit code 1.\n2026-08-10T15:54:03.2814170Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/\n2026-08-10T15:54:03.2815820Z Post job cleanup.\n2026-08-10T15:54:03.4273680Z [command]/opt/homebrew/bin/git version\n2026-08-10T15:54:03.4353440Z git version 2.54.0\n2026-08-10T15:54:03.4389720Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/88f3dd53-7ff8-4f5f-8598-ab92f1b47255/.gitconfig'\n2026-08-10T15:54:03.4403210Z Temporarily overriding HOME='/Users/runner/work/_temp/88f3dd53-7ff8-4f5f-8598-ab92f1b47255' before making global git config changes\n2026-08-10T15:54:03.4404590Z Adding repository directory to the temporary git global config as a safe directory\n2026-08-10T15:54:03.4458160Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/hoffice-linux-archive/hoffice-linux-archive\n2026-08-10T15:54:03.4512820Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2026-08-10T15:54:03.4626150Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2026-08-10T15:54:03.5508280Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2026-08-10T15:54:03.5562800Z http.https://github.com/.extraheader\n2026-08-10T15:54:03.5652130Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader\n2026-08-10T15:54:03.5664120Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"\n2026-08-10T15:54:03.6380080Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\\.gitdir:\n2026-08-10T15:54:03.6430490Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url\n2026-08-10T15:54:03.7440150Z Cleaning up orphan processes\n2026-08-10T15:54:04.0712600Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+        },
+        {
+          "job_id": "93512579797",
+          "tail": "2026-08-10T15:53:59.1269060Z \u001b[36;1mfrom pathlib import Path\u001b[0m\n2026-08-10T15:53:59.1269420Z \u001b[36;1mpath = Path('build/generated/syscall_bridge.c')\u001b[0m\n2026-08-10T15:53:59.1271630Z \u001b[36;1mtext = path.read_text(encoding='utf-8')\u001b[0m\n2026-08-10T15:53:59.1272040Z \u001b[36;1manchor = '#define M3_TRACE_LIMIT 256u'\u001b[0m\n2026-08-10T15:53:59.1272400Z \u001b[36;1mif text.count(anchor) != 1:\u001b[0m\n2026-08-10T15:53:59.1272720Z \u001b[36;1m    raise SystemExit(\u001b[0m\n2026-08-10T15:53:59.1273180Z \u001b[36;1m        f'trace-limit anchor: expected one, found {text.count(anchor)}')\u001b[0m\n2026-08-10T15:53:59.1273650Z \u001b[36;1mpath.write_text(\u001b[0m\n2026-08-10T15:53:59.1274010Z \u001b[36;1m    text.replace(anchor, '#define M3_TRACE_LIMIT 24000u'),\u001b[0m\n2026-08-10T15:53:59.1274440Z \u001b[36;1m    encoding='utf-8')\u001b[0m\n2026-08-10T15:53:59.1274770Z \u001b[36;1mPY\u001b[0m\n2026-08-10T15:53:59.1275010Z \u001b[36;1m\u001b[0m\n2026-08-10T15:53:59.1275360Z \u001b[36;1mgrep -F 'case LINUX_SYS_SENDFILE:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:53:59.1275840Z \u001b[36;1mgrep -F 'HRT M11 EMPTYMASK: index=1 applied=1' \\\u001b[0m\n2026-08-10T15:53:59.1276650Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:53:59.1277030Z \u001b[36;1mgrep -F 'HRT M11 EMPTYMASK: index=1 applied=0' \\\u001b[0m\n2026-08-10T15:53:59.1277420Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:53:59.1277860Z \u001b[36;1mgrep -F 'HRT M11 CLASSIFIERCALLER:' \\\u001b[0m\n2026-08-10T15:53:59.1278210Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:53:59.1278590Z \u001b[36;1mshasum -a 256 build/generated/syscall_bridge.c \\\u001b[0m\n2026-08-10T15:53:59.1279430Z \u001b[36;1m  >build/output/generated-bridge.sha256\u001b[0m\n2026-08-10T15:53:59.1359430Z shell: /bin/bash -e {0}\n2026-08-10T15:53:59.1359770Z ##[endgroup]\n2026-08-10T15:53:59.1758150Z + /usr/bin/arch -x86_64 /usr/bin/true\n2026-08-10T15:53:59.5208230Z + mkdir -p build/generated build/objects build/output\n2026-08-10T15:53:59.5240740Z + /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE\n2026-08-10T15:53:59.5251610Z + tee build/output/x86-page-size.txt\n2026-08-10T15:53:59.7341080Z + sw_vers\n2026-08-10T15:53:59.7341540Z 4096\n2026-08-10T15:53:59.7407900Z + tee build/output/sw-vers.txt\n2026-08-10T15:53:59.7560740Z ProductName:\t\tmacOS\n2026-08-10T15:53:59.7563270Z ProductVersion:\t\t14.8.7\n2026-08-10T15:53:59.7563730Z BuildVersion:\t\t23J520\n2026-08-10T15:53:59.7566130Z + python3 runtime/m8/augment_appkit_adapter_input.py runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m\n2026-08-10T15:53:59.9532500Z + python3 runtime/m11/augment_appkit_korean_input_capture.py build/generated/appkit_adapter_m8.m build/generated/appkit_adapter_m11.m\n2026-08-10T15:54:00.1264830Z + python3 runtime/m6/augment_stack_hrtappkit.py runtime/m3/stack.c build/generated/stack-m6.c\n2026-08-10T15:54:00.1658000Z + python3 runtime/m9/augment_stack_locale.py build/generated/stack-m6.c build/generated/stack.c\n2026-08-10T15:54:00.2075060Z + python3 runtime/m3/augment_syscalls.py runtime/m3/syscall_bridge.c build/generated/stage1.c\n2026-08-10T15:54:00.2475030Z + python3 runtime/m3/augment_directory_syscalls.py build/generated/stage1.c build/generated/stage2.c\n2026-08-10T15:54:00.2868410Z + python3 runtime/m3/augment_directory_stream.py build/generated/stage2.c build/generated/stage3.c\n2026-08-10T15:54:00.3249260Z + python3 runtime/m3/augment_pipe2.py build/generated/stage3.c build/generated/stage4.c\n2026-08-10T15:54:00.3633910Z + python3 runtime/m3/augment_eventfd2.py build/generated/stage4.c build/generated/stage5.c\n2026-08-10T15:54:00.5234370Z + python3 runtime/m3/augment_crash_signals.py build/generated/stage5.c build/generated/stage6.c\n2026-08-10T15:54:00.5637500Z + python3 runtime/m3/augment_poll.py build/generated/stage6.c build/generated/stage7.c\n2026-08-10T15:54:00.6028300Z + python3 runtime/m3/augment_posix_basics.py build/generated/stage7.c build/generated/stage8.c\n2026-08-10T15:54:00.6456620Z + python3 runtime/m11/augment_clock_nanosleep.py build/generated/stage8.c build/generated/stage9.c\n2026-08-10T15:54:00.6850960Z + python3 runtime/m11/augment_sendfile.py build/generated/stage9.c build/generated/stage10.c\n2026-08-10T15:54:00.7236710Z + python3 runtime/m10/augment_fs_compat.py build/generated/stage10.c build/generated/stage11.c\n2026-08-10T15:54:00.8373830Z + python3 runtime/m3/augment_connect.py build/generated/stage11.c build/generated/stage12.c\n2026-08-10T15:54:00.8759780Z + python3 runtime/m6/augment_appkit_hostcall_deferred.py build/generated/stage12.c build/generated/stage13.c\n2026-08-10T15:54:00.9154840Z + python3 runtime/m3/augment_darwin_syscall_abi.py build/generated/stage13.c build/generated/stage14.c\n2026-08-10T15:54:00.9584910Z + python3 runtime/m10/augment_clone_compat_v4.py build/generated/stage14.c build/generated/stage15.c\n2026-08-10T15:54:01.1028280Z + python3 runtime/m11/augment_hword_document_io_trace_v10.py build/generated/stage15.c build/generated/syscall_bridge.c\n2026-08-10T15:54:01.3082920Z Traceback (most recent call last):\n2026-08-10T15:54:01.3086480Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py\", line 139, in <module>\n2026-08-10T15:54:01.3087380Z     main()\n2026-08-10T15:54:01.3087640Z     ~~~~^^\n2026-08-10T15:54:01.3088190Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py\", line 133, in main\n2026-08-10T15:54:01.3088820Z     run_brace_scoped_v2()\n2026-08-10T15:54:01.3089050Z     ~~~~~~~~~~~~~~~~~~~^^\n2026-08-10T15:54:01.3089640Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py\", line 98, in run_brace_scoped_v2\n2026-08-10T15:54:01.3090800Z     exec(compile(patched, str(generator), \"exec\"), namespace)\n2026-08-10T15:54:01.3091120Z          ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:01.3091710Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace.py\", line 75\n2026-08-10T15:54:01.3092370Z     tail = function[-2400:].replace(\"\n2026-08-10T15:54:01.3092590Z                                     ^\n2026-08-10T15:54:01.3092900Z SyntaxError: unterminated string literal (detected at line 75)\n2026-08-10T15:54:01.3169490Z Traceback (most recent call last):\n2026-08-10T15:54:01.3172670Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v4.py\", line 72, in <module>\n2026-08-10T15:54:01.3173250Z     main()\n2026-08-10T15:54:01.3173390Z     ~~~~^^\n2026-08-10T15:54:01.3173960Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v4.py\", line 68, in main\n2026-08-10T15:54:01.3174520Z     entry()\n2026-08-10T15:54:01.3174680Z     ~~~~~^^\n2026-08-10T15:54:01.3175190Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v3.py\", line 53, in main\n2026-08-10T15:54:01.3175970Z     subprocess.run(\n2026-08-10T15:54:01.3176210Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:01.3176570Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:01.3176930Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:01.3177180Z         check=True,\n2026-08-10T15:54:01.3177330Z         ^^^^^^^^^^^\n2026-08-10T15:54:01.3177520Z     )\n2026-08-10T15:54:01.3177670Z     ^\n2026-08-10T15:54:01.3178120Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:01.3178660Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:01.3179450Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:01.3180730Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v3-n6mbzq5w/syscall_bridge_docio_v2.c']' returned non-zero exit status 1.\n2026-08-10T15:54:01.3259190Z Traceback (most recent call last):\n2026-08-10T15:54:01.3261110Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v6.py\", line 58, in <module>\n2026-08-10T15:54:01.3262020Z     main()\n2026-08-10T15:54:01.3262800Z     ~~~~^^\n2026-08-10T15:54:01.3263380Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v6.py\", line 54, in main\n2026-08-10T15:54:01.3264010Z     entry()\n2026-08-10T15:54:01.3264570Z     ~~~~~^^\n2026-08-10T15:54:01.3265540Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v5.py\", line 49, in main\n2026-08-10T15:54:01.3266330Z     subprocess.run(\n2026-08-10T15:54:01.3266640Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:01.3266990Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:01.3267490Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:01.3267850Z         check=True,\n2026-08-10T15:54:01.3268080Z         ^^^^^^^^^^^\n2026-08-10T15:54:01.3268330Z     )\n2026-08-10T15:54:01.3268540Z     ^\n2026-08-10T15:54:01.3269540Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:01.3270230Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:01.3270700Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:01.3273190Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v4.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v5-m7jis2ba/syscall_bridge_openctx32.c']' returned non-zero exit status 1.\n2026-08-10T15:54:01.3351190Z Traceback (most recent call last):\n2026-08-10T15:54:01.3354000Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v7.py\", line 220, in <module>\n2026-08-10T15:54:01.3354680Z     main()\n2026-08-10T15:54:01.3354930Z     ~~~~^^\n2026-08-10T15:54:01.3355410Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v7.py\", line 51, in main\n2026-08-10T15:54:01.3355950Z     subprocess.run(\n2026-08-10T15:54:01.3356120Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:01.3356450Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:01.3356830Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:01.3357090Z         check=True,\n2026-08-10T15:54:01.3357250Z         ^^^^^^^^^^^\n2026-08-10T15:54:01.3357410Z     )\n2026-08-10T15:54:01.3357530Z     ^\n2026-08-10T15:54:01.3357970Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:01.3358490Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:01.3358770Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:01.3360460Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v6.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v7-wan2fh9r/syscall_bridge_framectx.c']' returned non-zero exit status 1.\n2026-08-10T15:54:01.3438550Z Traceback (most recent call last):\n2026-08-10T15:54:01.3441590Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v10.py\", line 154, in <module>\n2026-08-10T15:54:01.3442320Z     main()\n2026-08-10T15:54:01.3442470Z     ~~~~^^\n2026-08-10T15:54:01.3442910Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v10.py\", line 53, in main\n2026-08-10T15:54:01.3443450Z     subprocess.run(\n2026-08-10T15:54:01.3443630Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:01.3443900Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:01.3444280Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:01.3444530Z         check=True,\n2026-08-10T15:54:01.3444680Z         ^^^^^^^^^^^\n2026-08-10T15:54:01.3444810Z     )\n2026-08-10T15:54:01.3445030Z     ^\n2026-08-10T15:54:01.3445480Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:01.3446020Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:01.3446300Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:01.3447640Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v7.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v10-lis38h9y/syscall_bridge_classifier.c']' returned non-zero exit status 1.\n2026-08-10T15:54:01.3516830Z ##[error]Process completed with exit code 1.\n2026-08-10T15:54:01.3637440Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/\n2026-08-10T15:54:01.3638960Z Post job cleanup.\n2026-08-10T15:54:01.4761120Z [command]/opt/homebrew/bin/git version\n2026-08-10T15:54:01.4807620Z git version 2.54.0\n2026-08-10T15:54:01.4826000Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/ba7bfe92-97b0-407f-966d-a712725d00aa/.gitconfig'\n2026-08-10T15:54:01.4834010Z Temporarily overriding HOME='/Users/runner/work/_temp/ba7bfe92-97b0-407f-966d-a712725d00aa' before making global git config changes\n2026-08-10T15:54:01.4834700Z Adding repository directory to the temporary git global config as a safe directory\n2026-08-10T15:54:01.4837860Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/hoffice-linux-archive/hoffice-linux-archive\n2026-08-10T15:54:01.4889150Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2026-08-10T15:54:01.4939030Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2026-08-10T15:54:01.5622100Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2026-08-10T15:54:01.5671320Z http.https://github.com/.extraheader\n2026-08-10T15:54:01.5693600Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader\n2026-08-10T15:54:01.5737050Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"\n2026-08-10T15:54:01.6554880Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\\.gitdir:\n2026-08-10T15:54:01.6583030Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url\n2026-08-10T15:54:01.7451420Z Cleaning up orphan processes\n2026-08-10T15:54:02.1034780Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+        },
+        {
+          "job_id": "93512579862",
+          "tail": "2026-08-10T15:54:11.6159340Z \u001b[36;1mfrom pathlib import Path\u001b[0m\n2026-08-10T15:54:11.6160360Z \u001b[36;1mpath = Path('build/generated/syscall_bridge.c')\u001b[0m\n2026-08-10T15:54:11.6161500Z \u001b[36;1mtext = path.read_text(encoding='utf-8')\u001b[0m\n2026-08-10T15:54:11.6162570Z \u001b[36;1manchor = '#define M3_TRACE_LIMIT 256u'\u001b[0m\n2026-08-10T15:54:11.6163570Z \u001b[36;1mif text.count(anchor) != 1:\u001b[0m\n2026-08-10T15:54:11.6164480Z \u001b[36;1m    raise SystemExit(\u001b[0m\n2026-08-10T15:54:11.6165640Z \u001b[36;1m        f'trace-limit anchor: expected one, found {text.count(anchor)}')\u001b[0m\n2026-08-10T15:54:11.6166910Z \u001b[36;1mpath.write_text(\u001b[0m\n2026-08-10T15:54:11.6167920Z \u001b[36;1m    text.replace(anchor, '#define M3_TRACE_LIMIT 24000u'),\u001b[0m\n2026-08-10T15:54:11.6169130Z \u001b[36;1m    encoding='utf-8')\u001b[0m\n2026-08-10T15:54:11.6169960Z \u001b[36;1mPY\u001b[0m\n2026-08-10T15:54:11.6170640Z \u001b[36;1m\u001b[0m\n2026-08-10T15:54:11.6171620Z \u001b[36;1mgrep -F 'case LINUX_SYS_SENDFILE:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:54:11.6173010Z \u001b[36;1mgrep -F 'HRT M11 EMPTYMASK: index=1 applied=1' \\\u001b[0m\n2026-08-10T15:54:11.6174120Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:54:11.6175210Z \u001b[36;1mgrep -F 'HRT M11 EMPTYMASK: index=1 applied=0' \\\u001b[0m\n2026-08-10T15:54:11.6176340Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:54:11.6177370Z \u001b[36;1mgrep -F 'HRT M11 CLASSIFIERCALLER:' \\\u001b[0m\n2026-08-10T15:54:11.6178420Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:54:11.6179560Z \u001b[36;1mshasum -a 256 build/generated/syscall_bridge.c \\\u001b[0m\n2026-08-10T15:54:11.6181380Z \u001b[36;1m  >build/output/generated-bridge.sha256\u001b[0m\n2026-08-10T15:54:11.6256090Z shell: /bin/bash -e {0}\n2026-08-10T15:54:11.6258030Z ##[endgroup]\n2026-08-10T15:54:11.6709810Z + /usr/bin/arch -x86_64 /usr/bin/true\n2026-08-10T15:54:12.0244950Z + mkdir -p build/generated build/objects build/output\n2026-08-10T15:54:12.0277150Z + tee build/output/x86-page-size.txt\n2026-08-10T15:54:12.0287650Z + /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE\n2026-08-10T15:54:12.2918770Z + sw_vers\n2026-08-10T15:54:12.2919540Z 4096\n2026-08-10T15:54:12.3020390Z + tee build/output/sw-vers.txt\n2026-08-10T15:54:12.3124180Z + python3 runtime/m8/augment_appkit_adapter_input.py runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m\n2026-08-10T15:54:12.3126150Z ProductName:\t\tmacOS\n2026-08-10T15:54:12.3173730Z ProductVersion:\t\t14.8.7\n2026-08-10T15:54:12.3174830Z BuildVersion:\t\t23J520\n2026-08-10T15:54:12.5555790Z + python3 runtime/m11/augment_appkit_korean_input_capture.py build/generated/appkit_adapter_m8.m build/generated/appkit_adapter_m11.m\n2026-08-10T15:54:12.7292240Z + python3 runtime/m6/augment_stack_hrtappkit.py runtime/m3/stack.c build/generated/stack-m6.c\n2026-08-10T15:54:12.7686250Z + python3 runtime/m9/augment_stack_locale.py build/generated/stack-m6.c build/generated/stack.c\n2026-08-10T15:54:12.8106440Z + python3 runtime/m3/augment_syscalls.py runtime/m3/syscall_bridge.c build/generated/stage1.c\n2026-08-10T15:54:12.8513660Z + python3 runtime/m3/augment_directory_syscalls.py build/generated/stage1.c build/generated/stage2.c\n2026-08-10T15:54:12.8918840Z + python3 runtime/m3/augment_directory_stream.py build/generated/stage2.c build/generated/stage3.c\n2026-08-10T15:54:12.9382830Z + python3 runtime/m3/augment_pipe2.py build/generated/stage3.c build/generated/stage4.c\n2026-08-10T15:54:12.9890450Z + python3 runtime/m3/augment_eventfd2.py build/generated/stage4.c build/generated/stage5.c\n2026-08-10T15:54:13.2069270Z + python3 runtime/m3/augment_crash_signals.py build/generated/stage5.c build/generated/stage6.c\n2026-08-10T15:54:13.2527680Z + python3 runtime/m3/augment_poll.py build/generated/stage6.c build/generated/stage7.c\n2026-08-10T15:54:13.2990700Z + python3 runtime/m3/augment_posix_basics.py build/generated/stage7.c build/generated/stage8.c\n2026-08-10T15:54:13.3440200Z + python3 runtime/m11/augment_clock_nanosleep.py build/generated/stage8.c build/generated/stage9.c\n2026-08-10T15:54:13.3891360Z + python3 runtime/m11/augment_sendfile.py build/generated/stage9.c build/generated/stage10.c\n2026-08-10T15:54:13.4376180Z + python3 runtime/m10/augment_fs_compat.py build/generated/stage10.c build/generated/stage11.c\n2026-08-10T15:54:13.5691540Z + python3 runtime/m3/augment_connect.py build/generated/stage11.c build/generated/stage12.c\n2026-08-10T15:54:13.6232410Z + python3 runtime/m6/augment_appkit_hostcall_deferred.py build/generated/stage12.c build/generated/stage13.c\n2026-08-10T15:54:13.6691490Z + python3 runtime/m3/augment_darwin_syscall_abi.py build/generated/stage13.c build/generated/stage14.c\n2026-08-10T15:54:13.7176110Z + python3 runtime/m10/augment_clone_compat_v4.py build/generated/stage14.c build/generated/stage15.c\n2026-08-10T15:54:13.9260080Z + python3 runtime/m11/augment_hword_document_io_trace_v10.py build/generated/stage15.c build/generated/syscall_bridge.c\n2026-08-10T15:54:14.1880770Z Traceback (most recent call last):\n2026-08-10T15:54:14.1887280Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py\", line 139, in <module>\n2026-08-10T15:54:14.1888930Z     main()\n2026-08-10T15:54:14.1889620Z     ~~~~^^\n2026-08-10T15:54:14.1892360Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py\", line 133, in main\n2026-08-10T15:54:14.1894150Z     run_brace_scoped_v2()\n2026-08-10T15:54:14.1904890Z     ~~~~~~~~~~~~~~~~~~~^^\n2026-08-10T15:54:14.1905730Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py\", line 98, in run_brace_scoped_v2\n2026-08-10T15:54:14.1907010Z     exec(compile(patched, str(generator), \"exec\"), namespace)\n2026-08-10T15:54:14.1907550Z          ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:14.1911590Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace.py\", line 75\n2026-08-10T15:54:14.1918270Z     tail = function[-2400:].replace(\"\n2026-08-10T15:54:14.1918770Z                                     ^\n2026-08-10T15:54:14.1919150Z SyntaxError: unterminated string literal (detected at line 75)\n2026-08-10T15:54:14.1995380Z Traceback (most recent call last):\n2026-08-10T15:54:14.1999220Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v4.py\", line 72, in <module>\n2026-08-10T15:54:14.2000940Z     main()\n2026-08-10T15:54:14.2001560Z     ~~~~^^\n2026-08-10T15:54:14.2002960Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v4.py\", line 68, in main\n2026-08-10T15:54:14.2004470Z     entry()\n2026-08-10T15:54:14.2004990Z     ~~~~~^^\n2026-08-10T15:54:14.2006330Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v3.py\", line 53, in main\n2026-08-10T15:54:14.2007840Z     subprocess.run(\n2026-08-10T15:54:14.2008410Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:14.2009250Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:14.2010270Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:14.2011070Z         check=True,\n2026-08-10T15:54:14.2011620Z         ^^^^^^^^^^^\n2026-08-10T15:54:14.2012190Z     )\n2026-08-10T15:54:14.2012690Z     ^\n2026-08-10T15:54:14.2013930Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:14.2015460Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:14.2017470Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:14.2020910Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v3-ahmm98ka/syscall_bridge_docio_v2.c']' returned non-zero exit status 1.\n2026-08-10T15:54:14.2124100Z Traceback (most recent call last):\n2026-08-10T15:54:14.2127460Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v6.py\", line 58, in <module>\n2026-08-10T15:54:14.2128090Z     main()\n2026-08-10T15:54:14.2128340Z     ~~~~^^\n2026-08-10T15:54:14.2128870Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v6.py\", line 54, in main\n2026-08-10T15:54:14.2129430Z     entry()\n2026-08-10T15:54:14.2129680Z     ~~~~~^^\n2026-08-10T15:54:14.2130170Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v5.py\", line 49, in main\n2026-08-10T15:54:14.2130760Z     subprocess.run(\n2026-08-10T15:54:14.2130990Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:14.2131300Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:14.2131690Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:14.2132010Z         check=True,\n2026-08-10T15:54:14.2132210Z         ^^^^^^^^^^^\n2026-08-10T15:54:14.2132430Z     )\n2026-08-10T15:54:14.2132610Z     ^\n2026-08-10T15:54:14.2133140Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:14.2133730Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:14.2134060Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:14.2135980Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v4.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v5-nqab35nj/syscall_bridge_openctx32.c']' returned non-zero exit status 1.\n2026-08-10T15:54:14.2230760Z Traceback (most recent call last):\n2026-08-10T15:54:14.2233330Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v7.py\", line 220, in <module>\n2026-08-10T15:54:14.2234960Z     main()\n2026-08-10T15:54:14.2235370Z     ~~~~^^\n2026-08-10T15:54:14.2236560Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v7.py\", line 51, in main\n2026-08-10T15:54:14.2237890Z     subprocess.run(\n2026-08-10T15:54:14.2238340Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:14.2239060Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:14.2240020Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:14.2240680Z         check=True,\n2026-08-10T15:54:14.2241190Z         ^^^^^^^^^^^\n2026-08-10T15:54:14.2241610Z     )\n2026-08-10T15:54:14.2241990Z     ^\n2026-08-10T15:54:14.2243090Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:14.2244610Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:14.2245350Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:14.2249350Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v6.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v7-iqd4tme2/syscall_bridge_framectx.c']' returned non-zero exit status 1.\n2026-08-10T15:54:14.2328330Z Traceback (most recent call last):\n2026-08-10T15:54:14.2331650Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v10.py\", line 154, in <module>\n2026-08-10T15:54:14.2333140Z     main()\n2026-08-10T15:54:14.2333540Z     ~~~~^^\n2026-08-10T15:54:14.2334780Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v10.py\", line 53, in main\n2026-08-10T15:54:14.2336170Z     subprocess.run(\n2026-08-10T15:54:14.2336610Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:14.2337290Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:14.2338220Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:14.2338880Z         check=True,\n2026-08-10T15:54:14.2339300Z         ^^^^^^^^^^^\n2026-08-10T15:54:14.2339740Z     )\n2026-08-10T15:54:14.2340170Z     ^\n2026-08-10T15:54:14.2341320Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:14.2342760Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:14.2343480Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:14.2346730Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v7.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v10-fr9f3wbr/syscall_bridge_classifier.c']' returned non-zero exit status 1.\n2026-08-10T15:54:14.2410380Z ##[error]Process completed with exit code 1.\n2026-08-10T15:54:14.2528120Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/\n2026-08-10T15:54:14.2529610Z Post job cleanup.\n2026-08-10T15:54:14.3864540Z [command]/opt/homebrew/bin/git version\n2026-08-10T15:54:14.3949290Z git version 2.54.0\n2026-08-10T15:54:14.3953520Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/e1f1b0e4-f978-4119-9ad1-caa215e46d10/.gitconfig'\n2026-08-10T15:54:14.3954490Z Temporarily overriding HOME='/Users/runner/work/_temp/e1f1b0e4-f978-4119-9ad1-caa215e46d10' before making global git config changes\n2026-08-10T15:54:14.3955170Z Adding repository directory to the temporary git global config as a safe directory\n2026-08-10T15:54:14.3955880Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/hoffice-linux-archive/hoffice-linux-archive\n2026-08-10T15:54:14.3956950Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2026-08-10T15:54:14.4003900Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2026-08-10T15:54:14.4695850Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2026-08-10T15:54:14.4755170Z http.https://github.com/.extraheader\n2026-08-10T15:54:14.4766020Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader\n2026-08-10T15:54:14.4818180Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"\n2026-08-10T15:54:14.5640510Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\\.gitdir:\n2026-08-10T15:54:14.5735430Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url\n2026-08-10T15:54:14.7384710Z Cleaning up orphan processes\n2026-08-10T15:54:14.8055440Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+        },
+        {
+          "job_id": "93512579913",
+          "tail": "2026-08-10T15:54:12.7662170Z \u001b[36;1mfrom pathlib import Path\u001b[0m\n2026-08-10T15:54:12.7663070Z \u001b[36;1mpath = Path('build/generated/syscall_bridge.c')\u001b[0m\n2026-08-10T15:54:12.7664080Z \u001b[36;1mtext = path.read_text(encoding='utf-8')\u001b[0m\n2026-08-10T15:54:12.7665020Z \u001b[36;1manchor = '#define M3_TRACE_LIMIT 256u'\u001b[0m\n2026-08-10T15:54:12.7665890Z \u001b[36;1mif text.count(anchor) != 1:\u001b[0m\n2026-08-10T15:54:12.7666670Z \u001b[36;1m    raise SystemExit(\u001b[0m\n2026-08-10T15:54:12.7667710Z \u001b[36;1m        f'trace-limit anchor: expected one, found {text.count(anchor)}')\u001b[0m\n2026-08-10T15:54:12.7668990Z \u001b[36;1mpath.write_text(\u001b[0m\n2026-08-10T15:54:12.7669940Z \u001b[36;1m    text.replace(anchor, '#define M3_TRACE_LIMIT 24000u'),\u001b[0m\n2026-08-10T15:54:12.7670950Z \u001b[36;1m    encoding='utf-8')\u001b[0m\n2026-08-10T15:54:12.7671660Z \u001b[36;1mPY\u001b[0m\n2026-08-10T15:54:12.7672230Z \u001b[36;1m\u001b[0m\n2026-08-10T15:54:12.7673100Z \u001b[36;1mgrep -F 'case LINUX_SYS_SENDFILE:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:54:12.7674400Z \u001b[36;1mgrep -F 'HRT M11 EMPTYMASK: index=1 applied=1' \\\u001b[0m\n2026-08-10T15:54:12.7675390Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:54:12.7676370Z \u001b[36;1mgrep -F 'HRT M11 EMPTYMASK: index=1 applied=0' \\\u001b[0m\n2026-08-10T15:54:12.7677400Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:54:12.7678310Z \u001b[36;1mgrep -F 'HRT M11 CLASSIFIERCALLER:' \\\u001b[0m\n2026-08-10T15:54:12.7679230Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T15:54:12.7680220Z \u001b[36;1mshasum -a 256 build/generated/syscall_bridge.c \\\u001b[0m\n2026-08-10T15:54:12.7681490Z \u001b[36;1m  >build/output/generated-bridge.sha256\u001b[0m\n2026-08-10T15:54:12.7743100Z shell: /bin/bash -e {0}\n2026-08-10T15:54:12.7743830Z ##[endgroup]\n2026-08-10T15:54:12.8060180Z + /usr/bin/arch -x86_64 /usr/bin/true\n2026-08-10T15:54:13.0801580Z + mkdir -p build/generated build/objects build/output\n2026-08-10T15:54:13.0821060Z + /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE\n2026-08-10T15:54:13.0822280Z + tee build/output/x86-page-size.txt\n2026-08-10T15:54:13.2477800Z 4096\n2026-08-10T15:54:13.2501450Z + sw_vers\n2026-08-10T15:54:13.2502710Z + tee build/output/sw-vers.txt\n2026-08-10T15:54:13.2628070Z ProductName:\t\tmacOS\n2026-08-10T15:54:13.2629020Z ProductVersion:\t\t14.8.7\n2026-08-10T15:54:13.2629860Z BuildVersion:\t\t23J520\n2026-08-10T15:54:13.2631390Z + python3 runtime/m8/augment_appkit_adapter_input.py runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m\n2026-08-10T15:54:13.4851450Z + python3 runtime/m11/augment_appkit_korean_input_capture.py build/generated/appkit_adapter_m8.m build/generated/appkit_adapter_m11.m\n2026-08-10T15:54:13.8856140Z + python3 runtime/m6/augment_stack_hrtappkit.py runtime/m3/stack.c build/generated/stack-m6.c\n2026-08-10T15:54:14.0117110Z + python3 runtime/m9/augment_stack_locale.py build/generated/stack-m6.c build/generated/stack.c\n2026-08-10T15:54:14.0634310Z + python3 runtime/m3/augment_syscalls.py runtime/m3/syscall_bridge.c build/generated/stage1.c\n2026-08-10T15:54:14.1087060Z + python3 runtime/m3/augment_directory_syscalls.py build/generated/stage1.c build/generated/stage2.c\n2026-08-10T15:54:14.1496930Z + python3 runtime/m3/augment_directory_stream.py build/generated/stage2.c build/generated/stage3.c\n2026-08-10T15:54:14.1917960Z + python3 runtime/m3/augment_pipe2.py build/generated/stage3.c build/generated/stage4.c\n2026-08-10T15:54:14.2378090Z + python3 runtime/m3/augment_eventfd2.py build/generated/stage4.c build/generated/stage5.c\n2026-08-10T15:54:14.4079730Z + python3 runtime/m3/augment_crash_signals.py build/generated/stage5.c build/generated/stage6.c\n2026-08-10T15:54:14.4467850Z + python3 runtime/m3/augment_poll.py build/generated/stage6.c build/generated/stage7.c\n2026-08-10T15:54:14.4854290Z + python3 runtime/m3/augment_posix_basics.py build/generated/stage7.c build/generated/stage8.c\n2026-08-10T15:54:14.5303270Z + python3 runtime/m11/augment_clock_nanosleep.py build/generated/stage8.c build/generated/stage9.c\n2026-08-10T15:54:14.5680470Z + python3 runtime/m11/augment_sendfile.py build/generated/stage9.c build/generated/stage10.c\n2026-08-10T15:54:14.6053020Z + python3 runtime/m10/augment_fs_compat.py build/generated/stage10.c build/generated/stage11.c\n2026-08-10T15:54:14.7081170Z + python3 runtime/m3/augment_connect.py build/generated/stage11.c build/generated/stage12.c\n2026-08-10T15:54:14.7434010Z + python3 runtime/m6/augment_appkit_hostcall_deferred.py build/generated/stage12.c build/generated/stage13.c\n2026-08-10T15:54:14.7779250Z + python3 runtime/m3/augment_darwin_syscall_abi.py build/generated/stage13.c build/generated/stage14.c\n2026-08-10T15:54:14.8321070Z + python3 runtime/m10/augment_clone_compat_v4.py build/generated/stage14.c build/generated/stage15.c\n2026-08-10T15:54:14.9688660Z + python3 runtime/m11/augment_hword_document_io_trace_v10.py build/generated/stage15.c build/generated/syscall_bridge.c\n2026-08-10T15:54:15.1537560Z Traceback (most recent call last):\n2026-08-10T15:54:15.1631780Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py\", line 139, in <module>\n2026-08-10T15:54:15.1658110Z     main()\n2026-08-10T15:54:15.1658430Z     ~~~~^^\n2026-08-10T15:54:15.1658940Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py\", line 133, in main\n2026-08-10T15:54:15.1659500Z     run_brace_scoped_v2()\n2026-08-10T15:54:15.1659740Z     ~~~~~~~~~~~~~~~~~~~^^\n2026-08-10T15:54:15.1660320Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py\", line 98, in run_brace_scoped_v2\n2026-08-10T15:54:15.1661400Z     exec(compile(patched, str(generator), \"exec\"), namespace)\n2026-08-10T15:54:15.1661730Z          ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:15.1662260Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace.py\", line 75\n2026-08-10T15:54:15.1662970Z     tail = function[-2400:].replace(\"\n2026-08-10T15:54:15.1670930Z                                     ^\n2026-08-10T15:54:15.1771870Z SyntaxError: unterminated string literal (detected at line 75)\n2026-08-10T15:54:15.1773760Z Traceback (most recent call last):\n2026-08-10T15:54:15.1804840Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v4.py\", line 72, in <module>\n2026-08-10T15:54:15.1813280Z     main()\n2026-08-10T15:54:15.1813530Z     ~~~~^^\n2026-08-10T15:54:15.1814100Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v4.py\", line 68, in main\n2026-08-10T15:54:15.1814780Z     entry()\n2026-08-10T15:54:15.1815050Z     ~~~~~^^\n2026-08-10T15:54:15.1815540Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v3.py\", line 53, in main\n2026-08-10T15:54:15.1816240Z     subprocess.run(\n2026-08-10T15:54:15.1823040Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:15.1823480Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:15.1823890Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:15.1824280Z         check=True,\n2026-08-10T15:54:15.1824520Z         ^^^^^^^^^^^\n2026-08-10T15:54:15.1824730Z     )\n2026-08-10T15:54:15.1824910Z     ^\n2026-08-10T15:54:15.1825490Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:15.1826090Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:15.1826980Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:15.1828250Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v2.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v3-jmngn6n2/syscall_bridge_docio_v2.c']' returned non-zero exit status 1.\n2026-08-10T15:54:15.1829490Z Traceback (most recent call last):\n2026-08-10T15:54:15.1830040Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v6.py\", line 58, in <module>\n2026-08-10T15:54:15.1830600Z     main()\n2026-08-10T15:54:15.1830780Z     ~~~~^^\n2026-08-10T15:54:15.1831270Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v6.py\", line 54, in main\n2026-08-10T15:54:15.1831800Z     entry()\n2026-08-10T15:54:15.1831990Z     ~~~~~^^\n2026-08-10T15:54:15.1832460Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v5.py\", line 49, in main\n2026-08-10T15:54:15.1832980Z     subprocess.run(\n2026-08-10T15:54:15.1833180Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:15.1833490Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:15.1833890Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:15.1835690Z         check=True,\n2026-08-10T15:54:15.1841050Z         ^^^^^^^^^^^\n2026-08-10T15:54:15.1841270Z     )\n2026-08-10T15:54:15.1841440Z     ^\n2026-08-10T15:54:15.1841920Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:15.1842480Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:15.1842790Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:15.1844460Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v4.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v5-wnzy21n5/syscall_bridge_openctx32.c']' returned non-zero exit status 1.\n2026-08-10T15:54:15.1845730Z Traceback (most recent call last):\n2026-08-10T15:54:15.1846280Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v7.py\", line 220, in <module>\n2026-08-10T15:54:15.1846810Z     main()\n2026-08-10T15:54:15.1847000Z     ~~~~^^\n2026-08-10T15:54:15.1847470Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v7.py\", line 51, in main\n2026-08-10T15:54:15.1848010Z     subprocess.run(\n2026-08-10T15:54:15.1848200Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:15.1848510Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:15.1848910Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:15.1849210Z         check=True,\n2026-08-10T15:54:15.1849410Z         ^^^^^^^^^^^\n2026-08-10T15:54:15.1849610Z     )\n2026-08-10T15:54:15.1849770Z     ^\n2026-08-10T15:54:15.1850330Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:15.1850940Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:15.1851270Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:15.1861840Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v6.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v7-h44rn1k9/syscall_bridge_framectx.c']' returned non-zero exit status 1.\n2026-08-10T15:54:15.1905820Z Traceback (most recent call last):\n2026-08-10T15:54:15.1966180Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v10.py\", line 154, in <module>\n2026-08-10T15:54:15.1966780Z     main()\n2026-08-10T15:54:15.1967060Z     ~~~~^^\n2026-08-10T15:54:15.1967570Z   File \"/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v10.py\", line 53, in main\n2026-08-10T15:54:15.1968150Z     subprocess.run(\n2026-08-10T15:54:15.1968370Z     ~~~~~~~~~~~~~~^\n2026-08-10T15:54:15.1968710Z         [sys.executable, str(generator), str(args.source), str(intermediate)],\n2026-08-10T15:54:15.1969600Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n2026-08-10T15:54:15.1969940Z         check=True,\n2026-08-10T15:54:15.1970100Z         ^^^^^^^^^^^\n2026-08-10T15:54:15.1970250Z     )\n2026-08-10T15:54:15.1970410Z     ^\n2026-08-10T15:54:15.1970850Z   File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n2026-08-10T15:54:15.1971390Z     raise CalledProcessError(retcode, process.args,\n2026-08-10T15:54:15.1971730Z                              output=stdout, stderr=stderr)\n2026-08-10T15:54:15.1972980Z subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/runtime/m11/augment_hword_document_io_trace_v7.py', 'build/generated/stage15.c', '/var/folders/g3/pffjr_y96bq06blnkf72x_hw0000gn/T/hrt-m11-docio-v10-4u1rszkx/syscall_bridge_classifier.c']' returned non-zero exit status 1.\n2026-08-10T15:54:15.1983830Z ##[error]Process completed with exit code 1.\n2026-08-10T15:54:15.2085740Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/\n2026-08-10T15:54:15.2087060Z Post job cleanup.\n2026-08-10T15:54:15.3072530Z [command]/opt/homebrew/bin/git version\n2026-08-10T15:54:15.3238350Z git version 2.54.0\n2026-08-10T15:54:15.3255960Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/7aab3515-c66e-445b-8ed7-2293cd08f697/.gitconfig'\n2026-08-10T15:54:15.3263060Z Temporarily overriding HOME='/Users/runner/work/_temp/7aab3515-c66e-445b-8ed7-2293cd08f697' before making global git config changes\n2026-08-10T15:54:15.3263820Z Adding repository directory to the temporary git global config as a safe directory\n2026-08-10T15:54:15.3266710Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/hoffice-linux-archive/hoffice-linux-archive\n2026-08-10T15:54:15.3315140Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2026-08-10T15:54:15.3358950Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2026-08-10T15:54:15.3838880Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2026-08-10T15:54:15.3868780Z http.https://github.com/.extraheader\n2026-08-10T15:54:15.3874060Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader\n2026-08-10T15:54:15.3910360Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"\n2026-08-10T15:54:15.4343780Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\\.gitdir:\n2026-08-10T15:54:15.4379440Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url\n2026-08-10T15:54:15.4886110Z Cleaning up orphan processes\n2026-08-10T15:54:15.7202640Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+        }
+      ]
+    },
+    {
+      "workflow": "hoffice-runtime-m11-empty-mask-matrix-replay.yml",
+      "run_id": "31405812798",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "7abcb90977f928932dc425c1fb268942609bfeb6",
+      "display_title": "diagnostic: replay the four-way HWord empty-open mask matrix",
+      "created_at": "2026-08-10T15:51:01Z",
+      "updated_at": "2026-08-10T15:51:10Z",
+      "html_url": "https://github.com/bicheondev/hoffice-linux-archive/actions/runs/31405812798",
+      "jobs": [
+        {
+          "id": "93511748492",
+          "name": "resolve",
+          "status": "in_progress",
+          "conclusion": null,
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Wait for the latest successful matrix build",
+              "status": "in_progress",
+              "conclusion": null
+            }
+          ]
+        }
+      ],
+      "failed_job_log_tails": []
+    },
+    {
+      "workflow": "hoffice-runtime-m11-build-empty-buffer-host.yml",
+      "run_id": "31407674689",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_sha": "4c034f5ac8e2822d6ee149a290b90ff99ec03d52",
+      "display_title": "ci: build HWord with sendfile and bounded guest path-buffer repair",
+      "created_at": "2026-08-10T16:11:56Z",
+      "updated_at": "2026-08-10T16:12:11Z",
+      "html_url": "https://github.com/bicheondev/hoffice-linux-archive/actions/runs/31407674689",
+      "jobs": [
+        {
+          "id": "93517853722",
+          "name": "build-host",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Generate the sendfile and guest-buffer compatibility bridge",
+              "status": "completed",
+              "conclusion": "failure"
+            },
+            {
+              "number": 4,
+              "name": "Compile, sign, and lock the x86-64 diagnostic host",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 5,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 10,
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ],
+      "failed_job_log_tails": [
+        {
+          "job_id": "93517853722",
+          "tail": "2026-08-10T16:12:04.4204660Z From https://github.com/bicheondev/hoffice-linux-archive\n2026-08-10T16:12:04.4205990Z  * [new branch]      codex/hoffice-macos-audit -> origin/codex/hoffice-macos-audit\n2026-08-10T16:12:04.4207550Z  * [new branch]      codex/hoffice-runtime-from-scratch -> origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:12:04.4208980Z  * [new branch]      codex/hoffice-runtime-m2-core -> origin/codex/hoffice-runtime-m2-core\n2026-08-10T16:12:04.4210490Z  * [new branch]      codex/hoffice-runtime-m3-hword-entry -> origin/codex/hoffice-runtime-m3-hword-entry\n2026-08-10T16:12:04.4214890Z  * [new branch]      codex/hoffice-runtime-m4-qt-offscreen -> origin/codex/hoffice-runtime-m4-qt-offscreen\n2026-08-10T16:12:04.4217990Z  * [new branch]      codex/hoffice-runtime-m5-appkit-bridge -> origin/codex/hoffice-runtime-m5-appkit-bridge\n2026-08-10T16:12:04.4229120Z  * [new branch]      codex/hoffice-runtime-m5-custom-qpa -> origin/codex/hoffice-runtime-m5-custom-qpa\n2026-08-10T16:12:04.4232570Z  * [new branch]      codex/hoffice-runtime-m5-hword-window -> origin/codex/hoffice-runtime-m5-hword-window\n2026-08-10T16:12:04.4234690Z  * [new branch]      main               -> origin/main\n2026-08-10T16:12:04.4235940Z  * [new tag]         linux-11.20-series -> linux-11.20-series\n2026-08-10T16:12:04.4237610Z  * [new tag]         linux-11.20.0      -> linux-11.20.0\n2026-08-10T16:12:04.4307750Z [command]/opt/homebrew/bin/git branch --list --remote origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:12:04.4383440Z   origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:12:04.4390270Z [command]/opt/homebrew/bin/git rev-parse refs/remotes/origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:12:04.4441250Z 4c034f5ac8e2822d6ee149a290b90ff99ec03d52\n2026-08-10T16:12:04.4447690Z ##[endgroup]\n2026-08-10T16:12:04.4448960Z ##[group]Determining the checkout info\n2026-08-10T16:12:04.4450660Z ##[endgroup]\n2026-08-10T16:12:04.4451900Z [command]/opt/homebrew/bin/git sparse-checkout disable\n2026-08-10T16:12:04.4531810Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig\n2026-08-10T16:12:04.4593800Z ##[group]Checking out the ref\n2026-08-10T16:12:04.4597180Z [command]/opt/homebrew/bin/git checkout --progress --force -B codex/hoffice-runtime-from-scratch refs/remotes/origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:12:04.5613750Z Switched to a new branch 'codex/hoffice-runtime-from-scratch'\n2026-08-10T16:12:04.5717670Z branch 'codex/hoffice-runtime-from-scratch' set up to track 'origin/codex/hoffice-runtime-from-scratch'.\n2026-08-10T16:12:04.6040050Z ##[endgroup]\n2026-08-10T16:12:04.6326440Z [command]/opt/homebrew/bin/git log -1 --format=%H\n2026-08-10T16:12:04.6423070Z 4c034f5ac8e2822d6ee149a290b90ff99ec03d52\n2026-08-10T16:12:04.6770260Z ##[group]Run set -euxo pipefail\n2026-08-10T16:12:04.6771920Z \u001b[36;1mset -euxo pipefail\u001b[0m\n2026-08-10T16:12:04.6773000Z \u001b[36;1mif ! /usr/bin/arch -x86_64 /usr/bin/true; then\u001b[0m\n2026-08-10T16:12:04.6774490Z \u001b[36;1m  sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license\u001b[0m\n2026-08-10T16:12:04.6775850Z \u001b[36;1mfi\u001b[0m\n2026-08-10T16:12:04.6776730Z \u001b[36;1mmkdir -p build/generated build/objects build/output\u001b[0m\n2026-08-10T16:12:04.6778510Z \u001b[36;1m/usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \\\u001b[0m\n2026-08-10T16:12:04.6779700Z \u001b[36;1m  | tee build/output/x86-page-size.txt\u001b[0m\n2026-08-10T16:12:04.6780900Z \u001b[36;1msw_vers | tee build/output/sw-vers.txt\u001b[0m\n2026-08-10T16:12:04.6781940Z \u001b[36;1m\u001b[0m\n2026-08-10T16:12:04.6783200Z \u001b[36;1mpython3 runtime/m8/augment_appkit_adapter_input.py \\\u001b[0m\n2026-08-10T16:12:04.6784520Z \u001b[36;1m  runtime/m6/appkit_adapter.m \\\u001b[0m\n2026-08-10T16:12:04.6785590Z \u001b[36;1m  build/generated/appkit_adapter_m8.m\u001b[0m\n2026-08-10T16:12:04.6786960Z \u001b[36;1mpython3 runtime/m11/augment_appkit_korean_input_capture.py \\\u001b[0m\n2026-08-10T16:12:04.6788650Z \u001b[36;1m  build/generated/appkit_adapter_m8.m \\\u001b[0m\n2026-08-10T16:12:04.6789790Z \u001b[36;1m  build/generated/appkit_adapter_m11.m\u001b[0m\n2026-08-10T16:12:04.6790880Z \u001b[36;1mpython3 runtime/m6/augment_stack_hrtappkit.py \\\u001b[0m\n2026-08-10T16:12:04.6792570Z \u001b[36;1m  runtime/m3/stack.c build/generated/stack-m6.c\u001b[0m\n2026-08-10T16:12:04.6793890Z \u001b[36;1mpython3 runtime/m9/augment_stack_locale.py \\\u001b[0m\n2026-08-10T16:12:04.6795150Z \u001b[36;1m  build/generated/stack-m6.c build/generated/stack.c\u001b[0m\n2026-08-10T16:12:04.6796220Z \u001b[36;1m\u001b[0m\n2026-08-10T16:12:04.6797000Z \u001b[36;1mpython3 runtime/m3/augment_syscalls.py \\\u001b[0m\n2026-08-10T16:12:04.6798470Z \u001b[36;1m  runtime/m3/syscall_bridge.c build/generated/stage1.c\u001b[0m\n2026-08-10T16:12:04.6800140Z \u001b[36;1mpython3 runtime/m3/augment_directory_syscalls.py \\\u001b[0m\n2026-08-10T16:12:04.6801380Z \u001b[36;1m  build/generated/stage1.c build/generated/stage2.c\u001b[0m\n2026-08-10T16:12:04.6802880Z \u001b[36;1mpython3 runtime/m3/augment_directory_stream.py \\\u001b[0m\n2026-08-10T16:12:04.6804570Z \u001b[36;1m  build/generated/stage2.c build/generated/stage3.c\u001b[0m\n2026-08-10T16:12:04.6805790Z \u001b[36;1mpython3 runtime/m3/augment_pipe2.py \\\u001b[0m\n2026-08-10T16:12:04.6807560Z \u001b[36;1m  build/generated/stage3.c build/generated/stage4.c\u001b[0m\n2026-08-10T16:12:04.6808770Z \u001b[36;1mpython3 runtime/m3/augment_eventfd2.py \\\u001b[0m\n2026-08-10T16:12:04.6809950Z \u001b[36;1m  build/generated/stage4.c build/generated/stage5.c\u001b[0m\n2026-08-10T16:12:04.6811180Z \u001b[36;1mpython3 runtime/m3/augment_crash_signals.py \\\u001b[0m\n2026-08-10T16:12:04.6812720Z \u001b[36;1m  build/generated/stage5.c build/generated/stage6.c\u001b[0m\n2026-08-10T16:12:04.6813790Z \u001b[36;1mpython3 runtime/m3/augment_poll.py \\\u001b[0m\n2026-08-10T16:12:04.6814910Z \u001b[36;1m  build/generated/stage6.c build/generated/stage7.c\u001b[0m\n2026-08-10T16:12:04.6816060Z \u001b[36;1mpython3 runtime/m3/augment_posix_basics.py \\\u001b[0m\n2026-08-10T16:12:04.6817800Z \u001b[36;1m  build/generated/stage7.c build/generated/stage8.c\u001b[0m\n2026-08-10T16:12:04.6819050Z \u001b[36;1mpython3 runtime/m11/augment_clock_nanosleep.py \\\u001b[0m\n2026-08-10T16:12:04.6820250Z \u001b[36;1m  build/generated/stage8.c build/generated/stage9.c\u001b[0m\n2026-08-10T16:12:04.6821380Z \u001b[36;1mpython3 runtime/m11/augment_sendfile.py \\\u001b[0m\n2026-08-10T16:12:04.6822540Z \u001b[36;1m  build/generated/stage9.c build/generated/stage10.c\u001b[0m\n2026-08-10T16:12:04.6824120Z \u001b[36;1mpython3 runtime/m10/augment_fs_compat.py \\\u001b[0m\n2026-08-10T16:12:04.6825320Z \u001b[36;1m  build/generated/stage10.c build/generated/stage11.c\u001b[0m\n2026-08-10T16:12:04.6826800Z \u001b[36;1mpython3 runtime/m3/augment_connect.py \\\u001b[0m\n2026-08-10T16:12:04.6828070Z \u001b[36;1m  build/generated/stage11.c build/generated/stage12.c\u001b[0m\n2026-08-10T16:12:04.6829380Z \u001b[36;1mpython3 runtime/m6/augment_appkit_hostcall_deferred.py \\\u001b[0m\n2026-08-10T16:12:04.6830680Z \u001b[36;1m  build/generated/stage12.c build/generated/stage13.c\u001b[0m\n2026-08-10T16:12:04.6832220Z \u001b[36;1mpython3 runtime/m3/augment_darwin_syscall_abi.py \\\u001b[0m\n2026-08-10T16:12:04.6834090Z \u001b[36;1m  build/generated/stage13.c build/generated/stage14.c\u001b[0m\n2026-08-10T16:12:04.6835350Z \u001b[36;1mpython3 runtime/m10/augment_clone_compat_v4.py \\\u001b[0m\n2026-08-10T16:12:04.6836890Z \u001b[36;1m  build/generated/stage14.c build/generated/stage15.c\u001b[0m\n2026-08-10T16:12:04.6838290Z \u001b[36;1mpython3 runtime/m11/augment_hword_document_io_trace_v11.py \\\u001b[0m\n2026-08-10T16:12:04.6839710Z \u001b[36;1m  build/generated/stage15.c build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:12:04.6840840Z \u001b[36;1m\u001b[0m\n2026-08-10T16:12:04.6841780Z \u001b[36;1mpython3 - <<'PY'\u001b[0m\n2026-08-10T16:12:04.6842510Z \u001b[36;1mfrom pathlib import Path\u001b[0m\n2026-08-10T16:12:04.6843500Z \u001b[36;1mpath = Path('build/generated/syscall_bridge.c')\u001b[0m\n2026-08-10T16:12:04.6844620Z \u001b[36;1mtext = path.read_text(encoding='utf-8')\u001b[0m\n2026-08-10T16:12:04.6845620Z \u001b[36;1manchor = '#define M3_TRACE_LIMIT 256u'\u001b[0m\n2026-08-10T16:12:04.6846540Z \u001b[36;1mif text.count(anchor) != 1:\u001b[0m\n2026-08-10T16:12:04.6847720Z \u001b[36;1m    raise SystemExit(\u001b[0m\n2026-08-10T16:12:04.6848850Z \u001b[36;1m        f'trace-limit anchor: expected one, found {text.count(anchor)}')\u001b[0m\n2026-08-10T16:12:04.6850090Z \u001b[36;1mpath.write_text(\u001b[0m\n2026-08-10T16:12:04.6851090Z \u001b[36;1m    text.replace(anchor, '#define M3_TRACE_LIMIT 24000u'),\u001b[0m\n2026-08-10T16:12:04.6852490Z \u001b[36;1m    encoding='utf-8')\u001b[0m\n2026-08-10T16:12:04.6853230Z \u001b[36;1mPY\u001b[0m\n2026-08-10T16:12:04.6853850Z \u001b[36;1m\u001b[0m\n2026-08-10T16:12:04.6854800Z \u001b[36;1mgrep -F 'case LINUX_SYS_SENDFILE:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:12:04.6856570Z \u001b[36;1mgrep -F 'HRT M11 SENDFILE: out=' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:12:04.6857920Z \u001b[36;1mgrep -F 'HRT M11 EMPTYBUFFER: index=1 applied=1' \\\u001b[0m\n2026-08-10T16:12:04.6859040Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:12:04.6860280Z \u001b[36;1mgrep -F 'HRT M11 EMPTYBUFFER: applied=0 reason=outside-stack-window' \\\u001b[0m\n2026-08-10T16:12:04.6862350Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:12:04.6864740Z \u001b[36;1mgrep -F 'HRT M11 CLASSIFIERCALLER:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:12:04.6866690Z \u001b[36;1mgrep -F 'HRT M11 FRAMECTX:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:12:04.6868110Z \u001b[36;1mgrep -F 'case LINUX_SYS_CLONE:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:12:04.6869340Z \u001b[36;1mgrep -F '#define M3_TRACE_LIMIT 24000u' \\\u001b[0m\n2026-08-10T16:12:04.6870300Z \u001b[36;1m  build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:12:04.6871370Z \u001b[36;1mshasum -a 256 build/generated/syscall_bridge.c \\\u001b[0m\n2026-08-10T16:12:04.6872400Z \u001b[36;1m  >build/output/generated-bridge.sha256\u001b[0m\n2026-08-10T16:12:04.6948150Z shell: /bin/bash -e {0}\n2026-08-10T16:12:04.6948950Z ##[endgroup]\n2026-08-10T16:12:04.7309640Z + /usr/bin/arch -x86_64 /usr/bin/true\n2026-08-10T16:12:05.0234060Z + mkdir -p build/generated build/objects build/output\n2026-08-10T16:12:05.0255840Z + /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE\n2026-08-10T16:12:05.0258200Z + tee build/output/x86-page-size.txt\n2026-08-10T16:12:05.2836810Z + sw_vers\n2026-08-10T16:12:05.2837690Z 4096\n2026-08-10T16:12:05.2936900Z + tee build/output/sw-vers.txt\n2026-08-10T16:12:05.3039870Z + python3 runtime/m8/augment_appkit_adapter_input.py runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m\n2026-08-10T16:12:05.3041810Z ProductName:\t\tmacOS\n2026-08-10T16:12:05.3133740Z ProductVersion:\t\t14.8.7\n2026-08-10T16:12:05.3172500Z BuildVersion:\t\t23J520\n2026-08-10T16:12:05.5343700Z + python3 runtime/m11/augment_appkit_korean_input_capture.py build/generated/appkit_adapter_m8.m build/generated/appkit_adapter_m11.m\n2026-08-10T16:12:05.7197070Z + python3 runtime/m6/augment_stack_hrtappkit.py runtime/m3/stack.c build/generated/stack-m6.c\n2026-08-10T16:12:05.7599740Z + python3 runtime/m9/augment_stack_locale.py build/generated/stack-m6.c build/generated/stack.c\n2026-08-10T16:12:05.7997410Z + python3 runtime/m3/augment_syscalls.py runtime/m3/syscall_bridge.c build/generated/stage1.c\n2026-08-10T16:12:05.8418520Z + python3 runtime/m3/augment_directory_syscalls.py build/generated/stage1.c build/generated/stage2.c\n2026-08-10T16:12:05.8822820Z + python3 runtime/m3/augment_directory_stream.py build/generated/stage2.c build/generated/stage3.c\n2026-08-10T16:12:05.9224560Z + python3 runtime/m3/augment_pipe2.py build/generated/stage3.c build/generated/stage4.c\n2026-08-10T16:12:05.9628610Z + python3 runtime/m3/augment_eventfd2.py build/generated/stage4.c build/generated/stage5.c\n2026-08-10T16:12:06.1454790Z + python3 runtime/m3/augment_crash_signals.py build/generated/stage5.c build/generated/stage6.c\n2026-08-10T16:12:06.1895740Z + python3 runtime/m3/augment_poll.py build/generated/stage6.c build/generated/stage7.c\n2026-08-10T16:12:06.2304870Z + python3 runtime/m3/augment_posix_basics.py build/generated/stage7.c build/generated/stage8.c\n2026-08-10T16:12:06.2726540Z + python3 runtime/m11/augment_clock_nanosleep.py build/generated/stage8.c build/generated/stage9.c\n2026-08-10T16:12:06.3125940Z + python3 runtime/m11/augment_sendfile.py build/generated/stage9.c build/generated/stage10.c\n2026-08-10T16:12:06.3558800Z + python3 runtime/m10/augment_fs_compat.py build/generated/stage10.c build/generated/stage11.c\n2026-08-10T16:12:06.4833370Z + python3 runtime/m3/augment_connect.py build/generated/stage11.c build/generated/stage12.c\n2026-08-10T16:12:06.5276900Z + python3 runtime/m6/augment_appkit_hostcall_deferred.py build/generated/stage12.c build/generated/stage13.c\n2026-08-10T16:12:06.5707790Z + python3 runtime/m3/augment_darwin_syscall_abi.py build/generated/stage13.c build/generated/stage14.c\n2026-08-10T16:12:06.6137130Z + python3 runtime/m10/augment_clone_compat_v4.py build/generated/stage14.c build/generated/stage15.c\n2026-08-10T16:12:06.7806460Z + python3 runtime/m11/augment_hword_document_io_trace_v11.py build/generated/stage15.c build/generated/syscall_bridge.c\n2026-08-10T16:12:07.0857900Z empty-buffer marker mismatch for 'UINT64_C(0x10000)': expected 2, found 4\n2026-08-10T16:12:07.0931720Z ##[error]Process completed with exit code 1.\n2026-08-10T16:12:07.1055200Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/\n2026-08-10T16:12:07.1057000Z Post job cleanup.\n2026-08-10T16:12:07.1886470Z [command]/opt/homebrew/bin/git version\n2026-08-10T16:12:07.1932810Z git version 2.54.0\n2026-08-10T16:12:07.1952300Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/81aeca81-4a34-4310-98c5-2bebd5a91a4c/.gitconfig'\n2026-08-10T16:12:07.1959080Z Temporarily overriding HOME='/Users/runner/work/_temp/81aeca81-4a34-4310-98c5-2bebd5a91a4c' before making global git config changes\n2026-08-10T16:12:07.1960180Z Adding repository directory to the temporary git global config as a safe directory\n2026-08-10T16:12:07.1963050Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/hoffice-linux-archive/hoffice-linux-archive\n2026-08-10T16:12:07.2014830Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2026-08-10T16:12:07.2059860Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2026-08-10T16:12:07.2674830Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2026-08-10T16:12:07.2722930Z http.https://github.com/.extraheader\n2026-08-10T16:12:07.2732820Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader\n2026-08-10T16:12:07.2787750Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"\n2026-08-10T16:12:07.3346340Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\\.gitdir:\n2026-08-10T16:12:07.3392960Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url\n2026-08-10T16:12:07.4029680Z Cleaning up orphan processes\n2026-08-10T16:12:07.6323310Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+        }
+      ]
+    },
+    {
+      "workflow": "hoffice-runtime-m11-empty-buffer-replay.yml",
+      "run_id": "31407809608",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "fbc22a432190d9d799398aa0e15622c7ca2a0b02",
+      "display_title": "diagnostic: replay HWord with sendfile and bounded guest path-buffer …",
+      "created_at": "2026-08-10T16:13:28Z",
+      "updated_at": "2026-08-10T16:13:31Z",
+      "html_url": "https://github.com/bicheondev/hoffice-linux-archive/actions/runs/31407809608",
+      "jobs": [
+        {
+          "id": "93518296179",
+          "name": "replay",
+          "status": "in_progress",
+          "conclusion": null,
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Require the verified HWord runtime frontier",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Wait for and lock the latest successful guest-buffer host",
+              "status": "in_progress",
+              "conclusion": null
+            },
+            {
+              "number": 5,
+              "name": "Replay exact HWord with bounded guest-buffer repair",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 6,
+              "name": "Classify the guest-buffer repair",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 7,
+              "name": "Commit the durable guest-buffer classification",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 8,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 16,
+              "name": "Post Run actions/checkout@v4",
+              "status": "pending",
+              "conclusion": null
+            }
+          ]
+        }
+      ],
+      "failed_job_log_tails": []
+    },
+    {
+      "workflow": "hoffice-runtime-m11-build-short-buffer-host-v2.yml",
+      "run_id": "31408585777",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_sha": "2d8691cabd089298795cb626ba56650f2ad38939",
+      "display_title": "ci: build the corrected short guest path-buffer host",
+      "created_at": "2026-08-10T16:22:20Z",
+      "updated_at": "2026-08-10T16:22:34Z",
+      "html_url": "https://github.com/bicheondev/hoffice-linux-archive/actions/runs/31408585777",
+      "jobs": [
+        {
+          "id": "93520892953",
+          "name": "build-host",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Generate the corrected combined bridge",
+              "status": "completed",
+              "conclusion": "failure"
+            },
+            {
+              "number": 4,
+              "name": "Compile and sign the corrected host",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 5,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 10,
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ],
+      "failed_job_log_tails": [
+        {
+          "job_id": "93520892953",
+          "tail": "2026-08-10T16:22:25.7461060Z hint:\n2026-08-10T16:22:25.7462640Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\n2026-08-10T16:22:25.7465020Z hint: 'development'. The just-created branch can be renamed via this command:\n2026-08-10T16:22:25.7467290Z hint:\n2026-08-10T16:22:25.7468860Z hint: \tgit branch -m <name>\n2026-08-10T16:22:25.7470340Z hint:\n2026-08-10T16:22:25.7471920Z hint: Disable this message with \"git config set advice.defaultBranchName false\"\n2026-08-10T16:22:25.7475980Z Initialized empty Git repository in /Users/runner/work/hoffice-linux-archive/hoffice-linux-archive/.git/\n2026-08-10T16:22:25.7492400Z [command]/opt/homebrew/bin/git remote add origin https://github.com/bicheondev/hoffice-linux-archive\n2026-08-10T16:22:25.7721060Z ##[endgroup]\n2026-08-10T16:22:25.7722810Z ##[group]Disabling automatic garbage collection\n2026-08-10T16:22:25.7723460Z [command]/opt/homebrew/bin/git config --local gc.auto 0\n2026-08-10T16:22:25.7778660Z ##[endgroup]\n2026-08-10T16:22:25.7779720Z ##[group]Setting up auth\n2026-08-10T16:22:25.7782830Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2026-08-10T16:22:25.7838870Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2026-08-10T16:22:25.9130730Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2026-08-10T16:22:25.9186130Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"\n2026-08-10T16:22:25.9927760Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\\.gitdir:\n2026-08-10T16:22:25.9935890Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url\n2026-08-10T16:22:26.0977180Z [command]/opt/homebrew/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***\n2026-08-10T16:22:26.0994300Z ##[endgroup]\n2026-08-10T16:22:26.0995060Z ##[group]Fetching the repository\n2026-08-10T16:22:26.0996730Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*\n2026-08-10T16:22:28.7840650Z From https://github.com/bicheondev/hoffice-linux-archive\n2026-08-10T16:22:28.7841290Z  * [new branch]      codex/hoffice-macos-audit -> origin/codex/hoffice-macos-audit\n2026-08-10T16:22:28.7842040Z  * [new branch]      codex/hoffice-runtime-from-scratch -> origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:22:28.7842660Z  * [new branch]      codex/hoffice-runtime-m2-core -> origin/codex/hoffice-runtime-m2-core\n2026-08-10T16:22:28.7843270Z  * [new branch]      codex/hoffice-runtime-m3-hword-entry -> origin/codex/hoffice-runtime-m3-hword-entry\n2026-08-10T16:22:28.7844050Z  * [new branch]      codex/hoffice-runtime-m4-qt-offscreen -> origin/codex/hoffice-runtime-m4-qt-offscreen\n2026-08-10T16:22:28.7844730Z  * [new branch]      codex/hoffice-runtime-m5-appkit-bridge -> origin/codex/hoffice-runtime-m5-appkit-bridge\n2026-08-10T16:22:28.7845820Z  * [new branch]      codex/hoffice-runtime-m5-custom-qpa -> origin/codex/hoffice-runtime-m5-custom-qpa\n2026-08-10T16:22:28.7846480Z  * [new branch]      codex/hoffice-runtime-m5-hword-window -> origin/codex/hoffice-runtime-m5-hword-window\n2026-08-10T16:22:28.7847000Z  * [new branch]      main               -> origin/main\n2026-08-10T16:22:28.7847400Z  * [new tag]         linux-11.20-series -> linux-11.20-series\n2026-08-10T16:22:28.7847790Z  * [new tag]         linux-11.20.0      -> linux-11.20.0\n2026-08-10T16:22:28.7931850Z [command]/opt/homebrew/bin/git branch --list --remote origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:22:28.8030130Z   origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:22:28.8037600Z [command]/opt/homebrew/bin/git rev-parse refs/remotes/origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:22:28.8100440Z 2d8691cabd089298795cb626ba56650f2ad38939\n2026-08-10T16:22:28.8104170Z ##[endgroup]\n2026-08-10T16:22:28.8105400Z ##[group]Determining the checkout info\n2026-08-10T16:22:28.8106730Z ##[endgroup]\n2026-08-10T16:22:28.8107540Z [command]/opt/homebrew/bin/git sparse-checkout disable\n2026-08-10T16:22:28.8168160Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig\n2026-08-10T16:22:28.8215080Z ##[group]Checking out the ref\n2026-08-10T16:22:28.8217860Z [command]/opt/homebrew/bin/git checkout --progress --force -B codex/hoffice-runtime-from-scratch refs/remotes/origin/codex/hoffice-runtime-from-scratch\n2026-08-10T16:22:28.8978700Z Switched to a new branch 'codex/hoffice-runtime-from-scratch'\n2026-08-10T16:22:28.9081790Z branch 'codex/hoffice-runtime-from-scratch' set up to track 'origin/codex/hoffice-runtime-from-scratch'.\n2026-08-10T16:22:28.9385870Z ##[endgroup]\n2026-08-10T16:22:28.9688520Z [command]/opt/homebrew/bin/git log -1 --format=%H\n2026-08-10T16:22:28.9787570Z 2d8691cabd089298795cb626ba56650f2ad38939\n2026-08-10T16:22:29.0025470Z ##[group]Run set -euxo pipefail\n2026-08-10T16:22:29.0026000Z \u001b[36;1mset -euxo pipefail\u001b[0m\n2026-08-10T16:22:29.0026440Z \u001b[36;1mif ! /usr/bin/arch -x86_64 /usr/bin/true; then\u001b[0m\n2026-08-10T16:22:29.0026900Z \u001b[36;1m  sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license\u001b[0m\n2026-08-10T16:22:29.0027350Z \u001b[36;1mfi\u001b[0m\n2026-08-10T16:22:29.0027640Z \u001b[36;1mmkdir -p build/generated build/objects build/output\u001b[0m\n2026-08-10T16:22:29.0028150Z \u001b[36;1m/usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE >build/output/x86-page-size.txt\u001b[0m\n2026-08-10T16:22:29.0028610Z \u001b[36;1msw_vers >build/output/sw-vers.txt\u001b[0m\n2026-08-10T16:22:29.0028970Z \u001b[36;1mpython3 runtime/m8/augment_appkit_adapter_input.py \\\u001b[0m\n2026-08-10T16:22:29.0029430Z \u001b[36;1m  runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m\u001b[0m\n2026-08-10T16:22:29.0029900Z \u001b[36;1mpython3 runtime/m11/augment_appkit_korean_input_capture.py \\\u001b[0m\n2026-08-10T16:22:29.0030500Z \u001b[36;1m  build/generated/appkit_adapter_m8.m build/generated/appkit_adapter_m11.m\u001b[0m\n2026-08-10T16:22:29.0031090Z \u001b[36;1mpython3 runtime/m6/augment_stack_hrtappkit.py \\\u001b[0m\n2026-08-10T16:22:29.0031500Z \u001b[36;1m  runtime/m3/stack.c build/generated/stack-m6.c\u001b[0m\n2026-08-10T16:22:29.0031900Z \u001b[36;1mpython3 runtime/m9/augment_stack_locale.py \\\u001b[0m\n2026-08-10T16:22:29.0032280Z \u001b[36;1m  build/generated/stack-m6.c build/generated/stack.c\u001b[0m\n2026-08-10T16:22:29.0032800Z \u001b[36;1mpython3 runtime/m3/augment_syscalls.py \\\u001b[0m\n2026-08-10T16:22:29.0033210Z \u001b[36;1m  runtime/m3/syscall_bridge.c build/generated/stage1.c\u001b[0m\n2026-08-10T16:22:29.0033630Z \u001b[36;1mpython3 runtime/m3/augment_directory_syscalls.py \\\u001b[0m\n2026-08-10T16:22:29.0034030Z \u001b[36;1m  build/generated/stage1.c build/generated/stage2.c\u001b[0m\n2026-08-10T16:22:29.0034450Z \u001b[36;1mpython3 runtime/m3/augment_directory_stream.py \\\u001b[0m\n2026-08-10T16:22:29.0034850Z \u001b[36;1m  build/generated/stage2.c build/generated/stage3.c\u001b[0m\n2026-08-10T16:22:29.0035300Z \u001b[36;1mpython3 runtime/m3/augment_pipe2.py \\\u001b[0m\n2026-08-10T16:22:29.0035720Z \u001b[36;1m  build/generated/stage3.c build/generated/stage4.c\u001b[0m\n2026-08-10T16:22:29.0036580Z \u001b[36;1mpython3 runtime/m3/augment_eventfd2.py \\\u001b[0m\n2026-08-10T16:22:29.0036980Z \u001b[36;1m  build/generated/stage4.c build/generated/stage5.c\u001b[0m\n2026-08-10T16:22:29.0037350Z \u001b[36;1mpython3 runtime/m3/augment_crash_signals.py \\\u001b[0m\n2026-08-10T16:22:29.0037730Z \u001b[36;1m  build/generated/stage5.c build/generated/stage6.c\u001b[0m\n2026-08-10T16:22:29.0038090Z \u001b[36;1mpython3 runtime/m3/augment_poll.py \\\u001b[0m\n2026-08-10T16:22:29.0038450Z \u001b[36;1m  build/generated/stage6.c build/generated/stage7.c\u001b[0m\n2026-08-10T16:22:29.0038830Z \u001b[36;1mpython3 runtime/m3/augment_posix_basics.py \\\u001b[0m\n2026-08-10T16:22:29.0039200Z \u001b[36;1m  build/generated/stage7.c build/generated/stage8.c\u001b[0m\n2026-08-10T16:22:29.0039570Z \u001b[36;1mpython3 runtime/m11/augment_clock_nanosleep.py \\\u001b[0m\n2026-08-10T16:22:29.0039960Z \u001b[36;1m  build/generated/stage8.c build/generated/stage9.c\u001b[0m\n2026-08-10T16:22:29.0040320Z \u001b[36;1mpython3 runtime/m11/augment_sendfile.py \\\u001b[0m\n2026-08-10T16:22:29.0040700Z \u001b[36;1m  build/generated/stage9.c build/generated/stage10.c\u001b[0m\n2026-08-10T16:22:29.0041100Z \u001b[36;1mpython3 runtime/m10/augment_fs_compat.py \\\u001b[0m\n2026-08-10T16:22:29.0041550Z \u001b[36;1m  build/generated/stage10.c build/generated/stage11.c\u001b[0m\n2026-08-10T16:22:29.0041980Z \u001b[36;1mpython3 runtime/m3/augment_connect.py \\\u001b[0m\n2026-08-10T16:22:29.0042340Z \u001b[36;1m  build/generated/stage11.c build/generated/stage12.c\u001b[0m\n2026-08-10T16:22:29.0042750Z \u001b[36;1mpython3 runtime/m6/augment_appkit_hostcall_deferred.py \\\u001b[0m\n2026-08-10T16:22:29.0043180Z \u001b[36;1m  build/generated/stage12.c build/generated/stage13.c\u001b[0m\n2026-08-10T16:22:29.0043570Z \u001b[36;1mpython3 runtime/m3/augment_darwin_syscall_abi.py \\\u001b[0m\n2026-08-10T16:22:29.0043950Z \u001b[36;1m  build/generated/stage13.c build/generated/stage14.c\u001b[0m\n2026-08-10T16:22:29.0044330Z \u001b[36;1mpython3 runtime/m10/augment_clone_compat_v4.py \\\u001b[0m\n2026-08-10T16:22:29.0044710Z \u001b[36;1m  build/generated/stage14.c build/generated/stage15.c\u001b[0m\n2026-08-10T16:22:29.0045480Z \u001b[36;1mpython3 runtime/m11/augment_hword_document_io_trace_v13.py \\\u001b[0m\n2026-08-10T16:22:29.0045950Z \u001b[36;1m  build/generated/stage15.c build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:22:29.0046340Z \u001b[36;1mpython3 - <<'PY'\u001b[0m\n2026-08-10T16:22:29.0046600Z \u001b[36;1mfrom pathlib import Path\u001b[0m\n2026-08-10T16:22:29.0046900Z \u001b[36;1mpath=Path('build/generated/syscall_bridge.c')\u001b[0m\n2026-08-10T16:22:29.0047240Z \u001b[36;1mtext=path.read_text(encoding='utf-8')\u001b[0m\n2026-08-10T16:22:29.0047570Z \u001b[36;1manchor='#define M3_TRACE_LIMIT 256u'\u001b[0m\n2026-08-10T16:22:29.0047860Z \u001b[36;1mif text.count(anchor)!=1:\u001b[0m\n2026-08-10T16:22:29.0048320Z \u001b[36;1m    raise SystemExit(f'trace-limit anchor count {text.count(anchor)}')\u001b[0m\n2026-08-10T16:22:29.0048860Z \u001b[36;1mpath.write_text(text.replace(anchor,'#define M3_TRACE_LIMIT 24000u'),encoding='utf-8')\u001b[0m\n2026-08-10T16:22:29.0049300Z \u001b[36;1mPY\u001b[0m\n2026-08-10T16:22:29.0049610Z \u001b[36;1mgrep -F 'case LINUX_SYS_SENDFILE:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:22:29.0050150Z \u001b[36;1mgrep -F 'HRT M11 SHORTBUFFER: index=1 applied=1' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:22:29.0050680Z \u001b[36;1mgrep -F 'HRT M11 CLASSIFIERCALLER:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:22:29.0051150Z \u001b[36;1mgrep -F 'HRT M11 FRAMECTX:' build/generated/syscall_bridge.c\u001b[0m\n2026-08-10T16:22:29.0051670Z \u001b[36;1mshasum -a 256 build/generated/syscall_bridge.c >build/output/generated-bridge.sha256\u001b[0m\n2026-08-10T16:22:29.0117250Z shell: /bin/bash -e {0}\n2026-08-10T16:22:29.0117550Z ##[endgroup]\n2026-08-10T16:22:29.0416900Z + /usr/bin/arch -x86_64 /usr/bin/true\n2026-08-10T16:22:29.3359130Z + mkdir -p build/generated build/objects build/output\n2026-08-10T16:22:29.3387470Z + /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE\n2026-08-10T16:22:29.5355570Z + sw_vers\n2026-08-10T16:22:29.5657680Z + python3 runtime/m8/augment_appkit_adapter_input.py runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m\n2026-08-10T16:22:29.8080040Z + python3 runtime/m11/augment_appkit_korean_input_capture.py build/generated/appkit_adapter_m8.m build/generated/appkit_adapter_m11.m\n2026-08-10T16:22:29.9985150Z + python3 runtime/m6/augment_stack_hrtappkit.py runtime/m3/stack.c build/generated/stack-m6.c\n2026-08-10T16:22:30.0496920Z + python3 runtime/m9/augment_stack_locale.py build/generated/stack-m6.c build/generated/stack.c\n2026-08-10T16:22:30.0971210Z + python3 runtime/m3/augment_syscalls.py runtime/m3/syscall_bridge.c build/generated/stage1.c\n2026-08-10T16:22:30.1474110Z + python3 runtime/m3/augment_directory_syscalls.py build/generated/stage1.c build/generated/stage2.c\n2026-08-10T16:22:30.1993940Z + python3 runtime/m3/augment_directory_stream.py build/generated/stage2.c build/generated/stage3.c\n2026-08-10T16:22:30.2434070Z + python3 runtime/m3/augment_pipe2.py build/generated/stage3.c build/generated/stage4.c\n2026-08-10T16:22:30.2846910Z + python3 runtime/m3/augment_eventfd2.py build/generated/stage4.c build/generated/stage5.c\n2026-08-10T16:22:30.4521040Z + python3 runtime/m3/augment_crash_signals.py build/generated/stage5.c build/generated/stage6.c\n2026-08-10T16:22:30.4933860Z + python3 runtime/m3/augment_poll.py build/generated/stage6.c build/generated/stage7.c\n2026-08-10T16:22:30.5343280Z + python3 runtime/m3/augment_posix_basics.py build/generated/stage7.c build/generated/stage8.c\n2026-08-10T16:22:30.5743220Z + python3 runtime/m11/augment_clock_nanosleep.py build/generated/stage8.c build/generated/stage9.c\n2026-08-10T16:22:30.6133550Z + python3 runtime/m11/augment_sendfile.py build/generated/stage9.c build/generated/stage10.c\n2026-08-10T16:22:30.6532680Z + python3 runtime/m10/augment_fs_compat.py build/generated/stage10.c build/generated/stage11.c\n2026-08-10T16:22:30.7649880Z + python3 runtime/m3/augment_connect.py build/generated/stage11.c build/generated/stage12.c\n2026-08-10T16:22:30.8060620Z + python3 runtime/m6/augment_appkit_hostcall_deferred.py build/generated/stage12.c build/generated/stage13.c\n2026-08-10T16:22:30.8533690Z + python3 runtime/m3/augment_darwin_syscall_abi.py build/generated/stage13.c build/generated/stage14.c\n2026-08-10T16:22:30.9112230Z + python3 runtime/m10/augment_clone_compat_v4.py build/generated/stage14.c build/generated/stage15.c\n2026-08-10T16:22:31.0706340Z + python3 runtime/m11/augment_hword_document_io_trace_v13.py build/generated/stage15.c build/generated/syscall_bridge.c\n2026-08-10T16:22:31.3162300Z short-buffer marker mismatch for 'UINT64_C(0x10000)': expected 2, found 4\n2026-08-10T16:22:31.3240500Z ##[error]Process completed with exit code 1.\n2026-08-10T16:22:31.3358820Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/\n2026-08-10T16:22:31.3360110Z Post job cleanup.\n2026-08-10T16:22:31.4437530Z [command]/opt/homebrew/bin/git version\n2026-08-10T16:22:31.4505800Z git version 2.54.0\n2026-08-10T16:22:31.4525240Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/cb3ef731-48e5-416a-bfdc-71c048dbd026/.gitconfig'\n2026-08-10T16:22:31.4536570Z Temporarily overriding HOME='/Users/runner/work/_temp/cb3ef731-48e5-416a-bfdc-71c048dbd026' before making global git config changes\n2026-08-10T16:22:31.4538700Z Adding repository directory to the temporary git global config as a safe directory\n2026-08-10T16:22:31.4540790Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/hoffice-linux-archive/hoffice-linux-archive\n2026-08-10T16:22:31.4604200Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2026-08-10T16:22:31.4676480Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2026-08-10T16:22:31.5419930Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2026-08-10T16:22:31.5470440Z http.https://github.com/.extraheader\n2026-08-10T16:22:31.5478000Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader\n2026-08-10T16:22:31.5531700Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"\n2026-08-10T16:22:31.6195000Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\\.gitdir:\n2026-08-10T16:22:31.6252820Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url\n2026-08-10T16:22:31.7101600Z Cleaning up orphan processes\n2026-08-10T16:22:31.9075220Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+        }
+      ]
+    },
+    {
+      "workflow": "hoffice-runtime-m11-short-buffer-replay-v2.yml",
+      "run_id": "31408734240",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "9246dc83b322a8bdcfcc0500364651db4928fe16",
+      "display_title": "diagnostic: replay the corrected short guest path-buffer host",
+      "created_at": "2026-08-10T16:24:01Z",
+      "updated_at": "2026-08-10T16:24:04Z",
+      "html_url": "https://github.com/bicheondev/hoffice-linux-archive/actions/runs/31408734240",
+      "jobs": [
+        {
+          "id": "93521385432",
+          "name": "replay",
+          "status": "in_progress",
+          "conclusion": null,
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Require the verified HWord frontier",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Resolve the latest corrected short-buffer host",
+              "status": "in_progress",
+              "conclusion": null
+            },
+            {
+              "number": 5,
+              "name": "Replay exact HWord with the corrected short alias",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 6,
+              "name": "Classify the corrected short-buffer experiment",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 7,
+              "name": "Commit the durable corrected classification",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 8,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 16,
+              "name": "Post Run actions/checkout@v4",
+              "status": "pending",
+              "conclusion": null
+            }
+          ]
+        }
+      ],
+      "failed_job_log_tails": []
+    },
+    {
+      "workflow": "hoffice-runtime-m11-empty-caller-static.yml",
+      "run_id": "31405936602",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_sha": "6a9eb7dfa0b20f69060fb3d64a288077b3716c4e",
+      "display_title": "diagnostic: disassemble the exact libHwordApp empty-open caller",
+      "created_at": "2026-08-10T15:52:25Z",
+      "updated_at": "2026-08-10T15:53:24Z",
+      "html_url": "https://github.com/bicheondev/hoffice-linux-archive/actions/runs/31405936602",
+      "jobs": [
+        {
+          "id": "93512164992",
+          "name": "analyze",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Install deterministic ELF analysis tools",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Run actions/download-artifact@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 5,
+              "name": "Extract the exact prepatched libHwordApp object",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 6,
+              "name": "Attribute and disassemble the exact runtime caller",
+              "status": "completed",
+              "conclusion": "failure"
+            },
+            {
+              "number": 7,
+              "name": "Commit the exact caller attribution",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 8,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "skipped"
+            },
+            {
+              "number": 16,
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 17,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ],
+      "failed_job_log_tails": [
+        {
+          "job_id": "93512164992",
+          "tail": "2026-08-10T15:53:11.0936831Z + nm -D -C --defined-only build/root/opt/hnc/hoffice11/Bin/libHwordApp.so\n2026-08-10T15:53:20.4546516Z ##[group]Run set -euxo pipefail\n2026-08-10T15:53:20.4547222Z \u001b[36;1mset -euxo pipefail\u001b[0m\n2026-08-10T15:53:20.4547482Z \u001b[36;1mpython3 - <<'PY'\u001b[0m\n2026-08-10T15:53:20.4547749Z \u001b[36;1mfrom __future__ import annotations\u001b[0m\n2026-08-10T15:53:20.4548080Z \u001b[36;1mimport json, os, re, struct, subprocess\u001b[0m\n2026-08-10T15:53:20.4548387Z \u001b[36;1mfrom pathlib import Path\u001b[0m\n2026-08-10T15:53:20.4548630Z \u001b[36;1m\u001b[0m\n2026-08-10T15:53:20.4548881Z \u001b[36;1mpath = Path('build/object/libHwordApp.so')\u001b[0m\n2026-08-10T15:53:20.4549188Z \u001b[36;1mblob = path.read_bytes()\u001b[0m\n2026-08-10T15:53:20.4549506Z \u001b[36;1mtarget_file = int(os.environ['TARGET_FILE_OFFSET'], 0)\u001b[0m\n2026-08-10T15:53:20.4549931Z \u001b[36;1mheader = struct.unpack_from('<16sHHIQQQIHHHHHH', blob, 0)\u001b[0m\n2026-08-10T15:53:20.4550381Z \u001b[36;1mphoff, phentsize, phnum = header[5], header[9], header[10]\u001b[0m\n2026-08-10T15:53:20.4550729Z \u001b[36;1msegments=[]\u001b[0m\n2026-08-10T15:53:20.4550956Z \u001b[36;1mfor index in range(phnum):\u001b[0m\n2026-08-10T15:53:20.4551287Z \u001b[36;1m    values=struct.unpack_from('<IIQQQQQQ', blob,\u001b[0m\n2026-08-10T15:53:20.4551649Z \u001b[36;1m                              phoff+index*phentsize)\u001b[0m\n2026-08-10T15:53:20.4552380Z \u001b[36;1m    p_type,p_flags,p_offset,p_vaddr,p_paddr,p_filesz,p_memsz,p_align=values\u001b[0m\n2026-08-10T15:53:20.4552788Z \u001b[36;1m    if p_type==1:\u001b[0m\n2026-08-10T15:53:20.4553028Z \u001b[36;1m        segments.append({\u001b[0m\n2026-08-10T15:53:20.4553358Z \u001b[36;1m            'index':index,'flags':p_flags,'file_offset':p_offset,\u001b[0m\n2026-08-10T15:53:20.4553946Z \u001b[36;1m            'virtual_address':p_vaddr,'file_size':p_filesz,\u001b[0m\n2026-08-10T15:53:20.4554322Z \u001b[36;1m            'memory_size':p_memsz,'alignment':p_align,\u001b[0m\n2026-08-10T15:53:20.4554625Z \u001b[36;1m        })\u001b[0m\n2026-08-10T15:53:20.4554864Z \u001b[36;1msegment=next((item for item in segments\u001b[0m\n2026-08-10T15:53:20.4555187Z \u001b[36;1m    if item['file_offset'] <= target_file <\u001b[0m\n2026-08-10T15:53:20.4555516Z \u001b[36;1m       item['file_offset']+item['file_size']),None)\u001b[0m\n2026-08-10T15:53:20.4555827Z \u001b[36;1mif segment is None:\u001b[0m\n2026-08-10T15:53:20.4556142Z \u001b[36;1m    raise SystemExit('target file offset is outside PT_LOAD')\u001b[0m\n2026-08-10T15:53:20.4556620Z \u001b[36;1mtarget_va=segment['virtual_address']+target_file-segment['file_offset']\u001b[0m\n2026-08-10T15:53:20.4557024Z \u001b[36;1mif not segment['flags'] & 1:\u001b[0m\n2026-08-10T15:53:20.4557349Z \u001b[36;1m    raise SystemExit('target address is not executable')\u001b[0m\n2026-08-10T15:53:20.4557679Z \u001b[36;1m\u001b[0m\n2026-08-10T15:53:20.4557882Z \u001b[36;1msymbols_text=subprocess.run(\u001b[0m\n2026-08-10T15:53:20.4558177Z \u001b[36;1m    ['readelf','-Ws',str(path)],check=True,\u001b[0m\n2026-08-10T15:53:20.4558513Z \u001b[36;1m    stdout=subprocess.PIPE,text=True).stdout\u001b[0m\n2026-08-10T15:53:20.4558824Z \u001b[36;1msymbol_pattern=re.compile(\u001b[0m\n2026-08-10T15:53:20.4559117Z \u001b[36;1m    r'^\\s*\\d+:\\s+([0-9a-fA-F]+)\\s+(\\d+)\\s+(\\S+)\\s+'\u001b[0m\n2026-08-10T15:53:20.4559422Z \u001b[36;1m    r'(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(.*)$')\u001b[0m\n2026-08-10T15:53:20.4559685Z \u001b[36;1msymbols=[]\u001b[0m\n2026-08-10T15:53:20.4559930Z \u001b[36;1mfor line in symbols_text.splitlines():\u001b[0m\n2026-08-10T15:53:20.4560242Z \u001b[36;1m    match=symbol_pattern.match(line)\u001b[0m\n2026-08-10T15:53:20.4560526Z \u001b[36;1m    if not match: continue\u001b[0m\n2026-08-10T15:53:20.4560842Z \u001b[36;1m    value=int(match.group(1),16); size=int(match.group(2))\u001b[0m\n2026-08-10T15:53:20.4561195Z \u001b[36;1m    name=match.group(7).strip()\u001b[0m\n2026-08-10T15:53:20.4561460Z \u001b[36;1m    if value and name:\u001b[0m\n2026-08-10T15:53:20.4562018Z \u001b[36;1m        symbols.append({'value':value,'size':size,\u001b[0m\n2026-08-10T15:53:20.4562413Z \u001b[36;1m                        'type':match.group(3),\u001b[0m\n2026-08-10T15:53:20.4562743Z \u001b[36;1m                        'binding':match.group(4),\u001b[0m\n2026-08-10T15:53:20.4563067Z \u001b[36;1m                        'visibility':match.group(5),\u001b[0m\n2026-08-10T15:53:20.4563414Z \u001b[36;1m                        'section':match.group(6),'name':name})\u001b[0m\n2026-08-10T15:53:20.4563755Z \u001b[36;1mcontaining=[item for item in symbols\u001b[0m\n2026-08-10T15:53:20.4564276Z \u001b[36;1m    if item['value'] <= target_va and item['size'] > 0 and\u001b[0m\n2026-08-10T15:53:20.4564638Z \u001b[36;1m       target_va < item['value']+item['size']]\u001b[0m\n2026-08-10T15:53:20.4565033Z \u001b[36;1mpreceding=[item for item in symbols if item['value'] <= target_va]\u001b[0m\n2026-08-10T15:53:20.4565430Z \u001b[36;1mnearest=max(containing or preceding,\u001b[0m\n2026-08-10T15:53:20.4565760Z \u001b[36;1m            key=lambda item:item['value'],default=None)\u001b[0m\n2026-08-10T15:53:20.4566058Z \u001b[36;1m\u001b[0m\n2026-08-10T15:53:20.4566318Z \u001b[36;1mstart=max(segment['virtual_address'],target_va-0x1200)\u001b[0m\n2026-08-10T15:53:20.4566744Z \u001b[36;1mstop=min(segment['virtual_address']+segment['memory_size'],\u001b[0m\n2026-08-10T15:53:20.4567091Z \u001b[36;1m         target_va+0x1200)\u001b[0m\n2026-08-10T15:53:20.4567351Z \u001b[36;1mdisassembly=subprocess.run([\u001b[0m\n2026-08-10T15:53:20.4567682Z \u001b[36;1m    'objdump','-drwC','-Mintel',f'--start-address={start}',\u001b[0m\n2026-08-10T15:53:20.4568068Z \u001b[36;1m    f'--stop-address={stop}',str(path)],check=True,\u001b[0m\n2026-08-10T15:53:20.4568514Z \u001b[36;1m    stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True).stdout\u001b[0m\n2026-08-10T15:53:20.4568966Z \u001b[36;1mPath('build/report/target-window.txt').write_text(\u001b[0m\n2026-08-10T15:53:20.4569375Z \u001b[36;1m    disassembly,encoding='utf-8')\u001b[0m\n2026-08-10T15:53:20.4569659Z \u001b[36;1m\u001b[0m\n2026-08-10T15:53:20.4569858Z \u001b[36;1mlines=disassembly.splitlines()\u001b[0m\n2026-08-10T15:53:20.4570181Z \u001b[36;1maddress_pattern=re.compile(r'^\\s*([0-9a-fA-F]+):')\u001b[0m\n2026-08-10T15:53:20.4570633Z \u001b[36;1mindexed=[]\u001b[0m\n2026-08-10T15:53:20.4570864Z \u001b[36;1mfor index,line in enumerate(lines):\u001b[0m\n2026-08-10T15:53:20.4571163Z \u001b[36;1m    match=address_pattern.match(line)\u001b[0m\n2026-08-10T15:53:20.4571435Z \u001b[36;1m    if match:\u001b[0m\n2026-08-10T15:53:20.4572388Z \u001b[36;1m        indexed.append((int(match.group(1),16),index,line))\u001b[0m\n2026-08-10T15:53:20.4572893Z \u001b[36;1mnearest_line=min(indexed,key=lambda item:abs(item[0]-target_va))\u001b[0m\n2026-08-10T15:53:20.4573269Z \u001b[36;1mcenter=nearest_line[1]\u001b[0m\n2026-08-10T15:53:20.4573636Z \u001b[36;1mfocused='\\n'.join(lines[max(0,center-90):min(len(lines),center+91)])+'\\n'\u001b[0m\n2026-08-10T15:53:20.4574085Z \u001b[36;1mPath('build/report/target-focused.txt').write_text(\u001b[0m\n2026-08-10T15:53:20.4574420Z \u001b[36;1m    focused,encoding='utf-8')\u001b[0m\n2026-08-10T15:53:20.4574664Z \u001b[36;1m\u001b[0m\n2026-08-10T15:53:20.4574857Z \u001b[36;1mprior_calls=[]\u001b[0m\n2026-08-10T15:53:20.4575099Z \u001b[36;1mfor address,index,line in indexed:\u001b[0m\n2026-08-10T15:53:20.4575458Z \u001b[36;1m    if target_va-0x500 <= address <= target_va and 'call' in line:\u001b[0m\n2026-08-10T15:53:20.4575913Z \u001b[36;1m        prior_calls.append({'address':address,'line':line.strip()})\u001b[0m\n2026-08-10T15:53:20.4576275Z \u001b[36;1mlater_branches=[]\u001b[0m\n2026-08-10T15:53:20.4576524Z \u001b[36;1mfor address,index,line in indexed:\u001b[0m\n2026-08-10T15:53:20.4576842Z \u001b[36;1m    if target_va <= address <= target_va+0x300 and\u001b[0m\n2026-08-10T15:53:20.4577180Z \u001b[36;1m            re.search(r'\\b(j[a-z]+|ret)\\b',line):\u001b[0m\n2026-08-10T15:53:20.4577580Z \u001b[36;1m        later_branches.append({'address':address,'line':line.strip()})\u001b[0m\n2026-08-10T15:53:20.4577942Z \u001b[36;1m\u001b[0m\n2026-08-10T15:53:20.4578202Z \u001b[36;1mascii_window=blob[max(0,target_file-256):target_file+256]\u001b[0m\n2026-08-10T15:53:20.4578538Z \u001b[36;1mstrings=[]\u001b[0m\n2026-08-10T15:53:20.4578811Z \u001b[36;1mfor match in re.finditer(rb'[ -~]{4,}',ascii_window):\u001b[0m\n2026-08-10T15:53:20.4579144Z \u001b[36;1m    strings.append({\u001b[0m\n2026-08-10T15:53:20.4579443Z \u001b[36;1m        'file_offset':max(0,target_file-256)+match.start(),\u001b[0m\n2026-08-10T15:53:20.4579826Z \u001b[36;1m        'text':match.group().decode('ascii','replace'),\u001b[0m\n2026-08-10T15:53:20.4580128Z \u001b[36;1m    })\u001b[0m\n2026-08-10T15:53:20.4580308Z \u001b[36;1m\u001b[0m\n2026-08-10T15:53:20.4580480Z \u001b[36;1mpayload={\u001b[0m\n2026-08-10T15:53:20.4580684Z \u001b[36;1m    'schema':1,\u001b[0m\n2026-08-10T15:53:20.4580962Z \u001b[36;1m    'object':'/opt/hnc/hoffice11/Bin/libHwordApp.so',\u001b[0m\n2026-08-10T15:53:20.4581384Z \u001b[36;1m    'sha256':Path('build/report/sha256.txt').read_text().split()[0],\u001b[0m\n2026-08-10T15:53:20.4581985Z \u001b[36;1m    'target_file_offset':target_file,\u001b[0m\n2026-08-10T15:53:20.4582441Z \u001b[36;1m    'target_virtual_address':target_va,\u001b[0m\n2026-08-10T15:53:20.4582733Z \u001b[36;1m    'segment':segment,\u001b[0m\n2026-08-10T15:53:20.4582983Z \u001b[36;1m    'nearest_symbol':nearest,\u001b[0m\n2026-08-10T15:53:20.4583254Z \u001b[36;1m    'offset_from_nearest_symbol':\u001b[0m\n2026-08-10T15:53:20.4583580Z \u001b[36;1m        target_va-nearest['value'] if nearest else None,\u001b[0m\n2026-08-10T15:53:20.4583960Z \u001b[36;1m    'nearest_disassembly_line':nearest_line[2].strip(),\u001b[0m\n2026-08-10T15:53:20.4584307Z \u001b[36;1m    'prior_calls':prior_calls[-30:],\u001b[0m\n2026-08-10T15:53:20.4584610Z \u001b[36;1m    'later_branches':later_branches[:30],\u001b[0m\n2026-08-10T15:53:20.4584904Z \u001b[36;1m    'nearby_ascii':strings,\u001b[0m\n2026-08-10T15:53:20.4585225Z \u001b[36;1m    'bytes_before':blob[target_file-64:target_file].hex(),\u001b[0m\n2026-08-10T15:53:20.4585651Z \u001b[36;1m    'bytes_at_and_after':blob[target_file:target_file+128].hex(),\u001b[0m\n2026-08-10T15:53:20.4585993Z \u001b[36;1m}\u001b[0m\n2026-08-10T15:53:20.4586287Z \u001b[36;1mencoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\\n'\u001b[0m\n2026-08-10T15:53:20.4586731Z \u001b[36;1mPath('build/report/target-attribution.json').write_text(\u001b[0m\n2026-08-10T15:53:20.4587089Z \u001b[36;1m    encoded,encoding='utf-8')\u001b[0m\n2026-08-10T15:53:20.4587496Z \u001b[36;1mPath('diagnostics/m11-empty-open-caller-static-latest.json').write_text(\u001b[0m\n2026-08-10T15:53:20.4587924Z \u001b[36;1m    encoded,encoding='utf-8')\u001b[0m\n2026-08-10T15:53:20.4588322Z \u001b[36;1mPath('diagnostics/m11-empty-open-caller-static-latest.md').write_text(\u001b[0m\n2026-08-10T15:53:20.4588878Z \u001b[36;1m    '# Exact HWord empty-open caller\\n\\n'\u001b[0m\n2026-08-10T15:53:20.4589193Z \u001b[36;1m    f\"- File offset: `0x{target_file:x}`\\n\"\u001b[0m\n2026-08-10T15:53:20.4589514Z \u001b[36;1m    f\"- Virtual address: `0x{target_va:x}`\\n\"\u001b[0m\n2026-08-10T15:53:20.4589851Z \u001b[36;1m    f\"- Executable: `{bool(segment['flags'] & 1)}`\\n\"\u001b[0m\n2026-08-10T15:53:20.4590252Z \u001b[36;1m    f\"- Nearest symbol: `{nearest['name'] if nearest else None}`\\n\"\u001b[0m\n2026-08-10T15:53:20.4590721Z \u001b[36;1m    f\"- Offset from symbol: `{payload['offset_from_nearest_symbol']}`\\n\"\u001b[0m\n2026-08-10T15:53:20.4591182Z \u001b[36;1m    f\"- Instruction: `{payload['nearest_disassembly_line']}`\\n\",\u001b[0m\n2026-08-10T15:53:20.4591537Z \u001b[36;1m    encoding='utf-8')\u001b[0m\n2026-08-10T15:53:20.4591993Z \u001b[36;1mprint(encoded)\u001b[0m\n2026-08-10T15:53:20.4592209Z \u001b[36;1mPY\u001b[0m\n2026-08-10T15:53:20.4635570Z shell: /usr/bin/bash -e {0}\n2026-08-10T15:53:20.4635818Z env:\n2026-08-10T15:53:20.4636022Z   PREPARED_RUN_ID: 31235068358\n2026-08-10T15:53:20.4636287Z   TARGET_FILE_OFFSET: 0xe15e32\n2026-08-10T15:53:20.4636516Z ##[endgroup]\n2026-08-10T15:53:20.4700845Z + python3 -\n2026-08-10T15:53:20.5716427Z   File \"<stdin>\", line 84\n2026-08-10T15:53:20.5716922Z     if target_va <= address <= target_va+0x300 and\n2026-08-10T15:53:20.5717391Z                                                   ^\n2026-08-10T15:53:20.5717814Z SyntaxError: invalid syntax\n2026-08-10T15:53:20.5871451Z ##[error]Process completed with exit code 1.\n2026-08-10T15:53:20.6012368Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/\n2026-08-10T15:53:20.6013679Z Post job cleanup.\n2026-08-10T15:53:20.6896676Z [command]/usr/bin/git version\n2026-08-10T15:53:20.6942093Z git version 2.54.0\n2026-08-10T15:53:20.6991074Z Temporarily overriding HOME='/home/runner/work/_temp/4afe5e17-0190-4904-9cc2-09351770bfbb' before making global git config changes\n2026-08-10T15:53:20.6992819Z Adding repository directory to the temporary git global config as a safe directory\n2026-08-10T15:53:20.6998590Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/hoffice-linux-archive/hoffice-linux-archive\n2026-08-10T15:53:20.7044964Z [command]/usr/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2026-08-10T15:53:20.7083176Z [command]/usr/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2026-08-10T15:53:20.7346676Z [command]/usr/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2026-08-10T15:53:20.7375458Z http.https://github.com/.extraheader\n2026-08-10T15:53:20.7387001Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader\n2026-08-10T15:53:20.7420880Z [command]/usr/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"\n2026-08-10T15:53:20.7721546Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\\.gitdir:\n2026-08-10T15:53:20.7763912Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url\n2026-08-10T15:53:20.8160378Z Cleaning up orphan processes\n2026-08-10T15:53:20.8460944Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/download-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+        }
+      ]
+    },
+    {
+      "workflow": "hoffice-runtime-m11-empty-caller-ghidra.yml",
+      "run_id": "31406189077",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e9f366cdfb130b2a5dacfd7c39ef5ffd27945a63",
+      "display_title": "diagnostic: decompile the exact HWord empty-open caller boundary",
+      "created_at": "2026-08-10T15:55:15Z",
+      "updated_at": "2026-08-10T15:55:19Z",
+      "html_url": "https://github.com/bicheondev/hoffice-linux-archive/actions/runs/31406189077",
+      "jobs": [
+        {
+          "id": "93512984826",
+          "name": "decompile",
+          "status": "in_progress",
+          "conclusion": null,
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Install deterministic analysis dependencies",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Run actions/download-artifact@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 5,
+              "name": "Download the latest official Ghidra release",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 6,
+              "name": "Extract the exact prepatched HWord application library",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 7,
+              "name": "Create the bounded function-analysis script",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 8,
+              "name": "Analyze and decompile the exact caller function",
+              "status": "in_progress",
+              "conclusion": null
+            },
+            {
+              "number": 9,
+              "name": "Produce a compact fail-closed caller diagnosis",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 10,
+              "name": "Commit only the compact caller diagnosis",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 11,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "pending",
+              "conclusion": null
+            },
+            {
+              "number": 22,
+              "name": "Post Run actions/checkout@v4",
+              "status": "pending",
+              "conclusion": null
+            }
+          ]
+        }
+      ],
+      "failed_job_log_tails": []
+    },
+    {
+      "workflow": "hoffice-runtime-m11-orchestrator-v2.yml",
+      "run_id": "31408430500",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "029394416a64475526102f359cb95f59d53bd2f9",
+      "display_title": "ci: route the extended M11 document-construction matrix",
+      "created_at": "2026-08-10T16:20:32Z",
+      "updated_at": "2026-08-10T16:20:55Z",
+      "html_url": "https://github.com/bicheondev/hoffice-linux-archive/actions/runs/31408430500",
+      "jobs": [
+        {
+          "id": "93520377565",
+          "name": "route",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Choose the strongest verified frontier",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Dispatch only the missing deterministic frontier",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 5,
+              "name": "Commit the extended routed frontier",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 6,
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 12,
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 13,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ],
+      "failed_job_log_tails": []
+    }
+  ]
+}

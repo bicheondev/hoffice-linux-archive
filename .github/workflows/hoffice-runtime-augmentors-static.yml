@@ -1,0 +1,303 @@
+name: HOffice runtime augmentors static validation
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m3/augment_*.py'
+      - 'runtime/m3/patch_elf_int3_probe*.py'
+      - '.github/workflows/hoffice-runtime-*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hrt-augmentors-static-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install static validation tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            binutils clang g++ python3 python3-pip golang-go
+          python3 -m pip install --break-system-packages 'ruamel.yaml>=0.18,<0.19'
+          GOBIN="$RUNNER_TEMP/bin" go install \
+            github.com/rhysd/actionlint/cmd/actionlint@latest
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Compile every runtime Python generator
+        run: |
+          set -euxo pipefail
+          mkdir -p build/static/generated build/static/report diagnostics
+          python3 -m py_compile \
+            runtime/m3/augment_directory_syscalls.py \
+            runtime/m3/augment_directory_stream.py \
+            runtime/m3/augment_directory_stream_hosttrace.py \
+            runtime/m3/augment_directory_trace.py \
+            runtime/m3/augment_pipe2.py \
+            runtime/m3/augment_polling.py \
+            runtime/m3/augment_epoll.py \
+            runtime/m3/augment_tgkill.py \
+            runtime/m3/augment_crash_signals.py \
+            runtime/m3/augment_int3_probe.py \
+            runtime/m3/patch_elf_int3_probe.py \
+            runtime/m3/patch_elf_int3_probe_regex.py
+
+      - name: Generate the complete bridge in production order
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/static/generated/1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/static/generated/1.c build/static/generated/2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/static/generated/2.c build/static/generated/3.c
+          python3 runtime/m3/augment_directory_stream_hosttrace.py \
+            build/static/generated/3.c build/static/generated/4.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/static/generated/4.c build/static/generated/5.c
+          python3 runtime/m3/augment_polling.py \
+            build/static/generated/5.c build/static/generated/6.c
+          python3 runtime/m3/augment_epoll.py \
+            build/static/generated/6.c build/static/generated/7.c
+          python3 runtime/m3/augment_tgkill.py \
+            build/static/generated/7.c build/static/generated/8.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/static/generated/8.c build/static/generated/9.c
+
+          grep -Fq 'host_getdents64_stream_bridge' build/static/generated/9.c
+          grep -Fq 'HRT M5: directory stream yielded libqoffscreen.so' \
+            build/static/generated/9.c
+          grep -Fq 'host_pipe2_bridge' build/static/generated/9.c
+          grep -Fq 'host_poll_bridge' build/static/generated/9.c
+          grep -Fq 'host_epoll_create1_bridge' build/static/generated/9.c
+          grep -Fq 'host_tgkill_bridge' build/static/generated/9.c
+          grep -Fq 'last-syscall-rip=' build/static/generated/9.c
+          sha256sum build/static/generated/9.c \
+            > build/static/report/generated-bridge.sha256
+
+      - name: Build a synthetic QOffscreen ELF symbol fixture
+        run: |
+          set -euxo pipefail
+          cat > build/static/qoffscreen_fixture.cpp <<'CPP'
+          #include <cstdint>
+
+          struct QWindow {};
+          struct QBackingStore {};
+          struct QString {};
+          struct QStringList {};
+          struct QPlatformWindow { virtual ~QPlatformWindow() = default; };
+          struct QPlatformBackingStore {
+              virtual ~QPlatformBackingStore() = default;
+          };
+
+          struct QOffscreenWindow final : QPlatformWindow {
+              __attribute__((noinline, visibility("default")))
+              explicit QOffscreenWindow(QWindow *) {}
+          };
+
+          struct QOffscreenBackingStore final : QPlatformBackingStore {
+              __attribute__((noinline, visibility("default")))
+              explicit QOffscreenBackingStore(QBackingStore *) {}
+              __attribute__((noinline, visibility("default")))
+              void *paintDevice() { return this; }
+              __attribute__((noinline, visibility("default")))
+              void flush(QWindow *, void *, void *) {}
+          };
+
+          struct QOffscreenIntegration {
+              __attribute__((noinline, visibility("default")))
+              explicit QOffscreenIntegration(QStringList const &) {}
+              __attribute__((noinline, visibility("default")))
+              QPlatformWindow *createPlatformWindow(QWindow *window) {
+                  return new QOffscreenWindow(window);
+              }
+              __attribute__((noinline, visibility("default")))
+              QPlatformBackingStore *createPlatformBackingStore(
+                  QBackingStore *store) {
+                  return new QOffscreenBackingStore(store);
+              }
+          };
+
+          struct QOffscreenIntegrationPlugin {
+              __attribute__((noinline, visibility("default")))
+              QOffscreenIntegration *create(QString const &,
+                                             QStringList const &parameters) {
+                  return new QOffscreenIntegration(parameters);
+              }
+          };
+
+          extern "C" __attribute__((noinline, visibility("default")))
+          void *qt_plugin_instance() {
+              static QOffscreenIntegrationPlugin plugin;
+              return &plugin;
+          }
+
+          extern "C" __attribute__((visibility("default")))
+          void exercise_fixture(QWindow *window, QBackingStore *store,
+                                QString const &key,
+                                QStringList const &parameters) {
+              auto *plugin = static_cast<QOffscreenIntegrationPlugin *>(
+                  qt_plugin_instance());
+              auto *integration = plugin->create(key, parameters);
+              auto *platform_window = integration->createPlatformWindow(window);
+              auto *backing = static_cast<QOffscreenBackingStore *>(
+                  integration->createPlatformBackingStore(store));
+              backing->paintDevice();
+              backing->flush(window, nullptr, nullptr);
+              delete backing;
+              delete platform_window;
+              delete integration;
+          }
+          CPP
+          g++ -std=c++17 -O0 -g -fPIC -shared \
+            build/static/qoffscreen_fixture.cpp \
+            -o build/static/libqoffscreen-fixture.so
+          file build/static/libqoffscreen-fixture.so \
+            | tee build/static/report/fixture-file.txt
+          nm -a -C --defined-only build/static/libqoffscreen-fixture.so \
+            | grep -F 'QOffscreen' \
+            | tee build/static/report/fixture-symbols.txt
+
+      - name: Verify exact and regex ELF INT3 patchers
+        run: |
+          set -euxo pipefail
+          cp build/static/libqoffscreen-fixture.so build/static/exact.so
+          python3 runtime/m3/patch_elf_int3_probe.py build/static/exact.so \
+            --symbol qt_plugin_instance \
+            --label 'Qt offscreen plugin instance' \
+            --manifest build/static/exact.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          exact=json.loads(Path('build/static/exact.json').read_text())
+          assert exact['symbol']['name']=='qt_plugin_instance'
+          assert exact['patched_bytes_hex'].startswith('cc')
+          assert exact['sha256_before'] != exact['sha256_after']
+          PY
+
+          for spec in \
+            'integration-create|QOffscreenIntegrationPlugin.*create' \
+            'integration-constructor|QOffscreenIntegrationC1E' \
+            'create-platform-window|QOffscreenIntegration.*createPlatformWindow' \
+            'window-constructor|QOffscreenWindowC1E' \
+            'create-backing-store|QOffscreenIntegration.*createPlatformBackingStore' \
+            'backing-store-constructor|QOffscreenBackingStoreC1E' \
+            'paint-device|QOffscreenBackingStore.*paintDevice' \
+            'flush|QOffscreenBackingStore.*flush'; do
+            name=${spec%%|*}
+            regex=${spec#*|}
+            cp build/static/libqoffscreen-fixture.so "build/static/${name}.so"
+            python3 runtime/m3/patch_elf_int3_probe_regex.py \
+              "build/static/${name}.so" \
+              --symbol-regex "$regex" --label "$name" \
+              --manifest "build/static/${name}.json"
+            python3 - "$name" <<'PY'
+          import json, pathlib, sys
+          manifest=json.loads(pathlib.Path(f'build/static/{sys.argv[1]}.json').read_text())
+          assert manifest['patched_bytes_hex'].startswith('cc')
+          assert manifest['sha256_before'] != manifest['sha256_after']
+          PY
+          done
+
+          python3 runtime/m3/augment_int3_probe.py \
+            build/static/generated/9.c build/static/exact.json \
+            build/static/generated/10-int3.c
+          grep -Fq 'int3_probe_signal_handler' \
+            build/static/generated/10-int3.c
+          grep -Fq 'HRT M5 INT3: guest Qt offscreen plugin instance entered' \
+            build/static/generated/10-int3.c
+
+      - name: Validate all HOffice workflow YAML files
+        run: |
+          set -euxo pipefail
+          actionlint -color never .github/workflows/hoffice-runtime-*.yml \
+            | tee build/static/report/actionlint.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          from ruamel.yaml import YAML
+
+          yaml = YAML(typ='safe')
+          checked=[]
+          for path in sorted(Path('.github/workflows').glob('hoffice-runtime-*.yml')):
+              data=yaml.load(path.read_text())
+              assert isinstance(data, dict), path
+              assert 'on' in data, path
+              assert 'jobs' in data, path
+              checked.append(str(path))
+          Path('build/static/report/yaml-files.txt').write_text(
+              '\n'.join(checked)+'\n')
+          print(f'validated {len(checked)} workflow files')
+          PY
+
+      - name: Commit the static-validation lock
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          files=[
+              'runtime/m3/augment_directory_stream.py',
+              'runtime/m3/augment_pipe2.py',
+              'runtime/m3/augment_polling.py',
+              'runtime/m3/augment_epoll.py',
+              'runtime/m3/augment_tgkill.py',
+              'runtime/m3/augment_crash_signals.py',
+              'runtime/m3/augment_int3_probe.py',
+              'runtime/m3/patch_elf_int3_probe.py',
+              'runtime/m3/patch_elf_int3_probe_regex.py',
+              '.github/workflows/hoffice-runtime-guest-symbol-probe.yml',
+              '.github/workflows/hoffice-runtime-guest-symbol-probe-chain.yml',
+          ]
+          hashes={}
+          for filename in files:
+              path=Path(filename)
+              assert path.is_file(), filename
+              hashes[filename]=hashlib.sha256(path.read_bytes()).hexdigest()
+          report={
+              'schema':1,
+              'status':'PASS',
+              'commit':'${{ github.sha }}',
+              'workflow_run':'${{ github.run_id }}',
+              'python_generators_compiled':True,
+              'complete_bridge_generated':True,
+              'synthetic_elf_patches_passed':True,
+              'actionlint_passed':True,
+              'locked_files':hashes,
+          }
+          Path('diagnostics/runtime-augmentors-static.json').write_text(
+              json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/runtime-augmentors-static.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: lock passing runtime augmentor static tests [skip ci]'
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git push origin HEAD:codex/hoffice-runtime-from-scratch
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-runtime-augmentors-static
+          path: |
+            diagnostics/runtime-augmentors-static.json
+            build/static/report
+            build/static/*.json
+            build/static/generated/10-int3.c
+          if-no-files-found: warn
+          retention-days: 30

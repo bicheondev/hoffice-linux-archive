@@ -1,0 +1,464 @@
+name: HOffice runtime M11 integrated guest fopen interposer
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m11/preload/hword_fopen_preload_v2.c'
+      - 'runtime/m11/preload/hword_fopen_preload.map'
+      - 'runtime/m11/augment_sendfile.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v7.py'
+      - '.github/workflows/hoffice-runtime-m11-fopen-preload-integrated.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-integrated-fopen-preload-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREPARED_RUN_ID: '31235068358'
+  QPA_RUN_ID: '31305695836'
+  QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  shim:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      library_sha256: ${{ steps.lock.outputs.library_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the x86-64 glibc-floor interposer
+        run: |
+          set -euxo pipefail
+          mkdir -p build/preload build/report
+          docker pull quay.io/pypa/manylinux2014_x86_64:latest
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work \
+            quay.io/pypa/manylinux2014_x86_64:latest /bin/bash -lc '
+              set -euxo pipefail
+              gcc -std=c11 -O2 -g -fPIC -fvisibility=hidden \
+                -Wall -Wextra -Werror -Wpedantic \
+                -Wl,-z,relro,-z,now,-z,noexecstack \
+                -Wl,--version-script=runtime/m11/preload/hword_fopen_preload.map \
+                -shared runtime/m11/preload/hword_fopen_preload_v2.c \
+                -ldl -o build/preload/libhrt_hword_fopen.so
+              strip --strip-unneeded build/preload/libhrt_hword_fopen.so
+              chmod 0755 build/preload/libhrt_hword_fopen.so
+            '
+          file build/preload/libhrt_hword_fopen.so | tee build/report/file.txt
+          sha256sum build/preload/libhrt_hword_fopen.so | tee build/report/sha256.txt
+          readelf -dW build/preload/libhrt_hword_fopen.so >build/report/dynamic.txt
+          readelf -Ws build/preload/libhrt_hword_fopen.so >build/report/symbols.txt
+          readelf --version-info -W build/preload/libhrt_hword_fopen.so \
+            >build/report/version-info.txt
+          grep -E 'fopen(@@|@)GLIBC_2\.2\.5' build/report/symbols.txt
+          grep -E 'fopen64(@@|@)GLIBC_2\.2\.5' build/report/symbols.txt
+          ! grep -E 'GLIBC_2\.(1[89]|[2-9][0-9])|GLIBC_[3-9]' \
+            build/report/version-info.txt
+      - name: Execute a native interception proof
+        run: |
+          set -euxo pipefail
+          cat >build/preload/probe.c <<'EOF'
+          #define _GNU_SOURCE 1
+          #include <stdio.h>
+          #include <string.h>
+          int main(void) {
+              FILE *stream = fopen("", "rb");
+              if (stream == NULL) return 20;
+              char buffer[16] = {0};
+              size_t size = fread(buffer, 1, sizeof(buffer) - 1, stream);
+              fclose(stream);
+              return (size == 5 && memcmp(buffer, "probe", 5) == 0) ? 0 : 30;
+          }
+          EOF
+          gcc -std=c11 -O2 -Wall -Wextra -Werror -Wpedantic \
+            build/preload/probe.c -o build/preload/probe
+          mkdir -p /tmp/hrt-home/.hnc/User/Hword/Template/ko-KR
+          printf probe >/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document\[0\].hwdt
+          LD_PRELOAD="$GITHUB_WORKSPACE/build/preload/libhrt_hword_fopen.so" \
+            build/preload/probe >build/report/probe.stdout.txt \
+            2>build/report/probe.stderr.txt
+          grep -F 'HRT M11 PRELOAD_FOPEN: loaded=1' build/report/probe.stderr.txt
+          grep -F 'HRT M11 PRELOAD_FOPEN: symbol=fopen index=1 applied=1' \
+            build/report/probe.stderr.txt
+      - name: Lock the shim
+        id: lock
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,re
+          from pathlib import Path
+          library=Path('build/preload/libhrt_hword_fopen.so')
+          symbols=Path('build/report/symbols.txt').read_text()
+          versions=Path('build/report/version-info.txt').read_text()
+          payload={
+              'schema':3,
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'source':'runtime/m11/preload/hword_fopen_preload_v2.c',
+              'sha256':hashlib.sha256(library.read_bytes()).hexdigest(),
+              'size':library.stat().st_size,
+              'required_glibc_versions':sorted(set(
+                  re.findall(r'GLIBC_\d+(?:\.\d+)+',versions))),
+              'fopen_exported':bool(re.search(r'fopen(?:@@|@)GLIBC_2\.2\.5',symbols)),
+              'fopen64_exported':bool(re.search(r'fopen64(?:@@|@)GLIBC_2\.2\.5',symbols)),
+              'native_probe_passed':True,
+              'replacement':'/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt',
+              'maximum_substitutions':3,
+          }
+          assert payload['fopen_exported'] and payload['fopen64_exported']
+          Path('build/preload/lock.json').write_text(
+              json.dumps(payload,indent=2)+'\n',encoding='utf-8')
+          with Path(os.environ['GITHUB_OUTPUT']).open('a',encoding='utf-8') as output:
+              output.write(f"library_sha256={payload['sha256']}\n")
+          print(json.dumps(payload,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m11-integrated-fopen-shim
+          path: |
+            build/preload/libhrt_hword_fopen.so
+            build/preload/lock.json
+            build/report
+          if-no-files-found: error
+          retention-days: 14
+
+  host:
+    runs-on: macos-14
+    timeout-minutes: 35
+    outputs:
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
+      binary_sha256: ${{ steps.lock.outputs.binary_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Generate the sendfile and caller-trace host
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          mkdir -p build/generated build/objects build/output
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE >build/output/x86-page-size.txt
+          sw_vers >build/output/sw-vers.txt
+          python3 runtime/m8/augment_appkit_adapter_input.py \
+            runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m
+          python3 runtime/m11/augment_appkit_korean_input_capture.py \
+            build/generated/appkit_adapter_m8.m build/generated/appkit_adapter_m11.m
+          python3 runtime/m6/augment_stack_hrtappkit.py \
+            runtime/m3/stack.c build/generated/stack-m6.c
+          python3 runtime/m9/augment_stack_locale.py \
+            build/generated/stack-m6.c build/generated/stack.c
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m11/augment_clock_nanosleep.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m11/augment_sendfile.py \
+            build/generated/stage9.c build/generated/stage10.c
+          python3 runtime/m10/augment_fs_compat.py \
+            build/generated/stage10.c build/generated/stage11.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage11.c build/generated/stage12.c
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+            build/generated/stage12.c build/generated/stage13.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage13.c build/generated/stage14.c
+          python3 runtime/m10/augment_clone_compat_v4.py \
+            build/generated/stage14.c build/generated/stage15.c
+          python3 runtime/m11/augment_hword_document_io_trace_v7.py \
+            build/generated/stage15.c build/generated/syscall_bridge.c
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('build/generated/syscall_bridge.c')
+          text=path.read_text(encoding='utf-8')
+          anchor='#define M3_TRACE_LIMIT 256u'
+          if text.count(anchor)!=1:
+              raise SystemExit(f'trace-limit anchor count {text.count(anchor)}')
+          path.write_text(text.replace(anchor,'#define M3_TRACE_LIMIT 24000u'),encoding='utf-8')
+          PY
+          grep -F 'case LINUX_SYS_SENDFILE:' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 SENDFILE: out=' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 CLASSIFIERCALLER:' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 FRAMECTX:' build/generated/syscall_bridge.c
+          ! grep -F 'HRT M11 EMPTYFALLBACK:' build/generated/syscall_bridge.c
+          ! grep -F 'HRT M11 EMPTYBUFFER:' build/generated/syscall_bridge.c
+          ! grep -F 'HRT M11 SHORTBUFFER:' build/generated/syscall_bridge.c
+          shasum -a 256 build/generated/syscall_bridge.c >build/output/generated-bridge.sha256
+      - name: Compile and sign the x86-64 host
+        run: |
+          set -euxo pipefail
+          common=(-arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer -mfsgsbase \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m10 -Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1)
+          index=0
+          for source in runtime/m6/main.c runtime/m6/hostcall_trampoline.c \
+            runtime/m1/common.c runtime/m3/elf_map.c build/generated/stack.c \
+            runtime/m3/patch.c build/generated/syscall_bridge.c; do
+            clang "${common[@]}" -c "$source" -o "build/objects/c-${index}.o"
+            index=$((index+1))
+          done
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c build/generated/appkit_adapter_m11.m -o build/objects/appkit-adapter.o
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c runtime/m8/appkit_input.m -o build/objects/appkit-input.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S -o build/objects/enter-guest.o
+          clang -arch x86_64 -g -Iruntime/m10 -c runtime/m10/clone_trampoline.S \
+            -o build/objects/clone-trampoline.o
+          clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \
+            -o build/objects/hostcall-trampoline.o
+          output=build/output/hrt-m10-hword-main-input
+          clang -arch x86_64 build/objects/*.o -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO -o "$output"
+          chmod 0755 "$output"
+          codesign --force --sign - --timestamp=none "$output"
+          codesign --verify --strict "$output"
+          file "$output" >build/output/host-file.txt
+          lipo -info "$output" >build/output/host-arch.txt
+          shasum -a 256 "$output" >build/output/host-sha256.txt
+      - name: Lock the host
+        id: lock
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          binary=Path('build/output/hrt-m10-hword-main-input')
+          payload={'schema':2,'workflow_run':os.environ['GITHUB_RUN_ID'],
+                   'commit':os.environ['GITHUB_SHA'],
+                   'binary_sha256':hashlib.sha256(binary.read_bytes()).hexdigest(),
+                   'features':['linux-sendfile','classifier-caller-trace'],
+                   'empty_path_substitution':False}
+          Path('build/output/integrated-host-lock.json').write_text(
+              json.dumps(payload,indent=2)+'\n',encoding='utf-8')
+          with Path(os.environ['GITHUB_OUTPUT']).open('a',encoding='utf-8') as output:
+              output.write(f"binary_sha256={payload['binary_sha256']}\n")
+          print(json.dumps(payload,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        id: upload
+        with:
+          name: hrt-m10-hword-main-window-input-proof
+          path: build/output
+          if-no-files-found: error
+          retention-days: 14
+
+  replay:
+    needs: [shim, host]
+    runs-on: macos-14
+    timeout-minutes: 95
+    env:
+      HOST_RUN_ID: ${{ github.run_id }}
+      HOST_ARTIFACT_DIGEST: ${{ needs.host.outputs.artifact_digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m11-integrated-fopen-shim
+          path: build/input/preload
+      - name: Verify the same-run shim lock
+        run: |
+          set -euxo pipefail
+          test -s build/input/preload/libhrt_hword_fopen.so
+          test -s build/input/preload/lock.json
+          python3 - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          lock=json.loads(Path('build/input/preload/lock.json').read_text())
+          library=Path('build/input/preload/libhrt_hword_fopen.so')
+          actual=hashlib.sha256(library.read_bytes()).hexdigest()
+          assert actual==lock['sha256'],(actual,lock['sha256'])
+          assert actual==os.environ['SHIM_EXPECTED_SHA256']
+          assert lock['native_probe_passed'] is True
+          print(json.dumps(lock,indent=2))
+          PY
+        env:
+          SHIM_EXPECTED_SHA256: ${{ needs.shim.outputs.library_sha256 }}
+      - name: Generate the exact product replay with /etc/ld.so.preload
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated build/proof diagnostics
+          python3 runtime/m11/augment_full_product_replay_v2.py \
+            runtime/m11/run_korean_title_staged_replay.sh \
+            build/generated/run_integrated_fopen_preload.sh
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('build/generated/run_integrated_fopen_preload.sh')
+          text=path.read_text(encoding='utf-8')
+          anchor='chmod 0755 "$root$PLUGIN_GUEST"\n'
+          if text.count(anchor)!=1:
+              raise SystemExit(f'preload install anchor count {text.count(anchor)}')
+          insertion=anchor+r'''
+install -D -m 0755 build/input/preload/libhrt_hword_fopen.so \
+    "$root/opt/hrt/libhrt_hword_fopen.so"
+mkdir -p "$root/etc"
+printf '%s\n' '/opt/hrt/libhrt_hword_fopen.so' >"$root/etc/ld.so.preload"
+test -s "$root/etc/ld.so.preload"
+test -x "$root/opt/hrt/libhrt_hword_fopen.so"
+printf 'HRT M11 PRELOAD INSTALL: library=%s config=%s\n' \
+    "$root/opt/hrt/libhrt_hword_fopen.so" "$root/etc/ld.so.preload"
+'''
+          path.write_text(text.replace(anchor,insertion,1),encoding='utf-8')
+          path.chmod(0o755)
+          PY
+          grep -F 'libhrt_hword_fopen.so' build/generated/run_integrated_fopen_preload.sh
+          grep -F 'ld.so.preload' build/generated/run_integrated_fopen_preload.sh
+      - name: Replay exact Korean HWord
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HRT_M11_MODAL_CAPTURE_PATH: ${{ github.workspace }}/build/proof/hword-modal-dialog.png
+        run: |
+          set -euxo pipefail
+          build/generated/run_integrated_fopen_preload.sh
+      - name: Classify the integrated interposer result
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -f build/proof/stderr.txt
+          python3 - <<'PY'
+          import hashlib,json,os,re
+          from pathlib import Path
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          lines=stderr.splitlines()
+          loaded='HRT M11 PRELOAD_FOPEN: loaded=1' in stderr
+          events=[]
+          pattern=re.compile(r'HRT M11 PRELOAD_FOPEN: symbol=(\S+) index=(\d+) applied=(\d+) '
+                             r'mode=(\S*) caller=(0x[0-9a-f]+) caller-object=(\S+) '
+                             r'caller-offset=(0x[0-9a-f]+)')
+          for line in lines:
+              match=pattern.search(line)
+              if match:
+                  events.append({'symbol':match.group(1),'index':int(match.group(2)),
+                      'applied':bool(int(match.group(3))),'mode':match.group(4),
+                      'caller':match.group(5),'caller_object':match.group(6),
+                      'caller_offset':match.group(7),'line':line})
+          applied=[item for item in events if item['applied']]
+          empty_opens=[line for line in lines if line.startswith('HRT M11 DOCIO:') and
+                       ' op=open ' in line and re.search(r' guest=(?:\s|$)',line)]
+          loader_errors=[line for line in lines if 'cannot be preloaded' in line.lower() or
+                         ('ld.so.preload' in line.lower() and 'PRELOAD INSTALL' not in line)]
+          unsupported_40='Linux syscall ENOSYS 40' in stderr
+          sendfile_lines=[line for line in lines if line.startswith('HRT M11 SENDFILE:')]
+          modal=(any('CREATE type=3 geometry=400x130 title=한워드' in line for line in lines) or
+                 'dlg_data_validate_stop.png' in stderr or Path('build/proof/hword-modal-dialog.png').is_file())
+          editor=any(value in stderr for value in ('hword::HwordAppView','HwordAppView'))
+          document_tab='DocumentTabImpl' in stderr
+          text_stage='staged text input after focus' in stderr
+          accepted=any(('key delivered' in line or 'key event delivered' in line) and
+                       ('accepted=1' in line or 'widget-accepted=1' in line) for line in lines)
+          post_capture='HRT M10 APPKIT: post-input capture result=1' in stderr
+          fatal='HRT M10 FATAL:' in stderr or 'fatal signal' in stderr.lower()
+          if fatal:
+              status='FAIL'; classification='HWORD_INTEGRATED_FOPEN_PRELOAD_FATAL'
+          elif not loaded or loader_errors:
+              status='FAIL'; classification='HWORD_INTEGRATED_FOPEN_PRELOAD_NOT_LOADED'
+          elif not applied:
+              status='DIAGNOSTIC'; classification='HWORD_INTEGRATED_FOPEN_PRELOAD_NO_INTERCEPT'
+          elif modal:
+              status='DIAGNOSTIC'; classification='HWORD_INTEGRATED_FOPEN_PRELOAD_MODAL_PERSISTS'
+          elif editor and text_stage and accepted and post_capture:
+              status='PASS'; classification='HWORD_INTEGRATED_FOPEN_PRELOAD_TEXT_ACCEPTED'
+          elif editor:
+              status='PARTIAL_PASS'; classification='HWORD_INTEGRATED_FOPEN_PRELOAD_EDITOR_MATERIALIZED'
+          elif document_tab:
+              status='DIAGNOSTIC'; classification='HWORD_INTEGRATED_FOPEN_PRELOAD_NO_MODAL_DOCUMENT_TAB_ONLY'
+          else:
+              status='DIAGNOSTIC'; classification='HWORD_INTEGRATED_FOPEN_PRELOAD_NO_MODAL_NO_EDITOR'
+          captures={}
+          for name in ('hword-main-window.png','hword-before-input.png','hword-after-input.png','hword-modal-dialog.png'):
+              path=Path('build/proof')/name
+              if path.is_file(): captures[name]={'size':path.stat().st_size,
+                  'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+          payload={'schema':3,'milestone':'M11-integrated-guest-fopen-interposer',
+                   'workflow_run':os.environ['GITHUB_RUN_ID'],'commit':os.environ['GITHUB_SHA'],
+                   'status':status,'classification':classification,
+                   'host_binary_sha256':os.environ['HOST_BINARY_SHA256'],
+                   'host_artifact_digest':os.environ['HOST_ARTIFACT_DIGEST'],
+                   'shim_sha256':os.environ['SHIM_SHA256'],
+                   'preload_loaded':loaded,'preload_events':events,
+                   'applied_count':len(applied),'remaining_empty_open_count':len(empty_opens),
+                   'loader_errors':loader_errors,'sendfile_trace_count':len(sendfile_lines),
+                   'unsupported_syscall_40':unsupported_40,'modal':modal,
+                   'editor_materialized':editor,'document_tab_observed':document_tab,
+                   'text_stage':text_stage,'accepted_key':accepted,'post_capture':post_capture,
+                   'fatal':fatal,'captures':captures,'stderr_tail':'\n'.join(lines[-700:])}
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'; run_id=os.environ['GITHUB_RUN_ID']
+          Path(f'diagnostics/m11-fopen-preload-integrated-{run_id}.json').write_text(encoded,encoding='utf-8')
+          Path('diagnostics/m11-fopen-preload-integrated-latest.json').write_text(encoded,encoding='utf-8')
+          Path('diagnostics/m11-fopen-preload-integrated-latest.md').write_text(
+              '# HWord integrated guest fopen interposer\n\n'
+              f"- Status: `{status}`\n- Classification: `{classification}`\n"
+              f"- Loaded: `{loaded}`\n- Applied calls: `{len(applied)}`\n"
+              f"- Remaining empty opens: `{len(empty_opens)}`\n"
+              f"- sendfile calls: `{len(sendfile_lines)}`\n"
+              f"- Modal: `{modal}`\n- Editor: `{editor}`\n",encoding='utf-8')
+          Path('build/proof/integrated-fopen-preload-summary.json').write_text(encoded,encoding='utf-8')
+          print(encoded)
+          PY
+        env:
+          HOST_BINARY_SHA256: ${{ needs.host.outputs.binary_sha256 }}
+          SHIM_SHA256: ${{ needs.shim.outputs.library_sha256 }}
+      - name: Commit the durable integrated result
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -s diagnostics/m11-fopen-preload-integrated-latest.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-fopen-preload-integrated-*.json \
+                  diagnostics/m11-fopen-preload-integrated-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: classify the integrated HWord fopen interposer'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-integrated-fopen-preload-proof
+          path: |
+            build/generated/run_integrated_fopen_preload.sh
+            build/host/hrt-m11-korean-staged
+            build/input/preload/lock.json
+            build/proof
+            diagnostics/m11-fopen-preload-integrated-*.json
+            diagnostics/m11-fopen-preload-integrated-latest.md
+          if-no-files-found: warn
+          retention-days: 14

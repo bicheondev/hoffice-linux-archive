@@ -1,0 +1,12 @@
+{
+  "schema": 2,
+  "workflow_run": "31408430500",
+  "commit": "029394416a64475526102f359cb95f59d53bd2f9",
+  "status": "DIAGNOSTIC",
+  "route": "WAIT_FOR_DOCUMENT_EXPERIMENTS",
+  "reason": "No durable document-construction experiment is available yet.",
+  "available_evidence": [],
+  "best_classification": "",
+  "best_result": null,
+  "evidence": {}
+}

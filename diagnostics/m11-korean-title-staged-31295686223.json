@@ -1,0 +1,147 @@
+{
+  "schema": 5,
+  "milestone": "M11-korean-hword-input",
+  "status": "PARTIAL_PASS",
+  "classification": "HWORD_FULL_PRODUCT_RESTORED_EDITOR_NOT_MATERIALIZED",
+  "workflow_run": "31295686223",
+  "commit": "053e5325734087a79679f762a24bec43d276304a",
+  "host_run": "31295600664",
+  "qpa_run": "31294953477",
+  "prepared_run": "31235068358",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "package_sha256": "23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46",
+  "window_titles": [
+    "HWord Qt Window",
+    "한워드"
+  ],
+  "window_geometries": [
+    [
+      200,
+      100
+    ],
+    [
+      800,
+      600
+    ]
+  ],
+  "main_window_observed": true,
+  "staged_markers": {
+    "toolbar": true,
+    "focus": true,
+    "text": true
+  },
+  "stage_boundary_count": 2,
+  "stage_boundaries": [
+    "HRT M11 QPA: mouse-up stage boundary sequence=3 key=0 mouse=3",
+    "HRT M11 QPA: mouse-up stage boundary sequence=6 key=0 mouse=6"
+  ],
+  "widget_log_count": 14,
+  "focus_log_count": 25,
+  "button_click_count": 1,
+  "candidate_widget_classes": [
+    "hanul::MainWindow",
+    "QMainWindow",
+    "QToolBar",
+    "QStackedWidget",
+    "hanul::ToolBarImpl",
+    "QScrollArea",
+    "QWidget",
+    "QWidget",
+    "QToolButton",
+    "hanul::MainWindow",
+    "QMainWindow",
+    "QStackedWidget",
+    "hanul::DocumentTabImpl",
+    "QTabWidget",
+    "QStackedWidget"
+  ],
+  "selected_focus_classes": [
+    "QToolButton",
+    "QToolButton",
+    "QToolButton",
+    "QTabWidget",
+    "QTabWidget",
+    "QTabWidget"
+  ],
+  "key_target_classes": [
+    "hanul::DocumentTabImpl",
+    "hanul::DocumentTabImpl"
+  ],
+  "mouse_event_count": 6,
+  "widget_accepted_mouse_count": 6,
+  "key_event_count": 2,
+  "accepted_key_count": 0,
+  "directly_accepted_key_count": 0,
+  "delivered_sequences": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "strictly_ordered_unique_sequences": true,
+  "queue_drained": true,
+  "post_capture_completed": true,
+  "main_capture": {
+    "path": "build/proof/hword-main-window.png",
+    "width": 800,
+    "height": 628,
+    "size": 40156,
+    "sha256": "761f1eebe7070d6913afbab05c14bdd7cce47cd5e373cbb2fb11ae57523d0139"
+  },
+  "before_capture": {
+    "path": "build/proof/hword-before-input.png",
+    "width": 800,
+    "height": 628,
+    "size": 39874,
+    "sha256": "7426964eb75543b596a798c7030379ec627d9a2ba8b46776e44fa4fa62338e2c"
+  },
+  "after_capture": {
+    "path": "build/proof/hword-after-input.png",
+    "width": 800,
+    "height": 628,
+    "size": 40110,
+    "sha256": "701deb9f80be4a8a91350ce1198af1ea977069d14d899230877999a956bb25bc"
+  },
+  "visual_change": true,
+  "document_interaction_credited": true,
+  "text_interaction_credited": false,
+  "unsupported_syscalls": [
+    40
+  ],
+  "fatal_signal_observed": false,
+  "substr_exception_observed": false,
+  "alive_at_observation": true,
+  "raw_exit_status": 143,
+  "representative_button_clicks": [
+    "HRT M10 FOCUS: abstract button click invoked receiver=0xcca5130 text=새"
+  ],
+  "representative_focus_selection": [
+    "HRT M10 FOCUS: selected receiver=0xcca5130 selected=0xcca5130 class=QToolButton focus-policy=1 point=27,163",
+    "HRT M10 FOCUS: selected receiver=0xcca5130 selected=0xcca5130 class=QToolButton focus-policy=1 point=27,163",
+    "HRT M10 FOCUS: selected receiver=0xcca5130 selected=0xcca5130 class=QToolButton focus-policy=1 point=27,163",
+    "HRT M10 FOCUS: selected receiver=0x6f48850 selected=0x6f48810 class=QTabWidget focus-policy=1 point=400,252",
+    "HRT M10 FOCUS: selected receiver=0x6f48850 selected=0x6f48810 class=QTabWidget focus-policy=1 point=400,252",
+    "HRT M10 FOCUS: selected receiver=0x6f48850 selected=0x6f48810 class=QTabWidget focus-policy=1 point=400,252"
+  ],
+  "representative_key_events": [
+    "HRT M8 QPA: key event delivered sequence=7 action=1 key=0x41 native=0 text=a accepted=0 window-accepted=0 direct-accepted=0 focus-window=0x709c110 focus-object=0x6f568a0 focus-class=hanul::DocumentTabImpl",
+    "HRT M8 QPA: key event delivered sequence=8 action=2 key=0x41 native=0 text=a accepted=0 window-accepted=0 direct-accepted=0 focus-window=0x709c110 focus-object=0x6f568a0 focus-class=hanul::DocumentTabImpl"
+  ],
+  "stderr_tail": "gs=0x0 sec=0 nsec=5000000 result=0\nHRT M11 SLEEP: clock=0 flags=0x0 sec=0 nsec=5000000 result=0\nHRT M11 SLEEP: clock=0 flags=0x0 sec=0 nsec=5000000 result=0\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=815 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=920 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=1025 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=1126 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=1207 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=1319 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=1424 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=1524 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=1608 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=1714 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=1832 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=1930 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=2002 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=2128 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=2226 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=2335 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=2403 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=2500 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=2631 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=2700 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=2834 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=2909 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=3014 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=3106 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=3217 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=3318 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=waiting elapsed-ms=3406 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 KEYROUTE: materialization phase=timeout elapsed-ms=3505 document=0x6f568a0 document-class=hanul::DocumentTabImpl document-children=15 document-objects=23 tab-widgets=1 tab-pages=0 current-pages=0 stacked-widgets=1 stacked-pages=0 scrollbars=4 nonempty-scrollbars=4 focus-widget=0x6f4ccf0 focus-widget-class=QTabBar focus-object=0x6f4ccf0 focus-object-class=QTabBar\nHRT M11 FOCUS: candidate=0x6f45900 class=hanul::MainWindow name=MainWindowFrame depth=0 score=291 focus-policy=0 input-method=0 visible=1 rect=0,0,800,600 point=400,252\nHRT M11 FOCUS: candidate=0x7091cd0 class=QMainWindow name= depth=1 score=-1269 focus-policy=0 input-method=0 visible=1 rect=0,26,800,574 point=400,252\nHRT M11 FOCUS: candidate=0x708f960 class=QStackedWidget name= depth=2 score=-1226 focus-policy=0 input-method=0 visible=1 rect=0,177,800,398 point=400,252\nHRT M11 FOCUS: candidate=0x6f568a0 class=hanul::DocumentTabImpl name= depth=3 score=1114 focus-policy=0 input-method=0 visible=1 rect=0,177,800,398 point=400,252\nHRT M11 FOCUS: candidate=0x6f48810 class=QTabWidget name= depth=4 score=-906 focus-policy=1 input-method=0 visible=1 rect=0,177,785,383 point=400,252\nHRT M11 FOCUS: candidate=0x6f48850 class=QStackedWidget name=qt_tabwidget_stackedwidget depth=5 score=-1106 focus-policy=0 input-method=0 visible=1 rect=0,177,785,383 point=400,252\nHRT M11 FOCUS: candidate=0x70934f0 class=QToolButton name= depth=2 score=-1286 focus-policy=1 input-method=0 visible=0 rect=0,0,640,480 point=400,252\nHRT M11 FOCUS: candidate=0x6f782d0 class=hanul::SeparatorImpl name= depth=2 score=74 focus-policy=0 input-method=0 visible=0 rect=0,0,640,480 point=400,252\nHRT M11 FOCUS: candidate=0x7095b50 class=QFrame name=SeparatorBorder depth=3 score=114 focus-policy=0 input-method=0 visible=0 rect=0,0,640,480 point=400,252\nHRT M11 FOCUS: candidate=0x7096250 class=QToolButton name= depth=2 score=-1286 focus-policy=1 input-method=0 visible=0 rect=0,0,640,480 point=400,252\nHRT M11 FOCUS: candidate=0x7099b30 class=QToolButton name= depth=2 score=-1286 focus-policy=1 input-method=0 visible=0 rect=0,0,640,480 point=400,252\nHRT M11 FOCUS: candidate=0x709a7b0 class=QToolButton name= depth=2 score=-1286 focus-policy=1 input-method=0 visible=0 rect=0,0,640,480 point=400,252\nHRT M11 FOCUS: selected=0x6f568a0 class=hanul::DocumentTabImpl score=1114 point=400,252\nHRT M11 KEYROUTE: filter receiver=0x6f4ccf0 class=QTabBar name=qt_tabwidget_tabbar type=9 accepted-entry=1 key=0x0 scan=0 virtual=0x0 native-modifiers=0x0 text=\nHRT M11 KEYROUTE: filter receiver=0x689b740 class=hanul::WidgetStyle name= type=9 accepted-entry=1 key=0x0 scan=0 virtual=0x0 native-modifiers=0x0 text=\nHRT M11 KEYROUTE: filter receiver=0x6f568a0 class=hanul::DocumentTabImpl name= type=8 accepted-entry=1 key=0x0 scan=0 virtual=0x0 native-modifiers=0x0 text=\nHRT M11 KEYROUTE: filter receiver=0x689b740 class=hanul::WidgetStyle name= type=8 accepted-entry=1 key=0x0 scan=0 virtual=0x0 native-modifiers=0x0 text=\nhrt-m7-hostcall: presented BGRA frame=8 size=800x600 stride=3200 bytes=1920000 window=25\nhrt-m6: host-call opcode=261 result=1\nHRT M10 QPA: nested input drain deferred\nHRT M11 FOCUS: repaired target=0x6f568a0 class=hanul::DocumentTabImpl old-policy=0 actual=0x6f568a0 actual-class=hanul::DocumentTabImpl press-accepted=1 release-accepted=1\nHRT M11 KEYROUTE: prepared focus receiver=0x6f568a0 class=hanul::DocumentTabImpl credible=0\nHRT M11 KEYROUTE: extended window key type=6 key=0x41 host-native=0 scan=38 virtual=0x61 native-modifiers=0x0 raw-accepted=1 credible-accepted=0 receiver=0x6f568a0 receiver-class=hanul::DocumentTabImpl\nHRT M10 WIDGET: phase=key-target receiver=0x6f568a0 class=hanul::DocumentTabImpl name= enabled=1 visible=1 focus-policy=11 geometry=0,0,800,398 point=-1,-1 button-text= action=0x0 action-name= action-text= action-enabled=0 shortcut=\nHRT M11 KEYROUTE: direct key skipped non-editor receiver=0x6f568a0 class=hanul::DocumentTabImpl\nHRT M11 KEYROUTE: filter receiver=0x709c110 class=QWidgetWindow name=MainWindowFrameWindow type=51 accepted-entry=0 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M11 KEYROUTE: filter receiver=0x6f568a0 class=hanul::DocumentTabImpl name= type=51 accepted-entry=0 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M11 KEYROUTE: filter receiver=0x708f960 class=QStackedWidget name= type=51 accepted-entry=0 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M11 KEYROUTE: filter receiver=0x7091cd0 class=QMainWindow name= type=51 accepted-entry=0 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M11 KEYROUTE: filter receiver=0x6f45900 class=hanul::MainWindow name=MainWindowFrame type=51 accepted-entry=0 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M11 KEYROUTE: filter receiver=0x709c110 class=QWidgetWindow name=MainWindowFrameWindow type=6 accepted-entry=1 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M11 KEYROUTE: filter receiver=0x6f568a0 class=hanul::DocumentTabImpl name= type=6 accepted-entry=1 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M11 KEYROUTE: filter receiver=0x708f960 class=QStackedWidget name= type=6 accepted-entry=1 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M11 KEYROUTE: filter receiver=0x7091cd0 class=QMainWindow name= type=6 accepted-entry=1 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M11 KEYROUTE: filter receiver=0x6f45900 class=hanul::MainWindow name=MainWindowFrame type=6 accepted-entry=1 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M8 QPA: key event delivered sequence=7 action=1 key=0x41 native=0 text=a accepted=0 window-accepted=0 direct-accepted=0 focus-window=0x709c110 focus-object=0x6f568a0 focus-class=hanul::DocumentTabImpl\nHRT M8 APPKIT: delivered event sequence=8 type=1 action=2 remaining=0\nhrt-m6: host-call opcode=262 result=1\nHRT M10 QPA: activation phase=before-key target=0x709c110 before=0x709c110 after=0x709c110 focus-object=0x6f568a0 focus-class=hanul::DocumentTabImpl focus-name= active=1 visible=1 title=한워드\nHRT M11 KEYROUTE: prepared focus receiver=0x6f568a0 class=hanul::DocumentTabImpl credible=0\nHRT M11 KEYROUTE: extended window key type=7 key=0x41 host-native=0 scan=38 virtual=0x61 native-modifiers=0x0 raw-accepted=1 credible-accepted=0 receiver=0x6f568a0 receiver-class=hanul::DocumentTabImpl\nHRT M10 WIDGET: phase=key-target receiver=0x6f568a0 class=hanul::DocumentTabImpl name= enabled=1 visible=1 focus-policy=11 geometry=0,0,800,398 point=-1,-1 button-text= action=0x0 action-name= action-text= action-enabled=0 shortcut=\nHRT M11 KEYROUTE: direct key skipped non-editor receiver=0x6f568a0 class=hanul::DocumentTabImpl\nHRT M11 KEYROUTE: filter receiver=0x709c110 class=QWidgetWindow name=MainWindowFrameWindow type=7 accepted-entry=1 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M11 KEYROUTE: filter receiver=0x6f568a0 class=hanul::DocumentTabImpl name= type=7 accepted-entry=1 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M11 KEYROUTE: filter receiver=0x708f960 class=QStackedWidget name= type=7 accepted-entry=1 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M11 KEYROUTE: filter receiver=0x7091cd0 class=QMainWindow name= type=7 accepted-entry=1 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M11 KEYROUTE: filter receiver=0x6f45900 class=hanul::MainWindow name=MainWindowFrame type=7 accepted-entry=1 key=0x41 scan=38 virtual=0x61 native-modifiers=0x0 text=a\nHRT M8 QPA: key event delivered sequence=8 action=2 key=0x41 native=0 text=a accepted=0 window-accepted=0 direct-accepted=0 focus-window=0x709c110 focus-object=0x6f568a0 focus-class=hanul::DocumentTabImpl\nhrt-m6: host-call opcode=262 result=0\nHRT M8 QPA: input queue drained key=2 mouse=6\n",
+  "credible_editor_key_press": false,
+  "credible_window_receiver_classes": [],
+  "credible_direct_receiver_classes": [],
+  "editor_materialized_classes": [],
+  "prepared_editor_classes": [],
+  "raw_chrome_acceptance_classes": [],
+  "proof_gate": "credible HWord editor KeyPress acceptance plus post-capture visual change",
+  "full_product_payload_restored": true,
+  "full_product_payload_entry_count": 21640,
+  "full_product_payload_file_bytes": 2958572712,
+  "full_product_payload_manifest_sha256": "6e3cd25ad8268cc425768933504c611cb66cd26bbba75679fbe09857cc51a24c"
+}

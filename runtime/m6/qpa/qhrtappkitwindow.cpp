@@ -1,0 +1,165 @@
+#include "qhrtappkitwindow.h"
+#include "hrt_hostcall.h"
+
+#include <QtCore/qbytearray.h>
+#include <QtCore/qdebug.h>
+#include <QtGui/qwindow.h>
+#include <qpa/qwindowsysteminterface.h>
+
+QT_BEGIN_NAMESPACE
+
+QHrtAppKitWindow *QHrtAppKitWindow::s_windows = nullptr;
+
+QHrtAppKitWindow::QHrtAppKitWindow(QWindow *window)
+    : QOffscreenWindow(window)
+    , m_hostWindow(0)
+    , m_visible(false)
+    , m_nextWindow(s_windows)
+{
+    s_windows = this;
+    const QByteArray title = window->title().toUtf8();
+    qWarning("HRT M6 QPA: QPlatformWindow constructed type=%d title=%s",
+             int(window->type()), title.constData());
+    qWarning("HRT M11 QPA: registered top-level qt-window=%p type=%d",
+             static_cast<void *>(window), int(window->type()));
+}
+
+QHrtAppKitWindow::~QHrtAppKitWindow()
+{
+    destroyNativeWindow();
+    unregisterWindow();
+}
+
+void QHrtAppKitWindow::unregisterWindow()
+{
+    QHrtAppKitWindow **link = &s_windows;
+    while (*link != nullptr) {
+        if (*link == this) {
+            *link = m_nextWindow;
+            m_nextWindow = nullptr;
+            qWarning("HRT M11 QPA: unregistered top-level qt-window=%p",
+                     static_cast<void *>(window()));
+            return;
+        }
+        link = &((*link)->m_nextWindow);
+    }
+}
+
+qint64 QHrtAppKitWindow::hostWindowFor(const QWindow *candidate)
+{
+    if (candidate == nullptr)
+        return 0;
+    for (QHrtAppKitWindow *item = s_windows;
+         item != nullptr; item = item->m_nextWindow) {
+        if (item->window() == candidate && item->m_hostWindow > 0)
+            return item->m_hostWindow;
+    }
+    return 0;
+}
+
+bool QHrtAppKitWindow::isNativeCandidate() const
+{
+    const Qt::WindowType type = window()->type();
+    return type != Qt::ToolTip &&
+           type != Qt::Popup &&
+           type != Qt::Desktop;
+}
+
+void QHrtAppKitWindow::createNativeWindow()
+{
+    if (m_hostWindow > 0 || !m_visible || !isNativeCandidate())
+        return;
+
+    QByteArray title = window()->title().toUtf8();
+    if (title.isEmpty())
+        title = QByteArrayLiteral("HWord Qt Window");
+    if (title.size() > 255)
+        title.truncate(255);
+
+    const QRect rect = geometry();
+    const qint64 handle = hrtM6HostCall(
+        HRT_M6_OP_CREATE_WINDOW,
+        quint64(quintptr(title.constData())),
+        quint64(qMax(1, rect.width())),
+        quint64(qMax(1, rect.height())));
+    if (handle <= 0) {
+        qWarning("HRT M6 QPA: CREATE failed type=%d result=%lld title=%s",
+                 int(window()->type()), static_cast<long long>(handle),
+                 title.constData());
+        return;
+    }
+
+    m_hostWindow = handle;
+    requestActivateWindow();
+    const qint64 pump = hrtM6HostCall(HRT_M6_OP_PUMP_EVENTS, 250);
+    const qint64 flags = hrtM6HostCall(
+        HRT_M6_OP_QUERY_WINDOW, quint64(handle));
+    const qint64 capture = hrtM6HostCall(
+        HRT_M6_OP_CAPTURE_WINDOW, quint64(handle));
+    qWarning("HRT M6 QPA: CREATE type=%d geometry=%dx%d title=%s handle=%lld pump=%lld flags=0x%llx capture=%lld",
+             int(window()->type()), rect.width(), rect.height(),
+             title.constData(), static_cast<long long>(handle),
+             static_cast<long long>(pump),
+             static_cast<unsigned long long>(flags),
+             static_cast<long long>(capture));
+    qWarning("HRT M11 QPA: native host assigned qt-window=%p type=%d handle=%lld",
+             static_cast<void *>(window()), int(window()->type()),
+             static_cast<long long>(handle));
+}
+
+void QHrtAppKitWindow::destroyNativeWindow()
+{
+    if (m_hostWindow <= 0)
+        return;
+
+    const qint64 handle = m_hostWindow;
+    const qint64 result = hrtM6HostCall(
+        HRT_M6_OP_DESTROY_WINDOW, quint64(handle));
+    qWarning("HRT M6 QPA: DESTROY handle=%lld result=%lld",
+             static_cast<long long>(handle),
+             static_cast<long long>(result));
+    m_hostWindow = 0;
+}
+
+void QHrtAppKitWindow::setVisible(bool visible)
+{
+    QOffscreenWindow::setVisible(visible);
+    m_visible = visible;
+    if (visible)
+        createNativeWindow();
+    else
+        destroyNativeWindow();
+}
+
+void QHrtAppKitWindow::setGeometry(const QRect &rect)
+{
+    QOffscreenWindow::setGeometry(rect);
+    if (m_hostWindow > 0) {
+        qWarning("HRT M6 QPA: GEOMETRY handle=%lld rect=%d,%d %dx%d",
+                 static_cast<long long>(m_hostWindow),
+                 rect.x(), rect.y(), rect.width(), rect.height());
+    }
+}
+
+void QHrtAppKitWindow::setWindowTitle(const QString &title)
+{
+    QOffscreenWindow::setWindowTitle(title);
+    if (m_hostWindow > 0) {
+        const QByteArray utf8 = title.toUtf8();
+        qWarning("HRT M6 QPA: TITLE handle=%lld title=%s",
+                 static_cast<long long>(m_hostWindow), utf8.constData());
+    }
+}
+
+void QHrtAppKitWindow::requestActivateWindow()
+{
+    QWindowSystemInterface::handleWindowActivated<
+        QWindowSystemInterface::SynchronousDelivery>(
+            window(), Qt::ActiveWindowFocusReason);
+    const QByteArray title = window()->title().toUtf8();
+    qWarning("HRT M8B QPA: Qt window activated type=%d title=%s host=%lld",
+             int(window()->type()), title.constData(),
+             static_cast<long long>(m_hostWindow));
+}
+
+QT_END_NAMESPACE

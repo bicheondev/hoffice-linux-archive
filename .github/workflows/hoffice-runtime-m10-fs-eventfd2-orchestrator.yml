@@ -1,0 +1,358 @@
+name: HOffice runtime M10 filesystem and eventfd2 orchestrator
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-fs-eventfd2-orchestrator.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: hrt-m10-fs-eventfd2-orchestrator-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TARGET_BRANCH: codex/hoffice-runtime-from-scratch
+  TARGET_WORKFLOW: hoffice-runtime-m10-hword-fs-compat.yml
+  TARGET_ARTIFACT: hrt-m10-hword-fs-compat-proof
+
+jobs:
+  upgrade-dispatch-and-persist:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install the compositional eventfd2 filesystem bridge
+        run: |
+          set -euxo pipefail
+          target=runtime/m10/augment_fs_compat.py
+          base=runtime/m10/augment_fs_compat_base.py
+
+          if grep -Fq 'HRT_M10_FS_EVENTFD2_WRAPPER_V1' "$target"; then
+            test -s "$base"
+            echo 'existing filesystem/eventfd2 wrapper verified'
+          else
+            test -s "$target"
+            cp "$target" "$base"
+            cat > "$target" <<'PY'
+          #!/usr/bin/env python3
+          """Compose the locked M10 filesystem bridge with Linux eventfd2.
+
+          The preserved base translates flock, link, chmod, fstatfs, and
+          atomic rename.  The mature eventfd2 augmenter is then applied to the
+          same generated syscall bridge.  Both components remain independently
+          fail-closed.
+          """
+          from __future__ import annotations
+
+          import importlib.util
+          from pathlib import Path
+          import shutil
+          import subprocess
+          import sys
+          import tempfile
+
+          HRT_M10_FS_EVENTFD2_WRAPPER_V1 = True
+
+
+          def run_base(source: Path, output: Path) -> None:
+              base = Path(__file__).with_name('augment_fs_compat_base.py')
+              spec = importlib.util.spec_from_file_location(
+                  'hrt_m10_fs_compat_base', base)
+              if spec is None or spec.loader is None:
+                  raise SystemExit('unable to load augment_fs_compat_base.py')
+              module = importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(module)
+              previous = sys.argv
+              try:
+                  sys.argv = [str(base), str(source), str(output)]
+                  module.main()
+              finally:
+                  sys.argv = previous
+
+
+          def main() -> int:
+              if len(sys.argv) != 3:
+                  print(f'usage: {sys.argv[0]} INPUT.c OUTPUT.c', file=sys.stderr)
+                  return 64
+              source = Path(sys.argv[1])
+              output = Path(sys.argv[2])
+              eventfd = (Path(__file__).resolve().parents[1] /
+                         'm3' / 'augment_eventfd2.py')
+              if not eventfd.is_file():
+                  raise SystemExit(f'missing proven eventfd2 augmenter: {eventfd}')
+
+              with tempfile.TemporaryDirectory(prefix='hrt-m10-fs-') as tmp:
+                  base_output = Path(tmp) / 'fs-base.c'
+                  run_base(source, base_output)
+                  generated = base_output.read_text(encoding='utf-8')
+                  if ('case LINUX_SYS_EVENTFD2:' in generated and
+                      'host_eventfd2_bridge' in generated):
+                      shutil.copy2(base_output, output)
+                  else:
+                      subprocess.run(
+                          [sys.executable, str(eventfd),
+                           str(base_output), str(output)],
+                          check=True,
+                      )
+
+              final = output.read_text(encoding='utf-8')
+              required = {
+                  'case LINUX_SYS_EVENTFD2:': 1,
+                  'host_eventfd2_bridge': 2,
+                  'case LINUX_SYS_RENAME:': 1,
+              }
+              for marker, minimum in required.items():
+                  count = final.count(marker)
+                  if count < minimum:
+                      raise SystemExit(
+                          f'generated marker {marker!r}: expected at least '
+                          f'{minimum}, found {count}')
+              return 0
+
+
+          if __name__ == '__main__':
+              raise SystemExit(main())
+          PY
+            chmod +x "$target"
+          fi
+
+          python3 -m py_compile "$target" "$base"
+          grep -F 'HRT_M10_FS_EVENTFD2_WRAPPER_V1' "$target"
+          grep -F 'augment_eventfd2.py' "$target"
+
+      - name: Persist the bridge upgrade on the active branch
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add runtime/m10/augment_fs_compat.py \
+                  runtime/m10/augment_fs_compat_base.py
+          if ! git diff --cached --quiet; then
+            git commit -m 'runtime: compose M10 filesystem and eventfd2 bridges'
+            for attempt in $(seq 1 16); do
+              if git push origin "HEAD:$TARGET_BRANCH"; then
+                break
+              fi
+              git fetch origin "$TARGET_BRANCH"
+              git rebase "origin/$TARGET_BRANCH"
+              sleep "$attempt"
+            done
+          fi
+          git fetch origin "$TARGET_BRANCH"
+          source_sha=$(git rev-parse "origin/$TARGET_BRANCH")
+          printf '%s\n' "$source_sha" >source-sha.txt
+          echo "SOURCE_SHA=$source_sha" >>"$GITHUB_ENV"
+
+      - name: Dispatch the exact-HWord filesystem replay
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          start=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          printf '%s\n' "$start" >dispatch-start.txt
+          gh workflow run "$TARGET_WORKFLOW" \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "$TARGET_BRANCH"
+
+      - name: Wait for the dispatched replay and download its proof
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input build/report
+          start=$(cat dispatch-start.txt)
+          run_id=
+          status=
+          conclusion=
+          for attempt in $(seq 1 150); do
+            response=$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/$TARGET_WORKFLOW/runs" \
+              -f branch="$TARGET_BRANCH" -f event=workflow_dispatch -f per_page=20)
+            run_id=$(printf '%s' "$response" | jq -r --arg start "$start" \
+              '[.workflow_runs[] | select(.created_at >= $start)] | sort_by(.created_at) | last | .id // empty')
+            status=$(printf '%s' "$response" | jq -r --arg start "$start" \
+              '[.workflow_runs[] | select(.created_at >= $start)] | sort_by(.created_at) | last | .status // empty')
+            conclusion=$(printf '%s' "$response" | jq -r --arg start "$start" \
+              '[.workflow_runs[] | select(.created_at >= $start)] | sort_by(.created_at) | last | .conclusion // empty')
+            echo "attempt=$attempt run=$run_id status=$status conclusion=$conclusion"
+            if test -n "$run_id" && test "$status" = completed; then
+              break
+            fi
+            sleep 20
+          done
+          test -n "$run_id"
+          test "$status" = completed
+          printf '%s\n' "$run_id" >build/report/source-run-id.txt
+          printf '%s\n' "$conclusion" >build/report/source-conclusion.txt
+          gh run download "$run_id" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "$TARGET_ARTIFACT" \
+            --dir build/input
+          find build/input -type f -print | LC_ALL=C sort \
+            | tee build/report/artifact-files.txt
+
+      - name: Classify the post-eventfd2 exact-HWord frontier
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          root = Path('build/input')
+          run_id = Path('build/report/source-run-id.txt').read_text().strip()
+          conclusion = Path('build/report/source-conclusion.txt').read_text().strip()
+
+          parsed = []
+          for path in list(root.rglob('summary.json')) + \
+                      list(root.rglob('m10-hword-fs-compat-*.json')):
+              try:
+                  value = json.loads(path.read_text(errors='replace'))
+              except Exception:
+                  continue
+              if isinstance(value, dict):
+                  parsed.append((path, value))
+          source_path = None
+          source = {}
+          for path, value in parsed:
+              if value.get('milestone') in {
+                  'M10-fs-compat', 'M10-filesystem-compatibility'
+              } or 'classification' in value:
+                  source_path, source = path, value
+                  break
+          if source_path is None and parsed:
+              source_path, source = parsed[0]
+
+          stderr_paths = list(root.rglob('stderr.txt'))
+          stdout_paths = list(root.rglob('stdout.txt'))
+          stderr = stderr_paths[0].read_text(errors='replace') \
+              if stderr_paths else ''
+          stdout = stdout_paths[0].read_text(errors='replace') \
+              if stdout_paths else ''
+
+          unsupported = {
+              int(match.group(1))
+              for line in stderr.splitlines()
+              if (match := re.search(
+                  r'Linux syscall ENOSYS\s+([0-9]+)', line))
+          }
+          if isinstance(source.get('unsupported_syscalls'), list):
+              unsupported.update(
+                  int(item) for item in source['unsupported_syscalls']
+                  if str(item).lstrip('-').isdigit())
+          unsupported = sorted(unsupported)
+
+          windows = source.get('window_titles')
+          if not isinstance(windows, list):
+              windows = re.findall(
+                  r'HRT M6 QPA: CREATE .*? title=(.*?) handle=', stderr)
+          classification = source.get('classification') or 'UNCLASSIFIED'
+          eventfd2_enosys = 290 in unsupported
+          rename_enosys = 82 in unsupported
+          fatal = 'fatal signal' in stderr
+          exception_window = any(title == 'Exception' for title in windows)
+          word_window = any(title == 'Word' for title in windows)
+
+          interesting = []
+          for line in stderr.splitlines():
+              lower = line.lower()
+              if any(token in lower for token in (
+                  'no such file', 'permission denied', 'read-only',
+                  'fontconfig', 'cache', 'rename', 'exception',
+                  'eventfd', 'failed', 'error')):
+                  interesting.append(line[-1600:])
+          interesting = interesting[-500:]
+
+          if eventfd2_enosys:
+              frontier = 'EVENTFD2_WRAPPER_NOT_ACTIVE'
+          elif rename_enosys:
+              frontier = 'ATOMIC_RENAME_STILL_UNSUPPORTED'
+          elif word_window and not exception_window and not fatal:
+              frontier = 'FILESYSTEM_COMPATIBILITY_PASS'
+          elif exception_window:
+              frontier = 'EXCEPTION_AFTER_EVENTFD2_AND_RENAME'
+          elif fatal:
+              frontier = 'FATAL_AFTER_EVENTFD2_AND_RENAME'
+          else:
+              frontier = classification
+
+          result = {
+              'schema': 1,
+              'milestone': 'M10-fs-eventfd2-orchestrated',
+              'status': 'PASS' if frontier == 'FILESYSTEM_COMPATIBILITY_PASS'
+                                 else 'DIAGNOSTIC',
+              'frontier': frontier,
+              'source_workflow_run': run_id,
+              'source_workflow_conclusion': conclusion,
+              'source_commit': Path('source-sha.txt').read_text().strip(),
+              'source_summary_path': str(source_path) if source_path else None,
+              'source_summary': source,
+              'classification': classification,
+              'window_titles': windows,
+              'unsupported_syscalls': unsupported,
+              'eventfd2_enosys': eventfd2_enosys,
+              'rename_enosys': rename_enosys,
+              'fatal_signal_observed': fatal,
+              'interesting_lines': interesting,
+              'stdout_tail': stdout[-6000:],
+              'stderr_tail': stderr[-18000:],
+          }
+
+          Path('diagnostics').mkdir(exist_ok=True)
+          payload = json.dumps(result, indent=2) + '\n'
+          Path(f'diagnostics/m10-fs-eventfd2-orchestrated-{run_id}.json').write_text(payload)
+          Path('diagnostics/m10-fs-eventfd2-orchestrated-latest.json').write_text(payload)
+          Path('diagnostics/m10-fs-eventfd2-orchestrated-latest.md').write_text(
+              '# HWord M10 filesystem/eventfd2 orchestrated frontier\n\n'
+              f'- Source run: `{run_id}`\n'
+              f'- Source conclusion: `{conclusion}`\n'
+              f'- Frontier: `{frontier}`\n'
+              f'- Classification: `{classification}`\n'
+              f'- Windows: `{windows}`\n'
+              f'- Unsupported syscalls: `{unsupported}`\n'
+              f'- eventfd2 ENOSYS: `{eventfd2_enosys}`\n'
+              f'- rename ENOSYS: `{rename_enosys}`\n'
+          )
+          Path('build/report/normalized-summary.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Commit the durable frontier with conflict retry
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m10-fs-eventfd2-orchestrated-*.json \
+                  diagnostics/m10-fs-eventfd2-orchestrated-latest.md
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'diagnostic: persist orchestrated M10 filesystem frontier'
+          for attempt in $(seq 1 20); do
+            if git push origin "HEAD:$TARGET_BRANCH"; then
+              exit 0
+            fi
+            git fetch origin "$TARGET_BRANCH"
+            git rebase "origin/$TARGET_BRANCH"
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m10-fs-eventfd2-orchestrated-frontier
+          path: |
+            build/report
+            diagnostics/m10-fs-eventfd2-orchestrated-*.json
+            diagnostics/m10-fs-eventfd2-orchestrated-latest.md
+          if-no-files-found: warn
+          retention-days: 14

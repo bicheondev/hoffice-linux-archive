@@ -1,0 +1,198 @@
+name: HOffice runtime M3 glibc
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - runtime/m3/**
+      - .github/workflows/hoffice-runtime-m3.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-glibc-rootfs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build real dynamically linked glibc TLS program
+        run: |
+          set -euxo pipefail
+          mkdir -p build/m3/rootfs/bin \
+                   build/m3/rootfs/lib64 \
+                   build/m3/rootfs/lib/x86_64-linux-gnu \
+                   build/m3/rootfs/usr/lib/x86_64-linux-gnu \
+                   build/m3/rootfs/etc
+
+          gcc -O2 -fPIE -pie -Wall -Wextra -Werror \
+            runtime/m3/test_glibc.c \
+            -o build/m3/rootfs/bin/hrt-m3-glibc
+
+          interpreter=/lib64/ld-linux-x86-64.so.2
+          libc=$(ldd build/m3/rootfs/bin/hrt-m3-glibc | \
+            awk '/libc\.so\.6/{print $3; exit}')
+          test -x "$interpreter"
+          test -f "$libc"
+          cp -L "$interpreter" build/m3/rootfs/lib64/ld-linux-x86-64.so.2
+          cp -L "$libc" build/m3/rootfs/lib/x86_64-linux-gnu/libc.so.6
+
+          file build/m3/rootfs/bin/hrt-m3-glibc \
+               build/m3/rootfs/lib64/ld-linux-x86-64.so.2 \
+               build/m3/rootfs/lib/x86_64-linux-gnu/libc.so.6
+          readelf -hW build/m3/rootfs/bin/hrt-m3-glibc
+          readelf -lW build/m3/rootfs/bin/hrt-m3-glibc
+          readelf -dW build/m3/rootfs/bin/hrt-m3-glibc
+          readelf -lW build/m3/rootfs/bin/hrt-m3-glibc | \
+            grep -q 'Requesting program interpreter: /lib64/ld-linux-x86-64.so.2'
+          ldd build/m3/rootfs/bin/hrt-m3-glibc | tee build/m3/ldd.txt
+
+      - name: Build an instruction-boundary-patched shadow root
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/prepatch_elf.py build/m3/rootfs | \
+            tee build/m3/prepatch.txt
+          test -s build/m3/rootfs/.hrt-prepatched-v1
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('build/m3/rootfs/.hrt-prepatched-v1').read_text())
+          assert report['object_count'] == 3, report
+          assert report['syscall_count'] > 50, report
+          assert report['fs_to_gs_count'] > 60, report
+          loader = next(o for o in report['objects']
+                        if o['path'] == '/lib64/ld-linux-x86-64.so.2')
+          assert loader['syscalls'] == 55, loader
+          assert loader['fs_to_gs'] == 67, loader
+          print(json.dumps({
+              'object_count': report['object_count'],
+              'syscall_count': report['syscall_count'],
+              'fs_to_gs_count': report['fs_to_gs_count'],
+              'loader': {
+                  'syscalls': loader['syscalls'],
+                  'fs_to_gs': loader['fs_to_gs'],
+              },
+          }, sort_keys=True))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m3-glibc-rootfs
+          path: |
+            build/m3/rootfs
+            build/m3/ldd.txt
+            build/m3/prepatch.txt
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 2
+
+  execute-on-apple-silicon:
+    needs: build-glibc-rootfs
+    runs-on: macos-14
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m3-glibc-rootfs
+          path: build/m3
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+      - name: Compile the clean-room M3 Mach-O host
+        run: |
+          set -euxo pipefail
+          mkdir -p build/m3/host build/m3/generated
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c \
+            build/m3/generated/syscall_bridge.c
+          grep -q 'case LINUX_SYS_WRITEV' \
+            build/m3/generated/syscall_bridge.c
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Iruntime/m3 -Iruntime/m1 \
+            runtime/m3/main.c runtime/m1/common.c runtime/m3/elf_map.c \
+            runtime/m3/stack.c runtime/m3/patch.c \
+            build/m3/generated/syscall_bridge.c runtime/m1/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/m3/host/hrt-m3
+          file build/m3/host/hrt-m3
+          lipo -info build/m3/host/hrt-m3
+          codesign --force --sign - --timestamp=none build/m3/host/hrt-m3
+          codesign --verify --strict build/m3/host/hrt-m3
+      - name: Enter the real glibc dynamic loader with a hard deadline
+        run: |
+          set -uxo pipefail
+          test -s build/m3/rootfs/.hrt-prepatched-v1
+          : >build/m3/stdout.txt
+          : >build/m3/stderr.txt
+          /usr/bin/arch -x86_64 build/m3/host/hrt-m3 \
+            --root "$PWD/build/m3/rootfs" \
+            --program /bin/hrt-m3-glibc \
+            >build/m3/stdout.txt 2>build/m3/stderr.txt &
+          guest_pid=$!
+          timed_out=1
+          for _ in $(jot 200); do
+            if ! kill -0 "$guest_pid" 2>/dev/null; then
+              timed_out=0
+              break
+            fi
+            sleep 0.05
+          done
+          if [ "$timed_out" -ne 0 ]; then
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$guest_pid" \
+              >build/m3/process.txt 2>&1 || true
+            /usr/bin/sample "$guest_pid" 1 1 \
+              -file build/m3/sample.txt >/dev/null 2>&1 || true
+            kill -TERM "$guest_pid" 2>/dev/null || true
+            sleep 0.2
+            kill -KILL "$guest_pid" 2>/dev/null || true
+          fi
+          set +e
+          wait "$guest_pid"
+          status=$?
+          set -e
+          if [ "$timed_out" -ne 0 ]; then status=124; fi
+          printf '%s\n' "$status" > build/m3/exit-status.txt
+          printf '%s\n' "$timed_out" > build/m3/timed-out.txt
+          echo '--- stderr ---'
+          cat build/m3/stderr.txt
+          echo '--- stdout ---'
+          cat build/m3/stdout.txt
+          echo '--- process ---'
+          cat build/m3/process.txt 2>/dev/null || true
+          echo '--- sample key frames ---'
+          grep -E 'Call graph:|Thread_.*DispatchQueue|hrt-m3|0x0*[0-9a-f]{6,}' \
+            build/m3/sample.txt 2>/dev/null | head -n 120 || true
+          echo "--- exit status: $status; timed-out: $timed_out ---"
+          grep -Fx \
+            'hrt-m3: verified instruction-boundary shadow root enabled' \
+            build/m3/stderr.txt
+          test "$status" -eq 0
+          grep -Fx \
+            'HRT M3: real glibc loader, malloc, TLS, time and random passed' \
+            build/m3/stdout.txt
+          grep -E 'interpreter .*syscalls=[1-9][0-9]*' build/m3/stderr.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m3-glibc-macos-proof
+          path: |
+            build/m3/host/hrt-m3
+            build/m3/generated/syscall_bridge.c
+            build/m3/rootfs
+            build/m3/ldd.txt
+            build/m3/prepatch.txt
+            build/m3/stdout.txt
+            build/m3/stderr.txt
+            build/m3/process.txt
+            build/m3/sample.txt
+            build/m3/exit-status.txt
+            build/m3/timed-out.txt
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 2

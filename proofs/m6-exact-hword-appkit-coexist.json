@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "gate": "M6 coexistence",
+  "status": "PASS",
+  "commit": "ffb08a22bc7699cd0bfe4d0a116d8e06f889ea70",
+  "workflow_run": "31113343896",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "appkit_main_loop_active": true,
+  "hword_worker_thread_active": true,
+  "offscreen_qpa_loaded": true,
+  "eventfd2_created": true,
+  "long_poll_entered": true,
+  "long_poll_returned": true,
+  "alive_after_poll_return": true,
+  "observed_enosys": [],
+  "fatal_signal": false,
+  "hword_appkit_host_call": false,
+  "native_hword_window": false,
+  "artifact_id": "8972653325",
+  "artifact_digest": "sha256:5a71f6f1538c363af2f6370f3a8dbe7fd829ab54e19f3eff4c8a23a4532ce7d4"
+}

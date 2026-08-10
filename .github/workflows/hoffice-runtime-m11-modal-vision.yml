@@ -1,0 +1,227 @@
+name: HOffice runtime M11 validation modal Vision transcript
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-modal-vision.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-modal-vision-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OPENCTX_WORKFLOW: hoffice-runtime-m11-openctx-replay.yml
+
+jobs:
+  transcribe:
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select and download the newest successful modal proof
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input build/report diagnostics
+          gh api --method GET \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/$OPENCTX_WORKFLOW/runs" \
+            -f branch=codex/hoffice-runtime-from-scratch \
+            -f status=success -f per_page=20 \
+            >build/report/openctx-runs.json
+          source_run=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          runs=json.loads(Path('build/report/openctx-runs.json').read_text()).get('workflow_runs',[])
+          print(runs[0]['id'] if runs else '')
+          PY
+          )
+          test -n "$source_run"
+          printf '%s\n' "$source_run" >build/report/source-run.txt
+          gh run download "$source_run" --repo "$GITHUB_REPOSITORY" \
+            --name hrt-m11-hword-open-callsite-proof \
+            --dir build/input
+          image=$(find build/input -type f \
+            -name 'hword-modal-dialog*.png' -print -quit)
+          test -n "$image"
+          test -s "$image"
+          cp "$image" build/report/hword-modal-dialog.png
+          shasum -a 256 build/report/hword-modal-dialog.png \
+            >build/report/hword-modal-dialog.sha256
+          sips -g pixelWidth -g pixelHeight \
+            build/report/hword-modal-dialog.png \
+            >build/report/hword-modal-dialog-dimensions.txt
+
+      - name: Run one accurate Korean-English Vision recognition pass
+        run: |
+          set -euxo pipefail
+          cat >build/report/RecognizeModal.swift <<'SWIFT'
+          import AppKit
+          import Foundation
+          import Vision
+
+          struct Item: Codable {
+              let text: String
+              let confidence: Float
+              let x: Double
+              let y: Double
+              let width: Double
+              let height: Double
+          }
+
+          struct Result: Codable {
+              let schema: Int
+              let image: String
+              let recognitionLanguagesRequested: [String]
+              let supportedRecognitionLanguages: [String]
+              let observations: [Item]
+              let joinedText: String
+          }
+
+          let arguments = CommandLine.arguments
+          guard arguments.count == 3 else {
+              fputs("usage: RecognizeModal image output\n", stderr)
+              exit(64)
+          }
+          let imagePath = arguments[1]
+          let outputPath = arguments[2]
+          guard let image = NSImage(contentsOfFile: imagePath),
+                let cgImage = image.cgImage(forProposedRect: nil,
+                                            context: nil,
+                                            hints: nil) else {
+              fputs("could not decode image\n", stderr)
+              exit(65)
+          }
+
+          let request = VNRecognizeTextRequest()
+          request.recognitionLevel = .accurate
+          request.usesLanguageCorrection = true
+          request.minimumTextHeight = 0.012
+          let supported = try request.supportedRecognitionLanguages()
+          let preferred = ["ko-KR", "en-US"].filter { supported.contains($0) }
+          if !preferred.isEmpty {
+              request.recognitionLanguages = preferred
+          }
+          let handler = VNImageRequestHandler(cgImage: cgImage,
+                                              orientation: .up,
+                                              options: [:])
+          try handler.perform([request])
+          var items: [Item] = []
+          for observation in request.results ?? [] {
+              guard let candidate = observation.topCandidates(1).first else {
+                  continue
+              }
+              let box = observation.boundingBox
+              items.append(Item(text: candidate.string,
+                                confidence: candidate.confidence,
+                                x: box.origin.x,
+                                y: box.origin.y,
+                                width: box.size.width,
+                                height: box.size.height))
+          }
+          items.sort {
+              let leftTop = $0.y + $0.height
+              let rightTop = $1.y + $1.height
+              if abs(leftTop - rightTop) > 0.025 {
+                  return leftTop > rightTop
+              }
+              return $0.x < $1.x
+          }
+          let result = Result(
+              schema: 1,
+              image: imagePath,
+              recognitionLanguagesRequested: preferred,
+              supportedRecognitionLanguages: supported,
+              observations: items,
+              joinedText: items.map(\.text).joined(separator: "\n")
+          )
+          let encoder = JSONEncoder()
+          encoder.outputFormatting = [.prettyPrinted, .sortedKeys,
+                                      .withoutEscapingSlashes]
+          let data = try encoder.encode(result)
+          try data.write(to: URL(fileURLWithPath: outputPath))
+          print(String(data: data, encoding: .utf8)!)
+          SWIFT
+          swiftc build/report/RecognizeModal.swift \
+            -framework AppKit -framework Vision \
+            -o build/report/recognize-modal
+          build/report/recognize-modal \
+            build/report/hword-modal-dialog.png \
+            build/report/modal-vision.json
+
+      - name: Preserve the transcript with source and uncertainty
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          result=json.loads(Path('build/report/modal-vision.json').read_text())
+          image=Path('build/report/hword-modal-dialog.png')
+          source_run=Path('build/report/source-run.txt').read_text().strip()
+          result['source_workflow_run']=source_run
+          result['image_sha256']=hashlib.sha256(image.read_bytes()).hexdigest()
+          result['recognition_is_diagnostic_not_authoritative']=True
+          payload=json.dumps(result,ensure_ascii=False,indent=2)+'\n'
+          Path('diagnostics/m11-hword-validation-modal-vision.json').write_text(
+              payload,encoding='utf-8')
+          lines=[
+              '# HWord validation modal Vision transcript','',
+              f"- Source workflow run: `{source_run}`",
+              f"- Image SHA-256: `{result['image_sha256']}`",
+              f"- Recognition languages: `{result['recognitionLanguagesRequested']}`",
+              '- This transcript is diagnostic and must be checked against the captured image.','',
+              '## Recognized text','',
+              '```text',result.get('joinedText',''),'```','',
+              '## Observations','',
+          ]
+          for item in result.get('observations',[]):
+              lines.append(
+                  f"- `{item['text']}` — confidence `{item['confidence']:.4f}`, "
+                  f"box `({item['x']:.4f}, {item['y']:.4f}, "
+                  f"{item['width']:.4f}, {item['height']:.4f})`")
+          lines.append('')
+          Path('diagnostics/m11-hword-validation-modal-vision.md').write_text(
+              '\n'.join(lines),encoding='utf-8')
+          print(payload)
+          PY
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-hword-validation-modal-vision.json \
+                  diagnostics/m11-hword-validation-modal-vision.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: transcribe the exact HWord validation modal'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-hword-validation-modal-vision
+          path: |
+            build/report/hword-modal-dialog.png
+            build/report/hword-modal-dialog.sha256
+            build/report/hword-modal-dialog-dimensions.txt
+            build/report/modal-vision.json
+            diagnostics/m11-hword-validation-modal-vision.json
+            diagnostics/m11-hword-validation-modal-vision.md
+          if-no-files-found: warn
+          retention-days: 14

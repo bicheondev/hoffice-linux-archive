@@ -1,0 +1,362 @@
+name: HOffice runtime M11 empty-open mask matrix replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-empty-mask-matrix-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-empty-mask-matrix-replay-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREPARED_RUN_ID: '31235068358'
+  QPA_RUN_ID: '31305695836'
+  QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+  BUILD_WORKFLOW_FILE: hoffice-runtime-m11-build-empty-mask-matrix.yml
+
+jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    outputs:
+      host_run_id: ${{ steps.lock.outputs.host_run_id }}
+    steps:
+      - name: Wait for the latest successful matrix build
+        id: lock
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess, time, urllib.parse
+          from pathlib import Path
+
+          repository = os.environ['GITHUB_REPOSITORY']
+          branch = os.environ['GITHUB_REF_NAME']
+          workflow = os.environ['BUILD_WORKFLOW_FILE']
+          required = {f'hrt-m11-empty-mask-{mask}-host' for mask in (1,2,4,7)}
+          deadline = time.monotonic() + 45 * 60
+          chosen = None
+          last = None
+          while time.monotonic() < deadline:
+              query = urllib.parse.urlencode({'branch': branch, 'per_page': 20})
+              runs = json.loads(subprocess.run([
+                  'gh','api','--method','GET',
+                  f'repos/{repository}/actions/workflows/{workflow}/runs?{query}',
+              ], check=True, stdout=subprocess.PIPE, text=True).stdout
+              ).get('workflow_runs', [])
+              runs.sort(key=lambda item:item['created_at'], reverse=True)
+              if runs: last = runs[0]
+              for run in runs:
+                  if run.get('status') != 'completed' or run.get('conclusion') != 'success':
+                      continue
+                  artifacts = json.loads(subprocess.run([
+                      'gh','api','--method','GET',
+                      f'repos/{repository}/actions/runs/{run["id"]}/artifacts?per_page=100',
+                  ], check=True, stdout=subprocess.PIPE, text=True).stdout
+                  ).get('artifacts', [])
+                  names = {item['name'] for item in artifacts if not item.get('expired')}
+                  if required <= names:
+                      chosen = run
+                      break
+              if chosen: break
+              time.sleep(20)
+          if chosen is None:
+              raise SystemExit(f'no complete successful mask build; latest={json.dumps(last)}')
+          Path('matrix-build.json').write_text(
+              json.dumps(chosen, indent=2) + '\n', encoding='utf-8')
+          with Path(os.environ['GITHUB_OUTPUT']).open('a', encoding='utf-8') as output:
+              output.write(f"host_run_id={chosen['id']}\n")
+          print(json.dumps(chosen, indent=2))
+          PY
+
+  replay:
+    needs: resolve
+    strategy:
+      fail-fast: false
+      matrix:
+        mask: [1, 2, 4, 7]
+    runs-on: macos-14
+    timeout-minutes: 90
+    env:
+      HOST_RUN_ID: ${{ needs.resolve.outputs.host_run_id }}
+      MASK: ${{ matrix.mask }}
+      HOST_ARTIFACT_NAME: hrt-m11-empty-mask-${{ matrix.mask }}-host
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lock the exact matrix artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/host-meta build/proof diagnostics
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          repository = os.environ['GITHUB_REPOSITORY']
+          run_id = os.environ['HOST_RUN_ID']
+          name = os.environ['HOST_ARTIFACT_NAME']
+          artifacts = json.loads(subprocess.run([
+              'gh','api','--method','GET',
+              f'repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100',
+          ], check=True, stdout=subprocess.PIPE, text=True).stdout
+          ).get('artifacts', [])
+          matches = [item for item in artifacts
+                     if item.get('name') == name and not item.get('expired')]
+          if len(matches) != 1:
+              raise SystemExit(f'expected one {name} artifact, found {len(matches)}')
+          artifact = matches[0]
+          digest = artifact.get('digest') or ''
+          if not digest.startswith('sha256:'):
+              raise SystemExit(f'artifact digest missing: {artifact}')
+          payload = {
+              'run_id': run_id,
+              'artifact_id': str(artifact['id']),
+              'artifact_name': name,
+              'artifact_digest': digest.removeprefix('sha256:'),
+              'mask': int(os.environ['MASK']),
+          }
+          Path('build/input/host-meta/selected-host.json').write_text(
+              json.dumps(payload, indent=2) + '\n', encoding='utf-8')
+          with Path(os.environ['GITHUB_ENV']).open('a', encoding='utf-8') as env:
+              env.write(f"HOST_ARTIFACT_DIGEST={payload['artifact_digest']}\n")
+          print(json.dumps(payload, indent=2))
+          PY
+
+      - name: Generate the mask-specific exact replay
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated
+          python3 runtime/m11/augment_full_product_replay_v2.py \
+            runtime/m11/run_korean_title_staged_replay.sh \
+            build/generated/run_korean_title_mask.sh
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          path = Path('build/generated/run_korean_title_mask.sh')
+          text = path.read_text(encoding='utf-8')
+          old = 'hrt-m10-hword-main-window-input-proof'
+          new = os.environ['HOST_ARTIFACT_NAME']
+          count = text.count(old)
+          if count < 1:
+              raise SystemExit(f'host artifact anchor not found: {count}')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+          chmod 0755 build/generated/run_korean_title_mask.sh
+          grep -F "$HOST_ARTIFACT_NAME" build/generated/run_korean_title_mask.sh
+
+      - name: Replay mask ${{ matrix.mask }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HRT_M11_MODAL_CAPTURE_PATH: ${{ github.workspace }}/build/proof/hword-modal-dialog.png
+        run: |
+          set -euxo pipefail
+          build/generated/run_korean_title_mask.sh
+
+      - name: Classify mask ${{ matrix.mask }}
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -f build/proof/stderr.txt
+          python3 - <<'PY'
+          import hashlib, json, os, re
+          from pathlib import Path
+          mask = int(os.environ['MASK'])
+          stderr = Path('build/proof/stderr.txt').read_text(errors='replace')
+          lines = stderr.splitlines()
+          markers = [
+              {'index': int(a), 'applied': bool(int(b))}
+              for a,b in re.findall(
+                  r'HRT M11 EMPTYMASK: index=(\d+) applied=(\d+)', stderr)
+          ]
+          expected = [
+              {'index': index, 'applied': bool(mask & (1 << (index-1)))}
+              for index in (1,2,3)
+          ]
+          modal = (any('CREATE type=3 geometry=400x130 title=한워드' in line
+                       for line in lines) or
+                   'dlg_data_validate_stop.png' in stderr or
+                   Path('build/proof/hword-modal-dialog.png').is_file())
+          editor = any(value in stderr for value in
+                       ('hword::HwordAppView','HwordAppView'))
+          document_tab = 'DocumentTabImpl' in stderr
+          text_stage = 'staged text input after focus' in stderr
+          accepted_key = any(
+              ('key delivered' in line or 'key event delivered' in line) and
+              ('accepted=1' in line or 'widget-accepted=1' in line)
+              for line in lines)
+          post_capture = 'HRT M10 APPKIT: post-input capture result=1' in stderr
+          fatal = 'HRT M10 FATAL:' in stderr or 'fatal signal' in stderr.lower()
+          unsupported_40 = 'Linux syscall ENOSYS 40' in stderr
+          sendfile_count = len(re.findall(r'HRT M11 SENDFILE:', stderr))
+
+          if fatal:
+              rank, status, classification = 0, 'FAIL', 'FATAL'
+          elif markers != expected:
+              rank, status, classification = 1, 'DIAGNOSTIC', 'MASK_NOT_EXERCISED'
+          elif modal:
+              rank, status, classification = 2, 'DIAGNOSTIC', 'MODAL_PERSISTS'
+          elif editor and text_stage and accepted_key and post_capture:
+              rank, status, classification = 6, 'PASS', 'TEXT_ACCEPTED'
+          elif editor:
+              rank, status, classification = 5, 'PARTIAL_PASS', 'EDITOR_MATERIALIZED'
+          elif document_tab:
+              rank, status, classification = 4, 'DIAGNOSTIC', 'NO_MODAL_DOCUMENT_TAB_ONLY'
+          else:
+              rank, status, classification = 3, 'DIAGNOSTIC', 'NO_MODAL_NO_EDITOR'
+
+          captures = {}
+          for name in ('hword-main-window.png','hword-before-input.png',
+                       'hword-after-input.png','hword-modal-dialog.png'):
+              path = Path('build/proof') / name
+              if path.is_file():
+                  captures[name] = {
+                      'size': path.stat().st_size,
+                      'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+                  }
+          payload = {
+              'schema': 1,
+              'workflow_run': os.environ['GITHUB_RUN_ID'],
+              'host_run': os.environ['HOST_RUN_ID'],
+              'mask': mask,
+              'status': status,
+              'classification': classification,
+              'rank': rank,
+              'markers': markers,
+              'expected_markers': expected,
+              'modal': modal,
+              'editor_materialized': editor,
+              'document_tab_observed': document_tab,
+              'text_stage': text_stage,
+              'accepted_key': accepted_key,
+              'post_capture': post_capture,
+              'fatal': fatal,
+              'unsupported_syscall_40': unsupported_40,
+              'sendfile_trace_count': sendfile_count,
+              'captures': captures,
+              'stderr_tail': '\n'.join(lines[-400:]),
+          }
+          encoded = json.dumps(payload, ensure_ascii=False, indent=2) + '\n'
+          Path('build/proof/mask-result.json').write_text(encoded, encoding='utf-8')
+          Path(f'diagnostics/m11-empty-mask-{mask}.json').write_text(
+              encoded, encoding='utf-8')
+          print(encoded)
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-empty-mask-${{ matrix.mask }}-replay
+          path: |
+            build/input/host-meta
+            build/proof
+            diagnostics/m11-empty-mask-${{ matrix.mask }}.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  aggregate:
+    needs: [resolve, replay]
+    if: always() && needs.resolve.result == 'success'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: hrt-m11-empty-mask-*-replay
+          path: build/matrix
+          merge-multiple: false
+
+      - name: Select the best empty-open mask
+        run: |
+          set -euxo pipefail
+          mkdir -p diagnostics build/proof
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          results = []
+          for path in sorted(Path('build/matrix').rglob('mask-result.json')):
+              results.append(json.loads(path.read_text(encoding='utf-8')))
+          if not results:
+              raise SystemExit('no matrix result was uploaded')
+          results.sort(key=lambda item:(item['rank'], -item['mask']), reverse=True)
+          best = results[0]
+          payload = {
+              'schema': 1,
+              'milestone': 'M11-empty-open-mask-matrix',
+              'workflow_run': os.environ['GITHUB_RUN_ID'],
+              'host_run': os.environ.get('HOST_RUN_ID'),
+              'status': best['status'],
+              'classification': f"BEST_MASK_{best['mask']}_{best['classification']}",
+              'best_mask': best['mask'],
+              'best_result': best,
+              'results': sorted(results, key=lambda item:item['mask']),
+          }
+          encoded = json.dumps(payload, ensure_ascii=False, indent=2) + '\n'
+          Path('diagnostics/m11-empty-mask-matrix-latest.json').write_text(
+              encoded, encoding='utf-8')
+          Path(f"diagnostics/m11-empty-mask-matrix-{os.environ['GITHUB_RUN_ID']}.json").write_text(
+              encoded, encoding='utf-8')
+          Path('diagnostics/m11-empty-mask-matrix-latest.md').write_text(
+              '# HWord empty-open mask matrix\n\n'
+              f"- Status: `{payload['status']}`\n"
+              f"- Classification: `{payload['classification']}`\n"
+              f"- Best mask: `{payload['best_mask']}`\n\n" +
+              '\n'.join(
+                  f"- Mask `{item['mask']}`: `{item['classification']}`, "
+                  f"modal `{item['modal']}`, editor `{item['editor_materialized']}`"
+                  for item in sorted(results, key=lambda value:value['mask'])) + '\n',
+              encoding='utf-8')
+          Path('build/proof/matrix-summary.json').write_text(
+              encoded, encoding='utf-8')
+          print(encoded)
+          PY
+
+      - name: Commit the durable matrix result
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-empty-mask-matrix-*.json \
+                  diagnostics/m11-empty-mask-matrix-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: classify the HWord empty-open mask matrix'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m11-empty-mask-matrix-summary
+          path: |
+            build/proof/matrix-summary.json
+            diagnostics/m11-empty-mask-matrix-*.json
+            diagnostics/m11-empty-mask-matrix-latest.md
+          if-no-files-found: error
+          retention-days: 14

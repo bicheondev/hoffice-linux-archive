@@ -1,0 +1,211 @@
+name: HOffice runtime M11 unsupported syscall frontier
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'diagnostics/m11-empty-fallback-latest.json'
+      - 'diagnostics/m11-sendfile-fallback-latest.json'
+      - 'diagnostics/m11-empty-mask-matrix-latest.json'
+      - 'diagnostics/m11-empty-buffer-latest.json'
+      - 'diagnostics/m11-short-buffer-v2-latest.json'
+      - '.github/workflows/hoffice-runtime-m11-syscall-frontier.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-syscall-frontier-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Locate and download the newest durable HWord replay proof
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/candidates build/selected build/report diagnostics
+          python3 - <<'PY'
+          import json,os,pathlib,subprocess,zipfile
+
+          repository=os.environ['GITHUB_REPOSITORY']
+          branch=os.environ['GITHUB_REF_NAME']
+          workflows=[
+              ('hoffice-runtime-m11-short-buffer-replay-v2.yml',
+               'hrt-m11-hword-short-buffer-v2-proof'),
+              ('hoffice-runtime-m11-empty-buffer-replay.yml',
+               'hrt-m11-hword-empty-buffer-proof'),
+              ('hoffice-runtime-m11-sendfile-fallback-replay.yml',
+               'hrt-m11-hword-sendfile-fallback-proof'),
+              ('hoffice-runtime-m11-empty-fallback-replay-v2.yml',
+               'hrt-m11-hword-empty-fallback-proof'),
+          ]
+          candidates=[]
+          for workflow,artifact_name in workflows:
+              try:
+                  runs=json.loads(subprocess.run([
+                      'gh','api','--method','GET',
+                      f'repos/{repository}/actions/workflows/{workflow}/runs'
+                      f'?branch={branch}&per_page=20'],
+                      check=True,stdout=subprocess.PIPE,text=True).stdout
+                  ).get('workflow_runs',[])
+              except subprocess.CalledProcessError:
+                  continue
+              for run in runs:
+                  if run.get('status')!='completed' or run.get('conclusion')!='success':
+                      continue
+                  artifacts=json.loads(subprocess.run([
+                      'gh','api','--method','GET',
+                      f'repos/{repository}/actions/runs/{run["id"]}/artifacts?per_page=100'],
+                      check=True,stdout=subprocess.PIPE,text=True).stdout
+                  ).get('artifacts',[])
+                  for artifact in artifacts:
+                      if artifact.get('name')==artifact_name and not artifact.get('expired'):
+                          candidates.append({'workflow':workflow,'run':run,
+                                             'artifact':artifact})
+          candidates.sort(key=lambda item:item['artifact']['created_at'],reverse=True)
+          selected=None
+          for item in candidates:
+              artifact=item['artifact']
+              target=pathlib.Path('build/candidates')/str(artifact['id'])
+              target.mkdir(parents=True,exist_ok=True)
+              archive=target/'artifact.zip'
+              with archive.open('wb') as output:
+                  subprocess.run(['gh','api','--method','GET',
+                      f'repos/{repository}/actions/artifacts/{artifact["id"]}/zip'],
+                      check=True,stdout=output)
+              with zipfile.ZipFile(archive) as zipped:
+                  zipped.extractall(target/'expanded')
+              stderr=list((target/'expanded').rglob('stderr.txt'))
+              if len(stderr)!=1:
+                  continue
+              selected=item
+              pathlib.Path('build/selected/stderr.txt').write_bytes(stderr[0].read_bytes())
+              pathlib.Path('build/report/source.json').write_text(
+                  json.dumps(item,indent=2)+'\n',encoding='utf-8')
+              break
+          if selected is None:
+              raise SystemExit('no completed HWord replay artifact contains one stderr.txt')
+          print(json.dumps(selected,indent=2))
+          PY
+      - name: Map every ENOSYS number and its temporal context
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from __future__ import annotations
+          import json,os,re
+          from pathlib import Path
+
+          stderr=Path('build/selected/stderr.txt').read_text(errors='replace')
+          lines=stderr.splitlines()
+          names={}
+          header=Path('/usr/include/x86_64-linux-gnu/asm/unistd_64.h')
+          if header.is_file():
+              for line in header.read_text().splitlines():
+                  match=re.match(r'#define __NR_(\w+)\s+(\d+)',line)
+                  if match:
+                      names[int(match.group(2))]=match.group(1)
+          occurrences=[]
+          for index,line in enumerate(lines):
+              match=re.search(r'Linux syscall ENOSYS\s+(\d+)',line)
+              if not match: continue
+              number=int(match.group(1))
+              occurrences.append({
+                  'line_index':index,
+                  'number':number,
+                  'name':names.get(number),
+                  'line':line,
+                  'context_before':lines[max(0,index-8):index],
+                  'context_after':lines[index+1:min(len(lines),index+9)],
+              })
+          grouped={}
+          for item in occurrences:
+              key=str(item['number'])
+              group=grouped.setdefault(key,{
+                  'number':item['number'],'name':item['name'],
+                  'count':0,'first_line_index':item['line_index'],
+                  'last_line_index':item['line_index'],
+                  'representative':item})
+              group['count']+=1
+              group['last_line_index']=item['line_index']
+          ordered=sorted(grouped.values(),key=lambda item:item['first_line_index'])
+          stage_one_line=next((i for i,line in enumerate(lines)
+                               if 'HRT M11 DOCIO: armed stage=1' in line),None)
+          modal_line=next((i for i,line in enumerate(lines)
+                           if 'CREATE type=3 geometry=400x130 title=한워드' in line),None)
+          for item in ordered:
+              first=item['first_line_index']
+              if stage_one_line is None or first<stage_one_line:
+                  item['phase']='startup'
+              elif modal_line is not None and first>=modal_line:
+                  item['phase']='after_modal'
+              else:
+                  item['phase']='document_construction'
+          source=json.loads(Path('build/report/source.json').read_text())
+          if not ordered:
+              status='PASS'; classification='NO_UNSUPPORTED_LINUX_SYSCALLS_IN_LATEST_REPLAY'
+          elif any(item['phase']=='document_construction' for item in ordered):
+              status='DIAGNOSTIC'; classification='DOCUMENT_CONSTRUCTION_HAS_UNSUPPORTED_SYSCALLS'
+          else:
+              status='DIAGNOSTIC'; classification='ONLY_NON_DOCUMENT_UNSUPPORTED_SYSCALLS_REMAIN'
+          payload={
+              'schema':1,'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],'status':status,
+              'classification':classification,'source':source,
+              'line_count':len(lines),'occurrence_count':len(occurrences),
+              'unique_syscall_count':len(ordered),'syscalls':ordered,
+              'stage_one_line_index':stage_one_line,'modal_line_index':modal_line,
+          }
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          Path('diagnostics/m11-syscall-frontier-latest.json').write_text(
+              encoded,encoding='utf-8')
+          Path(f"diagnostics/m11-syscall-frontier-{os.environ['GITHUB_RUN_ID']}.json").write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-syscall-frontier-latest.md').write_text(
+              '# HWord unsupported syscall frontier\n\n'
+              f"- Status: `{status}`\n"
+              f"- Classification: `{classification}`\n"
+              f"- Occurrences: `{len(occurrences)}`\n"
+              f"- Unique syscalls: `{len(ordered)}`\n\n"+
+              '\n'.join(
+                  f"- `{item['number']}` (`{item['name']}`): "
+                  f"`{item['count']}` calls, phase `{item['phase']}`"
+                  for item in ordered)+'\n',encoding='utf-8')
+          Path('build/report/syscall-frontier.json').write_text(encoded,encoding='utf-8')
+          print(encoded)
+          PY
+      - name: Commit the durable syscall frontier
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-syscall-frontier-*.json \
+                  diagnostics/m11-syscall-frontier-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: classify the latest HWord syscall frontier'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-syscall-frontier
+          path: |
+            build/report
+            diagnostics/m11-syscall-frontier-*.json
+            diagnostics/m11-syscall-frontier-latest.md
+          if-no-files-found: warn
+          retention-days: 14

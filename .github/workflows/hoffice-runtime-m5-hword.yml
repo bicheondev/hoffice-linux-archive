@@ -1,0 +1,308 @@
+name: HOffice runtime M5 HWord offscreen
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - runtime/m1/**
+      - runtime/m3/**
+      - runtime/m4/**
+      - runtime/m5/**
+      - .github/workflows/hoffice-runtime-m5-hword.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  EXPECTED_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  OFFSCREEN_PLUGIN: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so
+  OFFSCREEN_SHA256: 8ba0ddb433ed8cb838013f833b11d62a0f02c481aa51b2d8193c7179e232dee6
+  MINIMAL_PLUGIN: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqminimal.so
+  MINIMAL_SHA256: 4fa33c4c6e6f64e06219e2580ab6d843b641b4e49b2f5efbcb7d113b66c3fca4
+  LEGACY_SSL_NAME: libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
+  LEGACY_SSL_URL: https://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
+  LEGACY_SSL_SHA256: 7cf39d70a639017d1dd7c8d36daa2258063608688e449fddf40ffdd46f992a78
+
+jobs:
+  build-hword-rootfs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install closure tools and HWord host ABI libraries
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            binutils file jq \
+            libglu1-mesa libharfbuzz-icu0 \
+            libcups2t64 libcurl3t64-gnutls \
+            libfontconfig1 libfreetype6 libcairo2 libglib2.0-0t64 \
+            libx11-6 libxext6 libxrender1 libxi6 libxcb1 \
+            libgl1 libegl1 libdbus-1-3 \
+            libxkbcommon0 libxkbcommon-x11-0 \
+            libnss3 libsm6 libice6 libxfixes3 libxrandr2 \
+            libxcursor1 libxinerama1
+      - name: Download and verify exact HOffice package and entry objects
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/m5/package build/m5/rootfs build/m5/legacy
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" \
+            --dir build/m5
+          printf '%s  %s\n' "$EXPECTED_SHA256" "build/m5/$ASSET_NAME" | \
+            sha256sum --check -
+          dpkg-deb --extract "build/m5/$ASSET_NAME" build/m5/package
+          printf '%s  %s\n' "$PROGRAM_SHA256" \
+            "build/m5/package${PROGRAM}" | sha256sum --check -
+          printf '%s  %s\n' "$OFFSCREEN_SHA256" \
+            "build/m5/package${OFFSCREEN_PLUGIN}" | sha256sum --check -
+          printf '%s  %s\n' "$MINIMAL_SHA256" \
+            "build/m5/package${MINIMAL_PLUGIN}" | sha256sum --check -
+      - name: Add the hash-locked OpenSSL 1.1 compatibility pair
+        run: |
+          set -euxo pipefail
+          curl --fail --location --retry 5 --retry-all-errors \
+            --output "build/m5/$LEGACY_SSL_NAME" "$LEGACY_SSL_URL"
+          printf '%s  %s\n' "$LEGACY_SSL_SHA256" \
+            "build/m5/$LEGACY_SSL_NAME" | sha256sum --check -
+          dpkg-deb --extract "build/m5/$LEGACY_SSL_NAME" build/m5/legacy
+          legacy_dir=build/m5/legacy/usr/lib/x86_64-linux-gnu
+          suite_bin=build/m5/package/opt/hnc/hoffice11/Bin
+          test -f "$legacy_dir/libssl.so.1.1"
+          test -f "$legacy_dir/libcrypto.so.1.1"
+          cp -a "$legacy_dir/libssl.so.1.1" "$suite_bin/"
+          cp -a "$legacy_dir/libcrypto.so.1.1" "$suite_bin/"
+          sha256sum \
+            "$suite_bin/libssl.so.1.1" \
+            "$suite_bin/libcrypto.so.1.1" | \
+            tee build/m5/legacy-openssl-sha256.txt
+          file \
+            "$suite_bin/libssl.so.1.1" \
+            "$suite_bin/libcrypto.so.1.1" | \
+            tee build/m5/legacy-openssl-file.txt
+      - name: Resolve HWord and runtime-discovered QPA ELF closure
+        run: |
+          set -euxo pipefail
+          python3 runtime/m4/build_closure.py \
+            --package-root build/m5/package \
+            --output-root build/m5/rootfs \
+            --program "$PROGRAM" \
+            --include "$OFFSCREEN_PLUGIN" \
+            --include "$MINIMAL_PLUGIN" | tee build/m5/closure.txt
+          test -s build/m5/rootfs/.hrt-closure-v1.json
+          jq '{program, explicit_includes, root_count, object_count, total_bytes}' \
+            build/m5/rootfs/.hrt-closure-v1.json | tee build/m5/closure-summary.json
+          jq -e '.program == "/opt/hnc/hoffice11/Bin/hword"' \
+            build/m5/rootfs/.hrt-closure-v1.json >/dev/null
+          jq -e '.root_count == 3' \
+            build/m5/rootfs/.hrt-closure-v1.json >/dev/null
+          jq -e '[.objects[].guest_path] | index("/opt/hnc/hoffice11/Bin/libHwordApp.so") != null' \
+            build/m5/rootfs/.hrt-closure-v1.json >/dev/null
+          jq -e '[.objects[].guest_path] | index("/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so") != null' \
+            build/m5/rootfs/.hrt-closure-v1.json >/dev/null
+          jq -e '[.objects[].guest_path] | index("/opt/hnc/hoffice11/Bin/libssl.so.1.1") != null' \
+            build/m5/rootfs/.hrt-closure-v1.json >/dev/null
+          jq -e '[.objects[].guest_path] | index("/opt/hnc/hoffice11/Bin/libcrypto.so.1.1") != null' \
+            build/m5/rootfs/.hrt-closure-v1.json >/dev/null
+      - name: Copy exact non-ELF startup resources
+        run: |
+          set -euxo pipefail
+          source_root=build/m5/package/opt/hnc/hoffice11/Bin
+          target_root=build/m5/rootfs/opt/hnc/hoffice11/Bin
+          mkdir -p "$target_root/Resource"
+          cp -a "$source_root/Resource/Hword" "$target_root/Resource/"
+          cp -a "$source_root/Resource/Common" "$target_root/Resource/"
+          for directory in Hword Shared Strings FontDB UxXml; do
+            cp -a "$source_root/$directory" "$target_root/"
+          done
+          mkdir -p \
+            build/m5/rootfs/tmp/hrt-home/.config \
+            build/m5/rootfs/tmp/hrt-home/.cache \
+            build/m5/rootfs/tmp/hrt-runtime
+          chmod 700 build/m5/rootfs/tmp/hrt-runtime
+          du -sh build/m5/rootfs | tee build/m5/rootfs-size.txt
+          find build/m5/rootfs/opt/hnc/hoffice11/Bin/qt/plugins/platforms \
+            -maxdepth 1 -type f -print -exec sha256sum {} \; | \
+            tee build/m5/platform-plugins.txt
+      - name: Prepatch verified instruction boundaries in HWord shadow root
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/prepatch_elf.py build/m5/rootfs | \
+            tee build/m5/prepatch.txt
+          test -s build/m5/rootfs/.hrt-prepatched-v1
+          jq '{object_count, syscall_count, fs_to_gs_count}' \
+            build/m5/rootfs/.hrt-prepatched-v1 | tee build/m5/prepatch-summary.json
+          jq -e '.syscall_count > 50 and .fs_to_gs_count > 60' \
+            build/m5/rootfs/.hrt-prepatched-v1 >/dev/null
+      - name: Pack the shadow root into one verified transfer object
+        run: |
+          set -euxo pipefail
+          tar -C build/m5/rootfs -czf build/m5/hword-rootfs.tar.gz .
+          sha256sum build/m5/hword-rootfs.tar.gz | \
+            tee build/m5/hword-rootfs.tar.gz.sha256
+          stat -c '%n %s bytes' build/m5/hword-rootfs.tar.gz | \
+            tee build/m5/hword-rootfs-archive-size.txt
+          tar -tzf build/m5/hword-rootfs.tar.gz | \
+            grep -Fx './.hrt-prepatched-v1'
+          tar -tzf build/m5/hword-rootfs.tar.gz | \
+            grep -Fx './opt/hnc/hoffice11/Bin/hword'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: |
+            build/m5/hword-rootfs.tar.gz
+            build/m5/hword-rootfs.tar.gz.sha256
+            build/m5/hword-rootfs-archive-size.txt
+            build/m5/closure.txt
+            build/m5/closure-summary.json
+            build/m5/prepatch.txt
+            build/m5/prepatch-summary.json
+            build/m5/rootfs-size.txt
+            build/m5/platform-plugins.txt
+            build/m5/legacy-openssl-sha256.txt
+            build/m5/legacy-openssl-file.txt
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 0
+
+  execute-on-apple-silicon:
+    needs: build-hword-rootfs
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/m5
+      - name: Verify and expand the single HWord transfer object
+        run: |
+          set -euxo pipefail
+          cd build/m5
+          shasum -a 256 -c hword-rootfs.tar.gz.sha256
+          mkdir -p rootfs
+          tar -xzf hword-rootfs.tar.gz -C rootfs
+          test -s rootfs/.hrt-closure-v1.json
+          test -s rootfs/.hrt-prepatched-v1
+          printf '%s  %s\n' "$PROGRAM_SHA256" "rootfs${PROGRAM}" | \
+            shasum -a 256 -c -
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+      - name: Compile instrumented clean-room HWord host
+        run: |
+          set -euxo pipefail
+          mkdir -p build/m5/host build/m5/generated
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c \
+            build/m5/generated/syscall_bridge.c
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('build/m5/generated/syscall_bridge.c')
+          text = path.read_text()
+          text = text.replace('#define M3_TRACE_LIMIT 256u',
+                              '#define M3_TRACE_LIMIT 4096u')
+          path.write_text(text)
+          PY
+          grep -q '#define M3_TRACE_LIMIT 4096u' \
+            build/m5/generated/syscall_bridge.c
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Iruntime/m3 -Iruntime/m1 \
+            runtime/m3/main.c runtime/m1/common.c runtime/m3/elf_map.c \
+            runtime/m3/stack.c runtime/m3/patch.c \
+            build/m5/generated/syscall_bridge.c runtime/m1/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/m5/host/hrt-m5
+          file build/m5/host/hrt-m5
+          codesign --force --sign - --timestamp=none build/m5/host/hrt-m5
+          codesign --verify --strict build/m5/host/hrt-m5
+      - name: Enter exact HWord with official offscreen QPA
+        run: |
+          set -uxo pipefail
+          test -s build/m5/rootfs/.hrt-prepatched-v1
+          : >build/m5/stdout.txt
+          : >build/m5/stderr.txt
+          /usr/bin/arch -x86_64 build/m5/host/hrt-m5 \
+            --root "$PWD/build/m5/rootfs" \
+            --program "$PROGRAM" \
+            >build/m5/stdout.txt 2>build/m5/stderr.txt &
+          guest_pid=$!
+          reached_deadline=1
+          for _ in $(jot 240); do
+            if ! kill -0 "$guest_pid" 2>/dev/null; then
+              reached_deadline=0
+              break
+            fi
+            sleep 0.05
+          done
+          if [ "$reached_deadline" -ne 0 ]; then
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$guest_pid" \
+              >build/m5/process.txt 2>&1 || true
+            /usr/bin/sample "$guest_pid" 1 1 \
+              -file build/m5/sample.txt >/dev/null 2>&1 || true
+            kill -TERM "$guest_pid" 2>/dev/null || true
+            sleep 0.2
+            kill -KILL "$guest_pid" 2>/dev/null || true
+          fi
+          set +e
+          wait "$guest_pid"
+          status=$?
+          set -e
+          if [ "$reached_deadline" -ne 0 ]; then status=124; fi
+          printf '%s\n' "$status" > build/m5/exit-status.txt
+          printf '%s\n' "$reached_deadline" > build/m5/reached-deadline.txt
+          echo '--- stderr tail ---'
+          tail -n 500 build/m5/stderr.txt
+          echo '--- stdout tail ---'
+          tail -n 200 build/m5/stdout.txt
+          echo '--- process ---'
+          cat build/m5/process.txt 2>/dev/null || true
+          echo '--- sample key frames ---'
+          grep -E 'Call graph:|Thread_.*DispatchQueue|hrt-m5|libqoffscreen|Qt5|0x0*[0-9a-f]{6,}' \
+            build/m5/sample.txt 2>/dev/null | head -n 200 || true
+          echo "--- status: $status; reached-deadline: $reached_deadline ---"
+          grep -Fx \
+            'hrt-m3: verified instruction-boundary shadow root enabled' \
+            build/m5/stderr.txt
+          grep -E 'interpreter .*syscalls=[1-9][0-9]*' \
+            build/m5/stderr.txt
+          grep -F 'libqoffscreen.so' build/m5/stderr.txt
+          test "$status" -eq 124
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m5-hword-offscreen-macos-proof
+          path: |
+            build/m5/host/hrt-m5
+            build/m5/generated/syscall_bridge.c
+            build/m5/closure.txt
+            build/m5/closure-summary.json
+            build/m5/prepatch.txt
+            build/m5/prepatch-summary.json
+            build/m5/rootfs-size.txt
+            build/m5/hword-rootfs-archive-size.txt
+            build/m5/platform-plugins.txt
+            build/m5/legacy-openssl-sha256.txt
+            build/m5/legacy-openssl-file.txt
+            build/m5/stdout.txt
+            build/m5/stderr.txt
+            build/m5/process.txt
+            build/m5/sample.txt
+            build/m5/exit-status.txt
+            build/m5/reached-deadline.txt
+          if-no-files-found: error
+          retention-days: 2

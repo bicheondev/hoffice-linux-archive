@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "milestone": "M5",
+  "status": "PASS",
+  "boundary": "official offscreen QPA loaded and the real Qt/GLib event loop survived a blocking poll return",
+  "commit": "4d40b75216d1f28284dda69c40b3f0669899747f",
+  "workflow_run": "31109034978",
+  "workflow": "HOffice runtime M5 HWord POSIX startup",
+  "runner": "macos-14-arm64",
+  "execution_architecture": "x86_64 under Rosetta",
+  "rootfs_source_run": "31102898765",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256_before_prepatch": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "platform_plugin": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so",
+  "platform_plugin_sha256": "8ba0ddb433ed8cb838013f833b11d62a0f02c481aa51b2d8193c7179e232dee6",
+  "artifact": {
+    "id": "8970865887",
+    "name": "hrt-m5-hword-posix-proof",
+    "digest": "sha256:400fbee9e93de1058a979d5d95959dc21c43a9a7d77d68bb7963718b970938c5"
+  },
+  "observations": {
+    "offscreen_metadata_parsed": true,
+    "offscreen_library_loaded": true,
+    "unix_sockets_created": true,
+    "rooted_mkdir_and_unlink_exercised": true,
+    "linux_time_exercised": true,
+    "glib_wakeup_pipe_created": true,
+    "long_poll_entered": true,
+    "long_poll_timeout_ms": 29551,
+    "long_poll_returned": true,
+    "process_alive_three_seconds_after_return": true,
+    "process_state_after_return": "sleeping, 0.0% CPU",
+    "fatal_signal_observed": false,
+    "remaining_observed_enosys": [42, 290]
+  },
+  "not_credited": [
+    "onscreen rendering",
+    "AppKit NSWindow creation",
+    "native input",
+    "Korean IME",
+    "document operation",
+    "clean shutdown"
+  ]
+}

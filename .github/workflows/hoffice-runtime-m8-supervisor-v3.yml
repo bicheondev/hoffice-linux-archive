@@ -1,0 +1,227 @@
+name: HOffice runtime M8 pipeline supervisor v3
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m8-supervisor-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m8-pipeline-supervisor-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TARGET_BRANCH: codex/hoffice-runtime-from-scratch
+  PUBLISH_WORKFLOW: hoffice-runtime-m6-qpa-publish.yml
+  REPLAY_WORKFLOW: hoffice-runtime-m8-hword-appkit-input.yml
+
+jobs:
+  supervise:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - name: Clone the exact target branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          git clone --filter=blob:none --single-branch \
+            --branch "$TARGET_BRANCH" \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
+          git -C repo config user.name github-actions[bot]
+          git -C repo config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+      - name: Trigger, wait for, and verify the M8 pipeline
+        id: pipeline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p repo/diagnostics build
+          started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          refresh_repo() {
+            git -C repo fetch origin "$TARGET_BRANCH"
+            git -C repo reset --hard "origin/$TARGET_BRANCH"
+          }
+
+          push_trigger() {
+            local path=$1
+            local message=$2
+            refresh_repo
+            mkdir -p "repo/$(dirname "$path")"
+            printf '%s\n' "$(date -u +%Y-%m-%dT%H:%M:%S.%NZ) supervisor_run=$GITHUB_RUN_ID" \
+              >"repo/$path"
+            git -C repo add "$path"
+            git -C repo commit -m "$message"
+            for _ in $(seq 1 12); do
+              if git -C repo push origin "HEAD:$TARGET_BRANCH"; then
+                return 0
+              fi
+              git -C repo fetch origin "$TARGET_BRANCH"
+              git -C repo rebase "origin/$TARGET_BRANCH"
+            done
+            return 1
+          }
+
+          latest_run_json() {
+            local workflow=$1
+            gh api \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs?branch=${TARGET_BRANCH}&per_page=30" \
+              >"build/${workflow}.runs.json"
+            jq -c '.workflow_runs[0] // {}' "build/${workflow}.runs.json"
+          }
+
+          wait_for_new_run() {
+            local workflow=$1
+            local before=$2
+            local output="build/${workflow}.runs.json"
+            local run_id=""
+            for _ in $(seq 1 180); do
+              gh api \
+                "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs?branch=${TARGET_BRANCH}&per_page=40" \
+                >"$output"
+              run_id=$(jq -r --argjson before "$before" \
+                '[.workflow_runs[] | select(.id > $before)] | sort_by(.id) | reverse | .[0].id // empty' \
+                "$output")
+              if [ -n "$run_id" ]; then
+                printf '%s\n' "$run_id"
+                return 0
+              fi
+              sleep 2
+            done
+            return 1
+          }
+
+          wait_for_completion() {
+            local run_id=$1
+            local limit=$2
+            local state conclusion
+            for _ in $(seq 1 "$limit"); do
+              gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" \
+                >"build/run-${run_id}.json"
+              state=$(jq -r .status "build/run-${run_id}.json")
+              conclusion=$(jq -r '.conclusion // ""' "build/run-${run_id}.json")
+              printf 'run=%s status=%s conclusion=%s\n' "$run_id" "$state" "$conclusion" >&2
+              if [ "$state" = completed ]; then
+                printf '%s\n' "$conclusion"
+                return 0
+              fi
+              sleep 10
+            done
+            return 1
+          }
+
+          m8_prebuilt_ready() {
+            test -d repo/runtime/m6/prebuilt && \
+              grep -R -q '"m8_input_poll_transport"[[:space:]]*:[[:space:]]*true' \
+                repo/runtime/m6/prebuilt
+          }
+
+          m8_proof_ready() {
+            test -s repo/proofs/m8-hword-appkit-input.json && \
+              jq -e '.status == "PASS"' repo/proofs/m8-hword-appkit-input.json >/dev/null
+          }
+
+          refresh_repo
+          publish_latest=$(latest_run_json "$PUBLISH_WORKFLOW")
+          publish_before=$(printf '%s' "$publish_latest" | jq -r '.id // 0')
+          publish_id=$publish_before
+          publish_conclusion=$(printf '%s' "$publish_latest" | jq -r '.conclusion // ""')
+
+          if ! m8_prebuilt_ready; then
+            push_trigger runtime/m6/qpa/.m8-supervisor-publish-trigger \
+              'ci: trigger the M8 input-enabled QPA publisher'
+            publish_id=$(wait_for_new_run "$PUBLISH_WORKFLOW" "$publish_before")
+            publish_conclusion=$(wait_for_completion "$publish_id" 270)
+            refresh_repo
+          fi
+
+          publish_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${publish_id}"
+          if [ "$publish_conclusion" != success ] || ! m8_prebuilt_ready; then
+            jq -n \
+              --arg status FAIL --arg stage qpa-publish \
+              --arg started_at "$started_at" --arg branch "$TARGET_BRANCH" \
+              --arg head "$(git -C repo rev-parse HEAD)" \
+              --argjson publish_run "$publish_id" \
+              --arg publish_url "$publish_url" \
+              --arg conclusion "$publish_conclusion" \
+              '{schema:3,status:$status,stage:$stage,started_at:$started_at,branch:$branch,head:$head,publish:{run:$publish_run,url:$publish_url,conclusion:$conclusion},m8_prebuilt_ready:false,durable_proof_present:false}' \
+              >repo/diagnostics/m8-pipeline-supervisor-v3.json
+            echo 'pipeline_ok=0' >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          replay_latest=$(latest_run_json "$REPLAY_WORKFLOW")
+          replay_before=$(printf '%s' "$replay_latest" | jq -r '.id // 0')
+          replay_id=$replay_before
+          replay_conclusion=$(printf '%s' "$replay_latest" | jq -r '.conclusion // ""')
+
+          if ! m8_proof_ready; then
+            push_trigger runtime/m8/.m8-supervisor-replay-trigger \
+              'ci: trigger the exact-HWord M8 AppKit input replay'
+            replay_id=$(wait_for_new_run "$REPLAY_WORKFLOW" "$replay_before")
+            replay_conclusion=$(wait_for_completion "$replay_id" 330)
+            refresh_repo
+          fi
+
+          replay_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${replay_id}"
+          if [ "$replay_conclusion" = success ] && m8_proof_ready; then
+            final_status=PASS
+            final_stage=complete
+            pipeline_ok=1
+            proof_present=true
+          else
+            final_status=FAIL
+            final_stage=exact-hword-replay
+            pipeline_ok=0
+            proof_present=false
+          fi
+
+          jq -n \
+            --arg status "$final_status" --arg stage "$final_stage" \
+            --arg started_at "$started_at" \
+            --arg completed_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg branch "$TARGET_BRANCH" \
+            --arg head "$(git -C repo rev-parse HEAD)" \
+            --argjson publish_run "$publish_id" \
+            --arg publish_url "$publish_url" \
+            --arg publish_conclusion "$publish_conclusion" \
+            --argjson replay_run "$replay_id" \
+            --arg replay_url "$replay_url" \
+            --arg replay_conclusion "$replay_conclusion" \
+            --argjson proof_present "$proof_present" \
+            '{schema:3,status:$status,stage:$stage,started_at:$started_at,completed_at:$completed_at,branch:$branch,head:$head,publish:{run:$publish_run,url:$publish_url,conclusion:$publish_conclusion},replay:{run:$replay_run,url:$replay_url,conclusion:$replay_conclusion},m8_prebuilt_ready:true,durable_proof_present:$proof_present}' \
+            >repo/diagnostics/m8-pipeline-supervisor-v3.json
+          echo "pipeline_ok=$pipeline_ok" >>"$GITHUB_OUTPUT"
+
+      - name: Commit the durable supervisor result
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          cd repo
+          git add diagnostics/m8-pipeline-supervisor-v3.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'diagnostics: record the M8 pipeline supervisor v3 result [skip ci]'
+          for _ in $(seq 1 12); do
+            if git push origin "HEAD:$TARGET_BRANCH"; then
+              exit 0
+            fi
+            git fetch origin "$TARGET_BRANCH"
+            git rebase "origin/$TARGET_BRANCH"
+          done
+          exit 1
+
+      - name: Require the durable exact-HWord M8 proof
+        if: steps.pipeline.outputs.pipeline_ok != '1'
+        run: |
+          echo 'M8 did not produce a durable PASS proof; inspect diagnostics/m8-pipeline-supervisor-v3.json.' >&2
+          exit 1

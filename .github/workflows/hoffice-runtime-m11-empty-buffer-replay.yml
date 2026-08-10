@@ -1,0 +1,251 @@
+name: HOffice runtime M11 guest path-buffer repair replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-empty-buffer-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-empty-buffer-replay-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREPARED_RUN_ID: '31235068358'
+  QPA_RUN_ID: '31305695836'
+  QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+  BUILD_WORKFLOW_FILE: hoffice-runtime-m11-build-empty-buffer-host.yml
+  HOST_ARTIFACT_NAME: hrt-m10-hword-main-window-input-proof
+
+jobs:
+  replay:
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the verified HWord runtime frontier
+        run: |
+          set -euxo pipefail
+          test -s proofs/m10-hword-culture-resource-window.json
+          grep -F '"status": "PASS"' proofs/m10-hword-culture-resource-window.json
+          test -s proofs/m10-clone-chdir.json
+          grep -F '"status": "PASS"' proofs/m10-clone-chdir.json
+
+      - name: Wait for and lock the latest successful guest-buffer host
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/host-meta build/proof diagnostics
+          python3 - <<'PY'
+          import json, os, subprocess, time, urllib.parse
+          from pathlib import Path
+          repository=os.environ['GITHUB_REPOSITORY']
+          workflow=os.environ['BUILD_WORKFLOW_FILE']
+          branch=os.environ['GITHUB_REF_NAME']
+          artifact_name=os.environ['HOST_ARTIFACT_NAME']
+          deadline=time.monotonic()+45*60
+          selected=None; last=None
+          while time.monotonic()<deadline:
+              query=urllib.parse.urlencode({'branch':branch,'per_page':20})
+              runs=json.loads(subprocess.run([
+                  'gh','api','--method','GET',
+                  f'repos/{repository}/actions/workflows/{workflow}/runs?{query}',
+              ],check=True,stdout=subprocess.PIPE,text=True).stdout
+              ).get('workflow_runs',[])
+              runs.sort(key=lambda item:item['created_at'],reverse=True)
+              if runs: last=runs[0]
+              for run in runs:
+                  if run.get('status')!='completed' or run.get('conclusion')!='success':
+                      continue
+                  artifacts=json.loads(subprocess.run([
+                      'gh','api','--method','GET',
+                      f'repos/{repository}/actions/runs/{run["id"]}/artifacts?per_page=100',
+                  ],check=True,stdout=subprocess.PIPE,text=True).stdout
+                  ).get('artifacts',[])
+                  matches=[item for item in artifacts
+                           if item.get('name')==artifact_name and not item.get('expired')]
+                  if len(matches)==1:
+                      selected={'run':run,'artifact':matches[0]}; break
+              if selected: break
+              time.sleep(20)
+          if selected is None:
+              raise SystemExit(f'no successful guest-buffer host; latest={json.dumps(last)}')
+          artifact=selected['artifact']; digest=artifact.get('digest') or ''
+          if not digest.startswith('sha256:'):
+              raise SystemExit(f'host artifact digest missing: {artifact}')
+          payload={
+              'schema':1,
+              'run_id':str(selected['run']['id']),
+              'head_sha':selected['run']['head_sha'],
+              'artifact_id':str(artifact['id']),
+              'artifact_name':artifact['name'],
+              'artifact_digest':digest.removeprefix('sha256:'),
+              'artifact_size':artifact['size_in_bytes'],
+          }
+          Path('build/input/host-meta/selected-host.json').write_text(
+              json.dumps(payload,indent=2)+'\n',encoding='utf-8')
+          with Path(os.environ['GITHUB_ENV']).open('a',encoding='utf-8') as env:
+              env.write(f"HOST_RUN_ID={payload['run_id']}\n")
+              env.write(f"HOST_ARTIFACT_DIGEST={payload['artifact_digest']}\n")
+          print(json.dumps(payload,indent=2))
+          PY
+
+      - name: Replay exact HWord with bounded guest-buffer repair
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HRT_M11_MODAL_CAPTURE_PATH: ${{ github.workspace }}/build/proof/hword-modal-dialog.png
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated
+          python3 runtime/m11/augment_full_product_replay_v2.py \
+            runtime/m11/run_korean_title_staged_replay.sh \
+            build/generated/run_korean_title_empty_buffer.sh
+          test -x build/generated/run_korean_title_empty_buffer.sh
+          build/generated/run_korean_title_empty_buffer.sh
+
+      - name: Classify the guest-buffer repair
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -f build/proof/stderr.txt
+          python3 - <<'PY'
+          import hashlib, json, os, re
+          from pathlib import Path
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          lines=stderr.splitlines()
+          host=json.loads(Path('build/input/host-meta/selected-host.json').read_text())
+          base_path=Path('build/proof/summary.json')
+          base=json.loads(base_path.read_text()) if base_path.is_file() else {}
+          applied=[int(value) for value in re.findall(
+              r'HRT M11 EMPTYBUFFER: index=(\d+) applied=1',stderr)]
+          skipped=[line for line in lines
+                   if line.startswith('HRT M11 EMPTYBUFFER: applied=0')]
+          sendfile=[line for line in lines if line.startswith('HRT M11 SENDFILE:')]
+          unsupported_40='Linux syscall ENOSYS 40' in stderr
+          modal=(any('CREATE type=3 geometry=400x130 title=한워드' in line
+                     for line in lines) or
+                 'dlg_data_validate_stop.png' in stderr or
+                 Path('build/proof/hword-modal-dialog.png').is_file())
+          editor=any(value in stderr for value in ('hword::HwordAppView','HwordAppView'))
+          document_tab='DocumentTabImpl' in stderr
+          text_stage='staged text input after focus' in stderr
+          accepted=any(
+              ('key delivered' in line or 'key event delivered' in line) and
+              ('accepted=1' in line or 'widget-accepted=1' in line)
+              for line in lines)
+          post_capture='HRT M10 APPKIT: post-input capture result=1' in stderr
+          fatal='HRT M10 FATAL:' in stderr or 'fatal signal' in stderr.lower()
+          if fatal:
+              status='FAIL'; classification='HWORD_EMPTY_BUFFER_FATAL'
+          elif not applied:
+              status='DIAGNOSTIC'; classification='HWORD_EMPTY_BUFFER_NOT_APPLIED'
+          elif modal:
+              status='DIAGNOSTIC'; classification='HWORD_EMPTY_BUFFER_MODAL_PERSISTS'
+          elif editor and text_stage and accepted and post_capture:
+              status='PASS'; classification='HWORD_EMPTY_BUFFER_TEXT_ACCEPTED'
+          elif editor:
+              status='PARTIAL_PASS'; classification='HWORD_EMPTY_BUFFER_EDITOR_MATERIALIZED'
+          elif document_tab:
+              status='DIAGNOSTIC'; classification='HWORD_EMPTY_BUFFER_NO_MODAL_DOCUMENT_TAB_ONLY'
+          else:
+              status='DIAGNOSTIC'; classification='HWORD_EMPTY_BUFFER_NO_MODAL_NO_EDITOR'
+          captures={}
+          for name in ('hword-main-window.png','hword-before-input.png',
+                       'hword-after-input.png','hword-modal-dialog.png'):
+              path=Path('build/proof')/name
+              if path.is_file():
+                  captures[name]={'size':path.stat().st_size,
+                                  'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+          payload={
+              'schema':1,
+              'milestone':'M11-guest-path-buffer-repair',
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'status':status,
+              'classification':classification,
+              'host':host,
+              'applied_indices':applied,
+              'skipped_markers':skipped,
+              'sendfile_trace_count':len(sendfile),
+              'unsupported_syscall_40':unsupported_40,
+              'modal':modal,
+              'editor_materialized':editor,
+              'document_tab_observed':document_tab,
+              'text_stage':text_stage,
+              'accepted_key':accepted,
+              'post_capture':post_capture,
+              'fatal':fatal,
+              'captures':captures,
+              'base_replay_summary':base,
+              'stderr_tail':'\n'.join(lines[-500:]),
+          }
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          run_id=os.environ['GITHUB_RUN_ID']
+          Path(f'diagnostics/m11-empty-buffer-{run_id}.json').write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-empty-buffer-latest.json').write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-empty-buffer-latest.md').write_text(
+              '# HWord bounded guest path-buffer repair\n\n'
+              f"- Status: `{status}`\n"
+              f"- Classification: `{classification}`\n"
+              f"- Applied indices: `{applied}`\n"
+              f"- Skipped: `{len(skipped)}`\n"
+              f"- Modal: `{modal}`\n"
+              f"- Editor: `{editor}`\n",
+              encoding='utf-8')
+          Path('build/proof/empty-buffer-summary.json').write_text(
+              encoded,encoding='utf-8')
+          print(encoded)
+          PY
+
+      - name: Commit the durable guest-buffer classification
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -s diagnostics/m11-empty-buffer-latest.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-empty-buffer-*.json \
+                  diagnostics/m11-empty-buffer-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: classify the HWord guest path-buffer repair'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-hword-empty-buffer-proof
+          path: |
+            build/generated/run_korean_title_empty_buffer.sh
+            build/host/hrt-m11-korean-staged
+            build/input/host-meta
+            build/proof
+            diagnostics/m11-empty-buffer-*.json
+            diagnostics/m11-empty-buffer-latest.md
+          if-no-files-found: warn
+          retention-days: 14

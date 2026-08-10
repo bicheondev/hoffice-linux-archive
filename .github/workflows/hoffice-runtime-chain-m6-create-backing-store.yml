@@ -1,0 +1,26 @@
+name: HOffice chain M6 offscreen create backing store
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'proofs/chain/m6-window-constructor.json'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/hoffice-runtime-guest-symbol-probe-chain.yml
+    with:
+      predecessor_proof: proofs/chain/m6-window-constructor.json
+      symbol_regex: 'QOffscreenIntegration.*createPlatformBackingStore'
+      label: Qt offscreen createPlatformBackingStore
+      milestone: M6-chain-offscreen-create-backing-store
+      diagnostic_path: diagnostics/chain/m6-create-backing-store.json
+      proof_path: proofs/chain/m6-create-backing-store.json
+      trace_limit: 88000
+      run_seconds: 50
+      require_pipe2: true

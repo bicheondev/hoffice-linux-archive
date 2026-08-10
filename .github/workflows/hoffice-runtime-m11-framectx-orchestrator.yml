@@ -1,0 +1,542 @@
+name: HOffice runtime M11 canonical empty-path frame chain
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-framectx-orchestrator.yml'
+      - 'runtime/m11/augment_hword_document_io_trace_v2.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v5.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v6.py'
+      - 'runtime/m11/run_korean_title_staged_replay.sh'
+      - 'runtime/m11/augment_full_product_replay.py'
+      - 'runtime/m11/augment_full_product_replay_v2.py'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-canonical-framectx-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUILD_WORKFLOW: hoffice-runtime-m11-build-fs-korean-host.yml
+  PREPARED_RUN_ID: '31235068358'
+  QPA_RUN_ID: '31305695836'
+  QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  frame-chain:
+    runs-on: macos-14
+    timeout-minutes: 95
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the verified Korean HWord frontier
+        run: |
+          set -euxo pipefail
+          test -s proofs/m10-hword-culture-resource-window.json
+          grep -F '"status": "PASS"' \
+            proofs/m10-hword-culture-resource-window.json
+          test -s proofs/m10-clone-chdir.json
+          grep -F '"status": "PASS"' proofs/m10-clone-chdir.json
+
+      - name: Wait for and select a verified FRAMECTX host artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/host-candidates build/proof
+          selected_run=''
+          selected_digest=''
+          selected_binary=''
+
+          for attempt in $(seq 1 50); do
+            rm -rf build/host-candidates/*
+            gh api --method GET \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/$BUILD_WORKFLOW/runs" \
+              -f branch=codex/hoffice-runtime-from-scratch \
+              -f status=success -f per_page=20 \
+              >build/proof/build-runs.json
+
+            python3 - <<'PY' >build/proof/build-run-ids.txt
+          import json
+          from pathlib import Path
+          payload = json.loads(Path('build/proof/build-runs.json').read_text())
+          for run in payload.get('workflow_runs', []):
+              print(run['id'])
+          PY
+
+            while IFS= read -r run_id; do
+              test -n "$run_id" || continue
+              candidate="build/host-candidates/$run_id"
+              mkdir -p "$candidate"
+              if ! gh run download "$run_id" \
+                   --repo "$GITHUB_REPOSITORY" \
+                   --name hrt-m10-hword-main-window-input-proof \
+                   --dir "$candidate" >/dev/null 2>&1; then
+                rm -rf "$candidate"
+                continue
+              fi
+              binary=$(find "$candidate" -type f \
+                -name 'hrt-m10-hword-main-input' -print -quit)
+              test -n "$binary" || { rm -rf "$candidate"; continue; }
+              if ! strings "$binary" | grep -Fq 'HRT M11 FRAMECTX:'; then
+                rm -rf "$candidate"
+                continue
+              fi
+              if ! strings "$binary" | grep -Fq 'M11_DOCIO_FRAME_COUNT'; then
+                # The constant may be optimized out; FRAMECTX is the hard gate.
+                true
+              fi
+              digest=$(gh api \
+                "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" \
+                --jq '.artifacts[] | select(.name == "hrt-m10-hword-main-window-input-proof") | .digest' \
+                | head -n1 | sed 's/^sha256://')
+              test -n "$digest"
+              selected_run="$run_id"
+              selected_digest="$digest"
+              selected_binary="$binary"
+              break
+            done <build/proof/build-run-ids.txt
+
+            if test -n "$selected_run"; then
+              break
+            fi
+            sleep 20
+          done
+
+          test -n "$selected_run"
+          test -n "$selected_digest"
+          test -s "$selected_binary"
+          printf '%s\n' "$selected_run" >build/proof/selected-host-run.txt
+          printf '%s\n' "$selected_digest" >build/proof/selected-host-artifact-digest.txt
+          shasum -a 256 "$selected_binary" \
+            >build/proof/selected-host-binary.sha256
+          strings "$selected_binary" | grep -F 'HRT M11 FRAMECTX:' \
+            >build/proof/selected-host-frame-marker.txt
+          {
+            echo "HOST_RUN_ID=$selected_run"
+            echo "HOST_ARTIFACT_DIGEST=$selected_digest"
+          } >>"$GITHUB_ENV"
+
+      - name: Replay the exact product closure with canonical frame tracing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HRT_M11_MODAL_CAPTURE_PATH: ${{ github.workspace }}/build/proof/hword-modal-dialog.png
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated
+          python3 runtime/m11/augment_full_product_replay_v2.py \
+            runtime/m11/run_korean_title_staged_replay.sh \
+            build/generated/run_korean_title_framectx.sh
+          test -x build/generated/run_korean_title_framectx.sh
+          build/generated/run_korean_title_framectx.sh
+
+      - name: Parse only canonical RBP frame returns for empty paths
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -f build/proof/stderr.txt
+          grep -F 'HRT M11 FRAMECTX:' build/proof/stderr.txt \
+            >build/proof/frame-context-lines.txt || true
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          stderr_path = Path('build/proof/stderr.txt')
+          text = stderr_path.read_text(errors='replace')
+          lines = text.splitlines()
+          records = []
+          pending_open = None
+          pending_openctx = None
+          for line in lines:
+              if line.startswith('HRT M11 DOCIO:') and ' op=open ' in line:
+                  pending_open = line
+                  pending_openctx = None
+                  continue
+              if pending_open is None:
+                  continue
+              if line.startswith('HRT M11 OPENCTX:'):
+                  pending_openctx = line
+                  continue
+              if not line.startswith('HRT M11 FRAMECTX:'):
+                  continue
+
+              frames = []
+              return_values = dict(re.findall(
+                  r'\b(frame\d+)-return=(0x[0-9a-f]+)', line))
+              objects = {}
+              for label, value in re.findall(
+                      r'(frame\d+-return)-object=(.*?)(?=\s+frame\d+-return-'
+                      r'(?:object|file-offset)=|$)', line):
+                  objects[label] = value
+              offsets = dict(re.findall(
+                  r'(frame\d+-return)-file-offset=(0x[0-9a-f]+)', line))
+              count_match = re.search(r'\bcount=(\d+)', line)
+              count = int(count_match.group(1)) if count_match else 0
+              for index in range(count):
+                  label = f'frame{index}-return'
+                  frames.append({
+                      'index': index,
+                      'value': return_values.get(label),
+                      'object': objects.get(label),
+                      'file_offset': offsets.get(label),
+                  })
+              records.append({
+                  'open': pending_open,
+                  'open_context': pending_openctx,
+                  'frame_context': line,
+                  'frames': frames,
+              })
+              pending_open = None
+              pending_openctx = None
+
+          empty = [record for record in records
+                   if re.search(r' guest=(?:\s|$)', record['open'])]
+          for record in empty:
+              record['first_hoffice_frame'] = next((
+                  frame for frame in record['frames']
+                  if frame.get('object', '').startswith('/opt/hnc/hoffice11/')
+              ), None)
+              record['first_non_runtime_frame'] = next((
+                  frame for frame in record['frames']
+                  if frame.get('object') and frame['object'] not in {
+                      '/lib/x86_64-linux-gnu/libc.so.6',
+                      '/lib64/ld-linux-x86-64.so.2',
+                  }
+              ), None)
+
+          payload = {
+              'schema': 1,
+              'workflow_run': os.environ['GITHUB_RUN_ID'],
+              'commit': os.environ['GITHUB_SHA'],
+              'host_run': os.environ.get('HOST_RUN_ID'),
+              'empty_path_open_count': len(empty),
+              'frame_context_record_count': len(records),
+              'empty_path_records': empty,
+              'empty_path_first_hoffice_frames': [
+                  record['first_hoffice_frame'] for record in empty
+              ],
+          }
+          output = Path('build/proof/canonical-frame-context-summary.json')
+          output.write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8')
+          Path('diagnostics').mkdir(exist_ok=True)
+          Path('diagnostics/m11-hword-empty-path-frame-summary.json').write_text(
+              output.read_text(encoding='utf-8'), encoding='utf-8')
+          Path('diagnostics/m11-hword-empty-path-frame-summary.md').write_text(
+              '# HWord empty-path canonical frame chain\n\n'
+              f"- Workflow run: `{payload['workflow_run']}`\n"
+              f"- Host run: `{payload['host_run']}`\n"
+              f"- Empty-path opens: `{len(empty)}`\n"
+              f"- First HOffice frames: "
+              f"`{payload['empty_path_first_hoffice_frames']}`\n",
+              encoding='utf-8')
+          print(json.dumps(payload, ensure_ascii=False, indent=2))
+          if not empty:
+              raise SystemExit('no empty-path open was paired with FRAMECTX')
+          if not all('frame_context' in record for record in empty):
+              raise SystemExit('an empty-path open lacks canonical frame context')
+          PY
+
+      - name: Extract exact caller objects and produce focused static attribution
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          test -s build/proof/canonical-frame-context-summary.json
+          mkdir -p build/static/root build/static/objects build/static/reports \
+                   build/input/prepared-static build/input/deb-static
+
+          if ! find build/input -type f -name '*.tar.zst' -print -quit \
+               | grep -q .; then
+            gh run download "$PREPARED_RUN_ID" \
+              --repo "$GITHUB_REPOSITORY" \
+              --name hrt-m9-bootstrap-prepared-guest \
+              --dir build/input/prepared-static
+          fi
+          prepared=$(find build/input -type f \
+            \( -name '*.tar.zst' -o -name '*.tzst' \) -print -quit)
+          test -n "$prepared"
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          payload = json.loads(Path(
+              'build/proof/canonical-frame-context-summary.json'
+          ).read_text())
+          paths = []
+          for record in payload['empty_path_records']:
+              for frame in record['frames']:
+                  path = frame.get('object')
+                  offset = frame.get('file_offset')
+                  if not path or not offset:
+                      continue
+                  if path.startswith('/opt/hnc/hoffice11/') and path not in paths:
+                      paths.append(path)
+          Path('build/static/reports/caller-paths.txt').write_text(
+              ''.join('.' + path + '\n' for path in paths), encoding='utf-8')
+          if not paths:
+              raise SystemExit('canonical frame chain contains no HOffice object')
+          PY
+
+          zstd -dc "$prepared" | tar -tf - \
+            >build/static/reports/prepared-paths.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          available = set(Path(
+              'build/static/reports/prepared-paths.txt'
+          ).read_text(errors='replace').splitlines())
+          requested = Path(
+              'build/static/reports/caller-paths.txt'
+          ).read_text().splitlines()
+          present = [value for value in requested if value in available]
+          missing = [value for value in requested if value not in available]
+          Path('build/static/reports/prepared-caller-paths.txt').write_text(
+              ''.join(value + '\n' for value in present), encoding='utf-8')
+          Path('build/static/reports/package-caller-paths.txt').write_text(
+              ''.join(value + '\n' for value in missing), encoding='utf-8')
+          PY
+          if test -s build/static/reports/prepared-caller-paths.txt; then
+            zstd -dc "$prepared" | tar -xf - -C build/static/root \
+              -T build/static/reports/prepared-caller-paths.txt
+          fi
+
+          if test -s build/static/reports/package-caller-paths.txt; then
+            gh release download "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" \
+              --dir build/input/deb-static
+            printf '%s  %s\n' "$PACKAGE_SHA256" \
+              "build/input/deb-static/$ASSET_NAME" | shasum -a 256 -c -
+            data_member=$(ar t "build/input/deb-static/$ASSET_NAME" \
+              | awk '/^data\.tar/{print; exit}')
+            test -n "$data_member"
+            ar p "build/input/deb-static/$ASSET_NAME" "$data_member" \
+              >"build/input/deb-static/$data_member"
+            tar -xf "build/input/deb-static/$data_member" \
+              -C build/static/root \
+              -T build/static/reports/package-caller-paths.txt
+          fi
+
+          python3 - <<'PY'
+          from __future__ import annotations
+          import json
+          from pathlib import Path
+          import re
+          import struct
+          import subprocess
+
+          summary = json.loads(Path(
+              'build/proof/canonical-frame-context-summary.json'
+          ).read_text())
+
+          def parse_loads(blob: bytes):
+              header = struct.unpack_from('<16sHHIQQQIHHHHHH', blob, 0)
+              ident = header[0]
+              if ident[:4] != b'\x7fELF' or ident[4] != 2 or ident[5] != 1:
+                  raise RuntimeError('not little-endian ELF64')
+              phoff, phentsize, phnum = header[5], header[9], header[10]
+              loads = []
+              for index in range(phnum):
+                  values = struct.unpack_from(
+                      '<IIQQQQQQ', blob, phoff + index * phentsize)
+                  p_type, flags, off, va, _, filesz, memsz, align = values
+                  if p_type == 1:
+                      loads.append({
+                          'index': index, 'flags': flags,
+                          'file_offset': off, 'virtual_address': va,
+                          'file_size': filesz, 'memory_size': memsz,
+                          'alignment': align,
+                      })
+              return loads
+
+          def symbols(path: Path):
+              out = subprocess.run(
+                  ['readelf', '-Ws', str(path)], check=True,
+                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                  text=True).stdout
+              pattern = re.compile(
+                  r'^\s*\d+:\s+([0-9a-fA-F]+)\s+(\d+)\s+(\S+)\s+'
+                  r'(\S+)\s+(\S+)\s+(\S+)\s+(.*)$')
+              result = []
+              for line in out.splitlines():
+                  match = pattern.match(line)
+                  if not match:
+                      continue
+                  value, size = int(match.group(1), 16), int(match.group(2))
+                  name = match.group(7).strip()
+                  if value and name:
+                      result.append({
+                          'value': value, 'size': size,
+                          'type': match.group(3),
+                          'binding': match.group(4),
+                          'visibility': match.group(5),
+                          'section': match.group(6), 'name': name,
+                      })
+              return result
+
+          requests = []
+          seen = set()
+          for record_index, record in enumerate(summary['empty_path_records']):
+              for frame in record['frames']:
+                  obj = frame.get('object')
+                  offset_text = frame.get('file_offset')
+                  if not obj or not offset_text or not obj.startswith('/opt/hnc/hoffice11/'):
+                      continue
+                  key = (obj, offset_text)
+                  if key in seen:
+                      continue
+                  seen.add(key)
+                  requests.append((record_index, frame['index'], obj,
+                                   int(offset_text, 16)))
+
+          results = []
+          for record_index, frame_index, guest_path, file_offset in requests:
+              path = Path('build/static/root') / guest_path.lstrip('/')
+              if not path.is_file():
+                  results.append({
+                      'record_index': record_index,
+                      'frame_index': frame_index,
+                      'guest_path': guest_path,
+                      'file_offset': file_offset,
+                      'classification': 'OBJECT_NOT_EXTRACTED',
+                  })
+                  continue
+              blob = path.read_bytes()
+              loads = parse_loads(blob)
+              segment = next((item for item in loads
+                  if item['file_offset'] <= file_offset <
+                     item['file_offset'] + item['file_size']), None)
+              if segment is None:
+                  results.append({
+                      'record_index': record_index,
+                      'frame_index': frame_index,
+                      'guest_path': guest_path,
+                      'file_offset': file_offset,
+                      'classification': 'OUTSIDE_PT_LOAD',
+                  })
+                  continue
+              virtual = segment['virtual_address'] + file_offset - segment['file_offset']
+              syms = symbols(path)
+              containing = [item for item in syms
+                  if item['size'] > 0 and item['value'] <= virtual <
+                     item['value'] + item['size']]
+              preceding = [item for item in syms if item['value'] <= virtual]
+              nearest = max(containing or preceding,
+                            key=lambda item: item['value'], default=None)
+              result = {
+                  'record_index': record_index,
+                  'frame_index': frame_index,
+                  'guest_path': guest_path,
+                  'host_path': str(path),
+                  'file_offset': file_offset,
+                  'virtual_address': virtual,
+                  'segment': segment,
+                  'segment_executable': bool(segment['flags'] & 1),
+                  'nearest_symbol': nearest,
+                  'offset_from_nearest_symbol':
+                      virtual - nearest['value'] if nearest else None,
+                  'bytes_before': blob[max(0, file_offset - 48):file_offset].hex(),
+                  'bytes_at_and_after': blob[
+                      file_offset:min(len(blob), file_offset + 96)].hex(),
+              }
+              results.append(result)
+              flat = guest_path.strip('/').replace('/', '_')
+              prefix = Path('build/static/reports') / (
+                  f'{flat}.file-0x{file_offset:x}.va-0x{virtual:x}')
+              if segment['flags'] & 1:
+                  start = max(segment['virtual_address'], virtual - 0x300)
+                  stop = min(segment['virtual_address'] +
+                             segment['memory_size'], virtual + 0x500)
+                  output = subprocess.run(
+                      ['objdump', '-dC', f'--start-address={start}',
+                       f'--stop-address={stop}', str(path)], check=True,
+                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      text=True).stdout
+                  prefix.with_suffix('.disassembly.txt').write_text(
+                      output, encoding='utf-8')
+
+          payload = {
+              'schema': 1,
+              'source_frame_summary':
+                  'diagnostics/m11-hword-empty-path-frame-summary.json',
+              'requests': results,
+          }
+          Path('build/static/reports/canonical-frame-static-attribution.json').write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8')
+          Path('diagnostics/m11-hword-empty-path-static-attribution.json').write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8')
+          lines = ['# HWord empty-path static attribution', '']
+          for item in results:
+              lines.append(
+                  f"- `{item['guest_path']}` file `0x{item['file_offset']:x}`"
+                  + (f" → VA `0x{item['virtual_address']:x}`, nearest "
+                     f"`{item['nearest_symbol']['name'] if item['nearest_symbol'] else None}`"
+                     if 'virtual_address' in item else
+                     f" → `{item['classification']}`"))
+          markdown = '\n'.join(lines) + '\n'
+          Path('build/static/reports/canonical-frame-static-attribution.md').write_text(
+              markdown, encoding='utf-8')
+          Path('diagnostics/m11-hword-empty-path-static-attribution.md').write_text(
+              markdown, encoding='utf-8')
+          print(json.dumps(payload, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Commit the durable canonical frame attribution
+        if: always()
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-hword-empty-path-frame-summary.json \
+                  diagnostics/m11-hword-empty-path-frame-summary.md \
+                  diagnostics/m11-hword-empty-path-static-attribution.json \
+                  diagnostics/m11-hword-empty-path-static-attribution.md \
+                  2>/dev/null || true
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: attribute canonical HWord empty-path frames'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-hword-canonical-frame-proof
+          path: |
+            build/generated/run_korean_title_framectx.sh
+            build/host/hrt-m11-korean-staged
+            build/proof
+            build/static/reports
+            diagnostics/m11-hword-empty-path-frame-summary.json
+            diagnostics/m11-hword-empty-path-frame-summary.md
+            diagnostics/m11-hword-empty-path-static-attribution.json
+            diagnostics/m11-hword-empty-path-static-attribution.md
+          if-no-files-found: warn
+          retention-days: 14

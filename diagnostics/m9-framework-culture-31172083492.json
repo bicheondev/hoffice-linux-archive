@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "milestone": "M9-framework-culture-call",
+  "status": "PASS",
+  "workflow_run": "31172083492",
+  "commit": "5ef5bfa45b331a14323d3f159c1d95817cdc7ab6",
+  "artifact_id": "8991385328",
+  "artifact_sha256": "80d29cec05fccbcaf39f446b101d4bfc125d252deb332316fe0fa9a15c9952f7",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "package_sha256": "23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46",
+  "before_call": {
+    "probe_site": "0x11e22121",
+    "framework_object": "0x8b3ba90",
+    "framework_vtable": "0x13813d78",
+    "offset_to_top": "0x0",
+    "typeinfo": "0x13811e10",
+    "type_name": "N13HncOfficeUtil15OfficeFrameworkE",
+    "get_site_method": {
+      "runtime_address": "0x13712000",
+      "guest_path": "/opt/hnc/hoffice11/Bin/libHncOfficeEngine.so",
+      "file_offset": 1560576,
+      "virtual_address": 1560576,
+      "symbol": "HncOfficeUtil::OfficeFramework::GetSite() const",
+      "object_sha256": "c1480b4881dd0f28d7a0768bbd0c13aed66c9b85c528dea532a5f305e3c8e779"
+    },
+    "culture_method": {
+      "runtime_address": "0x16cce130",
+      "guest_path": "/opt/hnc/hoffice11/Bin/libHncFoundation.so",
+      "file_offset": 487728,
+      "virtual_address": 487728,
+      "symbol": "Hnc::Framework::GetCulture() const",
+      "object_sha256": "d85a97018869421bf8b980543bba2233f29f50f833e3169dbef7c89b93d2483c"
+    },
+    "output_object": "0x119b0df8",
+    "provider_object": "0x8ac8c20",
+    "destination_string": "0x119b0e90"
+  },
+  "after_call": {
+    "probe_site": "0xd8f5127",
+    "output_object": "0xd4e0df8",
+    "qwords": [
+      "0x3f9c6fc",
+      "0x45a7bf0",
+      "0xd4e1090",
+      "0x3d15040"
+    ],
+    "wide_pointer": "0x3f9c6fc",
+    "wide_preview": "zh-CN",
+    "return_rax": "0xd4e0df8",
+    "provider_object": "0x45a7bf0",
+    "destination_string": "0xd4e0e90"
+  },
+  "conclusion": "The exact HncOfficeUtil::OfficeFramework virtual dispatch resolves to Hnc::Framework::GetCulture() and returns the non-empty UTF-16 value zh-CN. The later empty std::string therefore originates after GetCulture, in or around CHwordUtilityEx's wide-to-ANSI conversion call.",
+  "note": "Before and after probes execute in separate ASLR processes; raw object addresses are intentionally not compared across runs."
+}

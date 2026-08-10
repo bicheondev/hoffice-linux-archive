@@ -1,0 +1,487 @@
+name: HOffice runtime M6 exact HWord QPA to AppKit
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m6/qpa/**'
+      - 'runtime/m6/augment_stack_hrtappkit.py'
+      - 'runtime/m6/appkit_adapter.h'
+      - 'runtime/m6/appkit_adapter.m'
+      - 'runtime/m6/main.c'
+      - '.github/workflows/hoffice-runtime-m6-hword-qpa-appkit.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: hrt-m6-hword-qpa-appkit-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN_ID: '31102898765'
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  QTBASE_COMMIT: 08de243eaa007597c2bfbc97d3d14e2f821ac4be
+  QPA_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  build-qpa-root:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the verified exact-HWord root archive
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Verify the root archive and exact HWord lock
+        run: |
+          set -euxo pipefail
+          mkdir -p build/rootfs build/report build/qpa-build build/plugin-root
+          expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)
+          actual=$(sha256sum build/input/hword-rootfs.tar.gz | awk '{print $1}')
+          test "$actual" = "$expected"
+          tar -xzf build/input/hword-rootfs.tar.gz -C build/rootfs
+          test -s build/rootfs/.hrt-closure-v1.json
+          test -s build/rootfs/.hrt-prepatched-v1
+          test -f "build/rootfs${PROGRAM}"
+          test -f build/rootfs/opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5
+          test -f build/rootfs/opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5
+          python3 - "$PROGRAM" "$PROGRAM_SHA256" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+          root = pathlib.Path('build/rootfs')
+          guest = sys.argv[1]
+          marker = json.loads((root / '.hrt-prepatched-v1').read_text())
+          record, = [item for item in marker['objects'] if item['path'] == guest]
+          assert record['sha256_before'] == sys.argv[2], record
+          actual = hashlib.sha256((root / guest.lstrip('/')).read_bytes()).hexdigest()
+          assert actual == record['sha256_after'], (actual, record)
+          pathlib.Path('build/report/hword-lock.json').write_text(
+              json.dumps(record, indent=2) + '\n')
+          PY
+
+      - name: Fetch the exact Qt 5.11.3 source commit
+        run: |
+          set -euxo pipefail
+          git init build/qtbase
+          git -C build/qtbase remote add origin https://github.com/qt/qtbase.git
+          git -C build/qtbase fetch --depth=1 origin "$QTBASE_COMMIT"
+          git -C build/qtbase checkout --detach FETCH_HEAD
+          test "$(git -C build/qtbase rev-parse HEAD)" = "$QTBASE_COMMIT"
+          test -f build/qtbase/src/plugins/platforms/offscreen/qoffscreenwindow.cpp
+          printf '%s\n' "$QTBASE_COMMIT" > build/report/qtbase-commit.txt
+          sha256sum \
+            build/qtbase/src/plugins/platforms/offscreen/main.cpp \
+            build/qtbase/src/plugins/platforms/offscreen/qoffscreenintegration.cpp \
+            build/qtbase/src/plugins/platforms/offscreen/qoffscreenwindow.cpp \
+            build/qtbase/src/plugins/platforms/offscreen/qoffscreencommon.cpp \
+            > build/report/qt-offscreen-source-sha256.txt
+
+      - name: Build the custom QPA with Debian Buster Qt 5.11.3
+        run: |
+          set -euxo pipefail
+          docker run --rm \
+            -v "$PWD:/work" -w /work \
+            debian:buster-slim bash -lc '
+              set -euxo pipefail
+              cat > /etc/apt/sources.list <<EOF
+          deb [trusted=yes] http://archive.debian.org/debian buster main
+          EOF
+              printf "Acquire::Check-Valid-Until \"false\";\n" \
+                > /etc/apt/apt.conf.d/99archive
+              apt-get update
+              DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+                build-essential ca-certificates pkg-config \
+                qt5-qmake qtbase5-dev qtbase5-private-dev qtbase5-dev-tools \
+                libfontconfig1-dev libfreetype6-dev libx11-dev libxext-dev \
+                libgl1-mesa-dev
+              qmake -query QT_VERSION | tee /work/build/report/qmake-version.txt
+              test "$(qmake -query QT_VERSION)" = 5.11.3
+              cd /work/build/qpa-build
+              qmake /work/runtime/m6/qpa/hrtappkit.pro \
+                QTOFFSCREEN_DIR=/work/build/qtbase/src/plugins/platforms/offscreen
+              make -j2 V=1
+            '
+          test -f build/qpa-build/out/libqhrtappkit.so
+          file build/qpa-build/out/libqhrtappkit.so \
+            | tee build/report/qpa-file.txt
+          readelf -hW build/qpa-build/out/libqhrtappkit.so \
+            | tee build/report/qpa-elf-header.txt
+          readelf -dW build/qpa-build/out/libqhrtappkit.so \
+            | tee build/report/qpa-dynamic.txt
+          readelf -Ws build/qpa-build/out/libqhrtappkit.so \
+            | tee build/report/qpa-symbols.txt
+          strings build/qpa-build/out/libqhrtappkit.so \
+            | grep -E 'hrtappkit|HRT M6 QPA' \
+            | tee build/report/qpa-markers.txt
+          grep -F 'Shared object file: [libQt5Gui.so.5]' \
+            build/report/qpa-dynamic.txt
+          grep -F 'Shared object file: [libQt5Core.so.5]' \
+            build/report/qpa-dynamic.txt
+          sha256sum build/qpa-build/out/libqhrtappkit.so \
+            > build/report/qpa-unpatched.sha256
+
+      - name: Prepatch only the new QPA and merge it into the locked root
+        run: |
+          set -euxo pipefail
+          mkdir -p "build/plugin-root$(dirname "$QPA_GUEST")"
+          cp build/qpa-build/out/libqhrtappkit.so \
+            "build/plugin-root${QPA_GUEST}"
+          python3 runtime/m3/prepatch_elf.py build/plugin-root \
+            | tee build/report/qpa-prepatch.txt
+          test -s build/plugin-root/.hrt-prepatched-v1
+          python3 - "$QPA_GUEST" <<'PY'
+          import json
+          import pathlib
+          import sys
+          marker = json.loads(
+              pathlib.Path('build/plugin-root/.hrt-prepatched-v1').read_text())
+          guest = sys.argv[1]
+          record, = [item for item in marker['objects'] if item['path'] == guest]
+          assert record['syscalls'] >= 1, record
+          pathlib.Path('build/report/qpa-prepatch-lock.json').write_text(
+              json.dumps(record, indent=2) + '\n')
+          print(json.dumps(record, indent=2))
+          PY
+          cp "build/plugin-root${QPA_GUEST}" "build/rootfs${QPA_GUEST}"
+          sha256sum "build/rootfs${QPA_GUEST}" \
+            > build/report/qpa-patched.sha256
+          test -f "build/rootfs${QPA_GUEST}"
+
+      - name: Validate the custom plugin dependency closure
+        run: |
+          set -euxo pipefail
+          rm -rf build/qpa-closure
+          python3 runtime/m3/collect_rootfs.py \
+            --source-root build/rootfs \
+            --target "$QPA_GUEST" \
+            --output-root build/qpa-closure \
+            --manifest build/report/qpa-closure.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path('build/report/qpa-closure.json').read_text())
+          assert manifest['unresolved'] == [], manifest['unresolved']
+          assert manifest['object_count'] >= 3, manifest
+          print(json.dumps({
+              'object_count': manifest['object_count'],
+              'total_size': manifest['total_size'],
+              'unresolved': manifest['unresolved'],
+          }, indent=2))
+          PY
+
+      - name: Pack the exact HWord root plus the custom QPA
+        run: |
+          set -euxo pipefail
+          tar --sort=name --mtime='UTC 2026-01-01' \
+            --owner=0 --group=0 --numeric-owner \
+            -C build/rootfs -czf build/hword-hrtappkit-rootfs.tar.gz .
+          sha256sum build/hword-hrtappkit-rootfs.tar.gz \
+            > build/hword-hrtappkit-rootfs.tar.gz.sha256
+          ls -lh build/hword-hrtappkit-rootfs.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m6-hword-hrtappkit-rootfs
+          path: |
+            build/hword-hrtappkit-rootfs.tar.gz
+            build/hword-hrtappkit-rootfs.tar.gz.sha256
+            build/report
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  run-hword-qpa-appkit:
+    needs: build-qpa-root
+    runs-on: macos-14
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m6-hword-hrtappkit-rootfs
+          path: build/input
+
+      - name: Expand the root on a short case-sensitive volume
+        run: |
+          set -euxo pipefail
+          expected=$(awk '{print $1; exit}' \
+            build/input/hword-hrtappkit-rootfs.tar.gz.sha256)
+          actual=$(shasum -a 256 build/input/hword-hrtappkit-rootfs.tar.gz \
+            | awk '{print $1}')
+          test "$actual" = "$expected"
+          image="$RUNNER_TEMP/hrt-m6-qpa.sparsebundle"
+          root="/tmp/h6q-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"
+          mkdir -p "$root" build/generated build/objects build/host build/proof
+          if ! hdiutil create -quiet -size 8g -fs APFSX \
+               -volname HRTM6Q -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 8g -fs HFSX \
+              -volname HRTM6Q -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >> "$GITHUB_ENV"
+          tar -xzf build/input/hword-hrtappkit-rootfs.tar.gz -C "$root"
+          test -f "$root$PROGRAM"
+          test -f "$root$QPA_GUEST"
+          test -d "$root/opt/hnc/hoffice11/Bin/Hword"
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+
+      - name: Generate the mature bridge and hrtappkit guest stack
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+          sw_vers | tee build/proof/sw-vers.txt
+
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m6/augment_appkit_hostcall.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage9.c build/generated/syscall_bridge.c
+          python3 runtime/m6/augment_stack_hrtappkit.py \
+            runtime/m3/stack.c build/generated/stack.c
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('build/generated/syscall_bridge.c')
+          path.write_text(path.read_text().replace(
+              '#define M3_TRACE_LIMIT 256u',
+              '#define M3_TRACE_LIMIT 24000u'))
+          PY
+          grep -q 'case HRT_M6_HOSTCALL_SYSCALL' \
+            build/generated/syscall_bridge.c
+          grep -q 'QT_QPA_PLATFORM=hrtappkit' build/generated/stack.c
+          grep -q 'HRT_MILESTONE=M6_HRTAPPKIT' build/generated/stack.c
+
+      - name: Compile and sign the AppKit-main-thread HWord runtime
+        run: |
+          set -euxo pipefail
+          common=(
+            -arch x86_64 -std=c17 -O2 -g
+            -fno-stack-protector -fno-omit-frame-pointer
+            -Wall -Wextra -Werror -Wpedantic
+            -Iruntime/m6 -Iruntime/m3 -Iruntime/m1
+          )
+          index=0
+          for source in \
+            runtime/m6/main.c \
+            runtime/m1/common.c \
+            runtime/m3/elf_map.c \
+            build/generated/stack.c \
+            runtime/m3/patch.c \
+            build/generated/syscall_bridge.c; do
+            object="build/objects/c-${index}.o"
+            clang "${common[@]}" -c "$source" -o "$object"
+            index=$((index + 1))
+          done
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m6 \
+            -c runtime/m6/appkit_adapter.m \
+            -o build/objects/appkit-adapter.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S \
+            -o build/objects/enter-guest.o
+          clang -arch x86_64 build/objects/*.o \
+            -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO \
+            -o build/host/hrt-m6-hword-qpa
+          file build/host/hrt-m6-hword-qpa | tee build/proof/host-file.txt
+          lipo -info build/host/hrt-m6-hword-qpa \
+            | tee build/proof/host-arch.txt
+          codesign --force --sign - --timestamp=none \
+            build/host/hrt-m6-hword-qpa
+          codesign --verify --strict build/host/hrt-m6-hword-qpa
+
+      - name: Let HWord's actual QWindow lifecycle request AppKit
+        run: |
+          set -uxo pipefail
+          : >build/proof/stdout.txt
+          : >build/proof/stderr.txt
+          export HRT_M6_CAPTURE_PATH="$PWD/build/proof/hword-qpa-window.png"
+          /usr/bin/arch -x86_64 build/host/hrt-m6-hword-qpa \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          plugin_loaded=0
+          platform_window=0
+          native_create=0
+          alive_after_create=0
+
+          for _ in $(jot 1800); do
+            if [ "$plugin_loaded" -eq 0 ] && \
+               grep -q 'loaded library ".*/libqhrtappkit.so"' \
+                 build/proof/stderr.txt; then
+              plugin_loaded=1
+            fi
+            if [ "$platform_window" -eq 0 ] && \
+               grep -q 'HRT M6 QPA: QPlatformWindow constructed' \
+                 build/proof/stderr.txt; then
+              platform_window=1
+            fi
+            if grep -Eq 'HRT M6 QPA: CREATE .*handle=[1-9][0-9]* .*flags=0x[0-9a-f]+ capture=1' \
+                 build/proof/stderr.txt; then
+              native_create=1
+              sleep 3
+              if kill -0 "$pid" 2>/dev/null; then
+                alive_after_create=1
+                ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+                  >build/proof/process-after-create.txt 2>&1 || true
+                /usr/bin/sample "$pid" 1 1 \
+                  -file build/proof/sample-after-create.txt \
+                  >/dev/null 2>&1 || true
+              fi
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 0.05
+          done
+
+          if kill -0 "$pid" 2>/dev/null; then
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.3
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e
+          wait "$pid"
+          raw_status=$?
+          set -e
+          printf '%s\n' "$raw_status" >build/proof/raw-exit-status.txt
+          printf '%s\n' "$plugin_loaded" >build/proof/plugin-loaded.txt
+          printf '%s\n' "$platform_window" >build/proof/platform-window.txt
+          printf '%s\n' "$native_create" >build/proof/native-create.txt
+          printf '%s\n' "$alive_after_create" \
+            >build/proof/alive-after-create.txt
+
+          echo '--- QPA and AppKit boundaries ---'
+          grep -E 'hrtappkit|HRT M6 QPA|hrt-m6: host-call|AppKit initialized|Linux syscall ENOSYS|fatal signal|QFactoryLoader|loaded library' \
+            build/proof/stderr.txt | tail -n 4200 \
+            | tee build/proof/key-lines.txt || true
+          echo '--- process after native create ---'
+          cat build/proof/process-after-create.txt 2>/dev/null || true
+          echo '--- stderr tail ---'
+          tail -n 3000 build/proof/stderr.txt || true
+          echo '--- stdout tail ---'
+          tail -n 500 build/proof/stdout.txt || true
+          echo "raw-status=$raw_status plugin=$plugin_loaded platform-window=$platform_window native-create=$native_create alive-after-create=$alive_after_create"
+
+      - name: Accept only HWord-triggered QPA host calls
+        run: |
+          set -euxo pipefail
+          grep -F 'Got keys from plugin meta data ("hrtappkit")' \
+            build/proof/stderr.txt
+          grep -E 'loaded library ".*/libqhrtappkit.so"' \
+            build/proof/stderr.txt
+          grep -F 'HRT M6 QPA: integration constructed' \
+            build/proof/stderr.txt
+          grep -F 'HRT M6 QPA: QPlatformWindow constructed' \
+            build/proof/stderr.txt
+          grep -E 'hrt-m6: host-call opcode=256 result=[1-9][0-9]*' \
+            build/proof/stderr.txt
+          grep -E 'hrt-m6: host-call opcode=258 result=1[0-9][0-9]' \
+            build/proof/stderr.txt
+          grep -F 'hrt-m6: host-call opcode=259 result=1' \
+            build/proof/stderr.txt
+          grep -E 'HRT M6 QPA: CREATE .*handle=[1-9][0-9]* .*flags=0x[0-9a-f]+ capture=1' \
+            build/proof/stderr.txt
+          test "$(cat build/proof/plugin-loaded.txt)" -eq 1
+          test "$(cat build/proof/platform-window.txt)" -eq 1
+          test "$(cat build/proof/native-create.txt)" -eq 1
+          test "$(cat build/proof/alive-after-create.txt)" -eq 1
+          test -s build/proof/hword-qpa-window.png
+          ! grep -F 'Linux syscall ENOSYS ' build/proof/stderr.txt
+          ! grep -F 'fatal signal' build/proof/stderr.txt
+
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+          stderr = Path('build/proof/stderr.txt').read_text(errors='replace')
+          create = re.search(
+              r'HRT M6 QPA: CREATE type=(\d+) geometry=(\d+)x(\d+) '
+              r'title=(.*?) handle=(\d+) pump=(-?\d+) flags=0x([0-9a-f]+) '
+              r'capture=(\d+)', stderr)
+          assert create, stderr[-10000:]
+          operations = []
+          for line in stderr.splitlines():
+              match = re.fullmatch(
+                  r'hrt-m6: host-call opcode=(\d+) result=(-?\d+)', line)
+              if match:
+                  operations.append({
+                      'opcode': int(match.group(1)),
+                      'result': int(match.group(2)),
+                  })
+          summary = {
+              'program': '/opt/hnc/hoffice11/Bin/hword',
+              'program_sha256_before_prepatch':
+                  '55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb',
+              'qpa_key': 'hrtappkit',
+              'qpa_source_commit':
+                  '08de243eaa007597c2bfbc97d3d14e2f821ac4be',
+              'platform_window_type': int(create.group(1)),
+              'geometry': [int(create.group(2)), int(create.group(3))],
+              'title': create.group(4),
+              'window_number': int(create.group(5)),
+              'pump_result': int(create.group(6)),
+              'window_flags': int(create.group(7), 16),
+              'capture_result': int(create.group(8)),
+              'host_calls': operations,
+              'process_alive_three_seconds_after_create': bool(int(
+                  Path('build/proof/alive-after-create.txt').read_text())),
+              'screenshot_created':
+                  Path('build/proof/hword-qpa-window.png').stat().st_size > 0,
+              'observed_enosys': 'Linux syscall ENOSYS ' in stderr,
+              'fatal_signal': 'fatal signal' in stderr,
+              'hword_content_rendered': False,
+          }
+          Path('build/proof/summary.json').write_text(
+              json.dumps(summary, indent=2) + '\n')
+          print(json.dumps(summary, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m6-hword-qpa-appkit-proof
+          path: |
+            build/host/hrt-m6-hword-qpa
+            build/generated/syscall_bridge.c
+            build/generated/stack.c
+            build/input/report
+            build/proof
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach the guest filesystem
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true

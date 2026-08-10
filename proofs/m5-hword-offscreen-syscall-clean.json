@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "milestone": "M5",
+  "status": "PASS",
+  "boundary": "exact HWord loaded the official offscreen QPA, selected the emulated eventfd2 wakeup path, and remained alive after a blocking Qt/GLib poll cycle with no observed ENOSYS calls",
+  "commit": "001bcc62d793250946f78533a559a55ce3c93fa7",
+  "workflow_run": "31110541156",
+  "workflow": "HOffice runtime M5 HWord eventfd2 wakeup",
+  "runner": "macos-14-arm64",
+  "execution_architecture": "x86_64 under Rosetta",
+  "rootfs_source_run": "31102898765",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256_before_prepatch": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "platform_plugin": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so",
+  "artifact": {
+    "id": "8971475396",
+    "name": "hrt-m5-hword-eventfd2-proof",
+    "digest": "sha256:9fc216e2918b52f8197e94f689ec57c446bb765e0b02fe394a849ccc0ca30ca9"
+  },
+  "observations": {
+    "offscreen_metadata_parsed": true,
+    "offscreen_library_loaded": true,
+    "eventfd2_call": {
+      "initial_value": 0,
+      "linux_flags_hex": "0x80800",
+      "guest_read_fd": 3,
+      "host_write_fd": 4,
+      "guest_result": 3
+    },
+    "pipe2_fallback_called_after_eventfd2": false,
+    "long_poll": {
+      "nfds": 1,
+      "timeout_ms": 30001,
+      "entered": true,
+      "returned": true,
+      "return_value": 1
+    },
+    "process_alive_three_seconds_after_poll_return": true,
+    "process_state_after_return": "sleeping, 0.0% CPU",
+    "fatal_signal_observed": false,
+    "observed_unsupported_syscalls": []
+  },
+  "scope": {
+    "syscall_clean_means": "no Linux syscall in this observed startup interval reached the runtime ENOSYS fallback",
+    "not_a_claim_of": [
+      "complete Linux syscall compatibility",
+      "counter-accurate general-purpose eventfd emulation",
+      "onscreen rendering",
+      "AppKit NSWindow creation",
+      "native mouse or keyboard input",
+      "Korean IME",
+      "document open, edit, save, or print",
+      "clean application shutdown"
+    ]
+  }
+}

@@ -1,0 +1,293 @@
+name: HOffice runtime M6 deferred AppKit host call
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m6/appkit_adapter.h'
+      - 'runtime/m6/appkit_adapter.m'
+      - 'runtime/m6/hostcall_trampoline.h'
+      - 'runtime/m6/hostcall_trampoline.c'
+      - 'runtime/m6/hostcall_trampoline.S'
+      - 'runtime/m6/augment_appkit_hostcall_deferred.py'
+      - 'runtime/m6/guest_window.c'
+      - 'runtime/m6/main.c'
+      - '.github/workflows/hoffice-runtime-m6-deferred-hostcall.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hrt-m6-deferred-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GUEST_PROGRAM: /opt/hrt/m6-linux-window-guest
+
+jobs:
+  build-linux-guest-root:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and prepatch a dependency-free Linux guest
+        run: |
+          set -euxo pipefail
+          mkdir -p build/rootfs/opt/hrt build/rootfs/lib64 build/report
+          gcc -std=c17 -O2 -fPIE -pie -nostdlib \
+            -fno-stack-protector -fno-builtin \
+            -fno-asynchronous-unwind-tables -fno-unwind-tables \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m6 \
+            -Wl,-e,_start -Wl,--build-id=none \
+            -Wl,--dynamic-linker=/lib64/ld-linux-x86-64.so.2 \
+            -Wl,-z,now -Wl,-z,relro \
+            runtime/m6/guest_window.c \
+            -o "build/rootfs${GUEST_PROGRAM}"
+          loader=$(readlink -f /lib64/ld-linux-x86-64.so.2)
+          cp "$loader" build/rootfs/lib64/ld-linux-x86-64.so.2
+          chmod 0755 "build/rootfs${GUEST_PROGRAM}" \
+                     build/rootfs/lib64/ld-linux-x86-64.so.2
+          file "build/rootfs${GUEST_PROGRAM}" | tee build/report/guest-file.txt
+          readelf -lW "build/rootfs${GUEST_PROGRAM}" \
+            | tee build/report/guest-program-headers.txt
+          readelf -dW "build/rootfs${GUEST_PROGRAM}" \
+            | tee build/report/guest-dynamic.txt
+          grep -F 'Requesting program interpreter: /lib64/ld-linux-x86-64.so.2' \
+            build/report/guest-program-headers.txt
+          ! grep -F '(NEEDED)' build/report/guest-dynamic.txt
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root=Path('build/rootfs')
+          objects=[]
+          for guest in ('/opt/hrt/m6-linux-window-guest',
+                        '/lib64/ld-linux-x86-64.so.2'):
+              path=root/guest.lstrip('/')
+              objects.append({'guest_path':guest,
+                              'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),
+                              'size':path.stat().st_size})
+          (root/'.hrt-closure-v1.json').write_text(json.dumps({
+              'schema':1,
+              'program':'/opt/hrt/m6-linux-window-guest',
+              'interpreter':'/lib64/ld-linux-x86-64.so.2',
+              'object_count':len(objects),
+              'objects':objects,
+          },indent=2)+'\n')
+          PY
+          python3 runtime/m3/prepatch_elf.py build/rootfs \
+            | tee build/report/prepatch.txt
+          test -s build/rootfs/.hrt-closure-v1.json
+          test -s build/rootfs/.hrt-prepatched-v1
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          marker=json.loads(Path('build/rootfs/.hrt-prepatched-v1').read_text())
+          assert marker['object_count']==2,marker
+          assert marker['syscall_count']>=2,marker
+          print(json.dumps(marker,indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m6-deferred-linux-root
+          path: |
+            build/rootfs
+            build/report
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  dispatch-after-signal-return:
+    needs: build-linux-guest-root
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m6-deferred-linux-root
+          path: build/input
+
+      - name: Verify Rosetta and the guest root
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+          mkdir -p build/generated build/objects build/host build/proof
+          chmod 0755 "build/input/rootfs${GUEST_PROGRAM}" \
+                     build/input/rootfs/lib64/ld-linux-x86-64.so.2
+          test -s build/input/rootfs/.hrt-closure-v1.json
+          test -s build/input/rootfs/.hrt-prepatched-v1
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+          sw_vers | tee build/proof/sw-vers.txt
+
+      - name: Generate the deferred host-call syscall bridge
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage9.c build/generated/syscall_bridge.c
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('build/generated/syscall_bridge.c')
+          path.write_text(path.read_text().replace(
+              '#define M3_TRACE_LIMIT 256u','#define M3_TRACE_LIMIT 4096u'))
+          PY
+          grep -q 'case HRT_M6_HOSTCALL_SYSCALL' build/generated/syscall_bridge.c
+          grep -q 'schedule_m6_appkit_hostcall' build/generated/syscall_bridge.c
+          grep -q 'hrt_m6_deferred_hostcall_entry' build/generated/syscall_bridge.c
+          test "$(grep -c '"+d"(argument3_register)' \
+            build/generated/syscall_bridge.c)" -eq 2
+
+      - name: Compile and sign the deferred x86-64 AppKit runtime
+        run: |
+          set -euxo pipefail
+          common=(
+            -arch x86_64 -std=c17 -O2 -g
+            -fno-stack-protector -fno-omit-frame-pointer
+            -Wall -Wextra -Werror -Wpedantic
+            -Iruntime/m6 -Iruntime/m3 -Iruntime/m1
+          )
+          index=0
+          for source in \
+            runtime/m6/main.c \
+            runtime/m6/hostcall_trampoline.c \
+            runtime/m1/common.c \
+            runtime/m3/elf_map.c \
+            runtime/m3/stack.c \
+            runtime/m3/patch.c \
+            build/generated/syscall_bridge.c; do
+            object="build/objects/c-${index}.o"
+            clang "${common[@]}" -c "$source" -o "$object"
+            index=$((index+1))
+          done
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m6 \
+            -c runtime/m6/appkit_adapter.m -o build/objects/appkit-adapter.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S \
+            -o build/objects/enter-guest.o
+          clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \
+            -o build/objects/hostcall-trampoline.o
+          clang -arch x86_64 build/objects/*.o \
+            -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO \
+            -o build/host/hrt-m6-deferred
+          file build/host/hrt-m6-deferred | tee build/proof/host-file.txt
+          lipo -info build/host/hrt-m6-deferred | tee build/proof/host-arch.txt
+          codesign --force --sign - --timestamp=none build/host/hrt-m6-deferred
+          codesign --verify --strict build/host/hrt-m6-deferred
+
+      - name: Let the Linux guest create and capture a real AppKit window
+        run: |
+          set -uxo pipefail
+          python3 - <<'PY'
+          import os,pathlib,subprocess
+          root=pathlib.Path.cwd()
+          env=os.environ.copy()
+          env['HRT_M6_CAPTURE_PATH']=str(root/'build/proof/guest-window.png')
+          command=['/usr/bin/arch','-x86_64',str(root/'build/host/hrt-m6-deferred'),
+                   '--root',str(root/'build/input/rootfs'),
+                   '--program','/opt/hrt/m6-linux-window-guest']
+          status=124
+          try:
+              with (root/'build/proof/stdout.txt').open('wb') as stdout, \
+                   (root/'build/proof/stderr.txt').open('wb') as stderr:
+                  completed=subprocess.run(command,env=env,stdout=stdout,
+                                           stderr=stderr,timeout=35,check=False)
+              status=completed.returncode
+          except subprocess.TimeoutExpired:
+              with (root/'build/proof/stderr.txt').open('ab') as stderr:
+                  stderr.write(b'\nhrt-m6: deferred guest window timeout\n')
+          (root/'build/proof/exit-status.txt').write_text(f'{status}\n')
+          PY
+          status=$(cat build/proof/exit-status.txt)
+          set -e
+          echo '--- stderr ---'; cat build/proof/stderr.txt || true
+          echo '--- stdout ---'; cat build/proof/stdout.txt || true
+          echo "--- exit status: $status ---"
+          test "$status" -eq 0
+
+      - name: Accept only post-signal guest-issued native window operations
+        run: |
+          set -euxo pipefail
+          grep -Fx \
+            'HRT M6 GUEST PASS: trapped Linux host call created a visible AppKit window' \
+            build/proof/stdout.txt
+          grep -F 'hrt-m6-hostcall: AppKit initialized ' build/proof/stderr.txt
+          grep -E 'hrt-m6: host-call opcode=256 result=[1-9][0-9]*' \
+            build/proof/stderr.txt
+          grep -F 'hrt-m6: host-call opcode=257 result=0' build/proof/stderr.txt
+          grep -E 'hrt-m6: host-call opcode=258 result=1[0-9][0-9]' \
+            build/proof/stderr.txt
+          grep -F 'hrt-m6: host-call opcode=259 result=1' build/proof/stderr.txt
+          grep -F 'hrt-m6: host-call opcode=260 result=0' build/proof/stderr.txt
+          ! grep -F 'Linux syscall ENOSYS 1073676288' build/proof/stderr.txt
+          ! grep -F 'fatal signal' build/proof/stderr.txt
+          test -s build/proof/guest-window.png
+          sips -g pixelWidth -g pixelHeight build/proof/guest-window.png \
+            | tee build/proof/screenshot-info.txt
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          operations=[]
+          for line in stderr.splitlines():
+              match=re.fullmatch(r'hrt-m6: host-call opcode=(\d+) result=(-?\d+)',line)
+              if match:
+                  operations.append({'opcode':int(match.group(1)),
+                                     'result':int(match.group(2))})
+          by_opcode={item['opcode']:item['result'] for item in operations}
+          required=0x01|0x02|0x04|0x20|0x40
+          assert by_opcode[0x100]>0,by_opcode
+          assert by_opcode[0x102]&required==required,by_opcode
+          assert by_opcode[0x103]==1,by_opcode
+          assert by_opcode[0x104]==0,by_opcode
+          summary={
+              'status':0,
+              'transport':'UD2 signal snapshot -> host stack -> AppKit -> guest state restore',
+              'guest':'Linux x86_64 PIE',
+              'host':'x86_64 AppKit under Rosetta on Apple Silicon',
+              'host_calls':operations,
+              'window_number':by_opcode[0x100],
+              'window_flags':by_opcode[0x102],
+              'window_server_listed':bool(by_opcode[0x102]&0x04),
+              'host_call_on_appkit_thread':bool(by_opcode[0x102]&0x40),
+              'screenshot_created':True,
+          }
+          Path('build/proof/summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+          print(json.dumps(summary,indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m6-deferred-appkit-proof
+          path: |
+            build/host/hrt-m6-deferred
+            build/generated/syscall_bridge.c
+            build/input/report
+            build/proof
+          if-no-files-found: warn
+          retention-days: 14

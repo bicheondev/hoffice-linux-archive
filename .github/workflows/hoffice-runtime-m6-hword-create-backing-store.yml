@@ -1,0 +1,31 @@
+name: HOffice runtime M6 HWord offscreen create backing store
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'proofs/m6-hword-offscreen-window-constructor.json'
+      - '.github/workflows/hoffice-runtime-m6-hword-create-backing-store.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m6-create-backing-store-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    uses: ./.github/workflows/hoffice-runtime-guest-symbol-probe.yml
+    with:
+      predecessor_proof: proofs/m6-hword-offscreen-window-constructor.json
+      symbol_regex: QOffscreenIntegration.*createPlatformBackingStore
+      label: Qt offscreen createPlatformBackingStore
+      milestone: M6-offscreen-create-backing-store
+      diagnostic_path: diagnostics/m6-hword-create-backing-store-latest.json
+      proof_path: proofs/m6-hword-offscreen-create-backing-store.json
+      trace_limit: 80000
+      run_seconds: 45
+      require_pipe2: true

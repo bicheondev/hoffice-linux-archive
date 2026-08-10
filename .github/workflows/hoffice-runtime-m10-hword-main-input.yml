@@ -1,0 +1,533 @@
+name: HOffice runtime M10 HWord main-window input
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m10/augment_appkit_input_capture.py'
+      - 'runtime/m9/patch_hword_utility_culture_redirect.py'
+      - 'runtime/m8/appkit_input.m'
+      - 'runtime/m8/augment_appkit_adapter_input.py'
+      - '.github/workflows/hoffice-runtime-m10-hword-main-input.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m10-hword-main-input-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ROOTFS_ARTIFACT_ID: '8968324706'
+  ROOTFS_ARTIFACT_SHA256: 3e301d3c6269926c62804bff18671136fcf8c0b0b22b3952072e427a8fa9918a
+  ROOTFS_ARCHIVE_SHA256: 322fcf228092b296a34edbfa7ee43f9a7b237d5bcedaee50109ac4bb44d9ca28
+  QPA_RUN_ID: '31225186394'
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  verify-main-window-input:
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the real HWord editor-window boundary
+        run: |
+          set -euxo pipefail
+          test -s proofs/m9-hword-culture-redirect.json
+          grep -F '"status": "PASS"' \
+            proofs/m9-hword-culture-redirect.json
+          grep -F '"classification": "HWORD_WINDOW_AFTER_CULTURE_REDIRECT"' \
+            proofs/m9-hword-culture-redirect.json
+
+      - name: Download the verified Qt 5.11.3 input QPA
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m8-qt5113-hrtappkit-input-qpa
+          path: build/input/qpa
+          repository: ${{ github.repository }}
+          run-id: ${{ env.QPA_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download and verify the exact HWord inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/hword build/input/deb build/generated \
+                   build/objects build/host build/proof
+          curl --fail --location --retry 5 --retry-delay 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ROOTFS_ARTIFACT_ID/zip" \
+            -o build/input/hword-artifact.zip
+          printf '%s  %s\n' "$ROOTFS_ARTIFACT_SHA256" \
+            build/input/hword-artifact.zip | shasum -a 256 -c -
+          ditto -x -k build/input/hword-artifact.zip build/input/hword
+          printf '%s  %s\n' "$ROOTFS_ARCHIVE_SHA256" \
+            build/input/hword/hword-rootfs.tar.gz | shasum -a 256 -c -
+
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" \
+            --dir build/input/deb
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/input/deb/$ASSET_NAME" | shasum -a 256 -c -
+
+      - name: Reconstruct the full-font culture-repaired guest
+        run: |
+          set -euxo pipefail
+          image="$RUNNER_TEMP/hrt-m10-input.sparsebundle"
+          root="/tmp/h10i-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"; mkdir -p "$root"
+          if ! hdiutil create -quiet -size 12g -fs APFSX \
+               -volname HRTM10I -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 12g -fs HFSX \
+              -volname HRTM10I -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >>"$GITHUB_ENV"
+          echo "HRT_IMAGE=$image" >>"$GITHUB_ENV"
+          tar -xzf build/input/hword/hword-rootfs.tar.gz -C "$root"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+          test -f "$root$HWORD_APP_GUEST"
+
+          deb="build/input/deb/$ASSET_NAME"
+          data_member=$(ar t "$deb" | awk '/^data\.tar/{print; exit}')
+          test -n "$data_member"
+          ar p "$deb" "$data_member" >"build/input/deb/$data_member"
+          tar -xf "build/input/deb/$data_member" -C "$root" \
+            ./opt/hnc/hoffice11/Shared/Fonts \
+            ./opt/hnc/hoffice11/Shared/TTF
+
+          rm -f "$root/opt/hnc/hoffice1"
+          ln -s hoffice11 "$root/opt/hnc/hoffice1"
+          test -f "$root/opt/hnc/hoffice1/Shared/Fonts/HGSMJ.HFT"
+          test -f "$root/opt/hnc/hoffice1/Shared/Fonts/fontinfo.dat"
+          test -f "$root/opt/hnc/hoffice11/Shared/TTF/Install/HanSantteutDotum-Regular.ttf"
+
+          find "$root/opt/hnc/hoffice11/Shared/Fonts" -type f \
+            | LC_ALL=C sort >build/proof/shared-font-files.txt
+          find "$root/opt/hnc/hoffice11/Shared/TTF" -type f \
+            | LC_ALL=C sort >build/proof/shared-ttf-files.txt
+          test "$(wc -l <build/proof/shared-font-files.txt)" -ge 400
+          test "$(wc -l <build/proof/shared-ttf-files.txt)" -ge 130
+
+          mkdir -p "$root$(dirname "$PLUGIN_GUEST")"
+          python3 - build/input/qpa/libqhrtappkit.so.xz \
+            build/input/qpa/lock.json "$root$PLUGIN_GUEST" <<'PY'
+          import hashlib,json,lzma,pathlib,sys
+          compressed=pathlib.Path(sys.argv[1]).read_bytes()
+          lock=json.loads(pathlib.Path(sys.argv[2]).read_text())
+          assert lock['toolchain']['qt_version']=='5.11.3',lock
+          assert lock['plugin']['m8_input_poll_transport'] is True,lock
+          assert lock['plugin']['input_poll_opcode']==262,lock
+          compressed_sha=hashlib.sha256(compressed).hexdigest()
+          assert compressed_sha==lock['plugin']['xz_sha256'],lock
+          plugin=lzma.decompress(compressed)
+          plugin_sha=hashlib.sha256(plugin).hexdigest()
+          assert plugin_sha==lock['plugin']['sha256_after_prepatch'],lock
+          pathlib.Path(sys.argv[3]).write_bytes(plugin)
+          pathlib.Path('build/proof/qpa-lock.json').write_text(
+              json.dumps(lock,indent=2)+'\n')
+          PY
+          chmod 0755 "$root$PLUGIN_GUEST"
+
+          python3 - "$root" "$PROGRAM" "$PROGRAM_SHA256" \
+                    "$HWORD_APP_GUEST" "$HWORD_APP_SHA256" <<'PY'
+          import hashlib,json,pathlib,sys
+          root=pathlib.Path(sys.argv[1]); program=sys.argv[2]
+          marker=json.loads((root/'.hrt-prepatched-v1').read_text())
+          records={item['path']:item for item in marker['objects']}
+          program_record=records[program]
+          assert program_record['sha256_before']==sys.argv[3]
+          actual=hashlib.sha256((root/program.lstrip('/')).read_bytes()).hexdigest()
+          assert actual==program_record['sha256_after'],(actual,program_record)
+          hword_app=sys.argv[4]
+          hword_app_record=records[hword_app]
+          assert hword_app_record['sha256_after']==sys.argv[5],hword_app_record
+          actual=hashlib.sha256((root/hword_app.lstrip('/')).read_bytes()).hexdigest()
+          assert actual==sys.argv[5],(actual,hword_app_record)
+          pathlib.Path('build/proof/hword-app-prepatch-record.json').write_text(
+              json.dumps(hword_app_record,indent=2)+'\n')
+          PY
+
+          python3 runtime/m9/patch_hword_utility_culture_redirect.py \
+            "$root$HWORD_APP_GUEST" \
+            --expected-sha256 "$HWORD_APP_SHA256" \
+            --expected-output-sha256 "$HWORD_APP_PATCHED_SHA256" \
+            --manifest build/proof/culture-redirect-patch.json
+          printf '%s  %s\n' "$HWORD_APP_PATCHED_SHA256" \
+            "$root$HWORD_APP_GUEST" | shasum -a 256 -c -
+
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+          grep -F 'Case-sensitive' build/proof/guest-volume.txt
+
+      - name: Generate the M10 AppKit input and capture adapter
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+          sw_vers | tee build/proof/sw-vers.txt
+
+          python3 runtime/m8/augment_appkit_adapter_input.py \
+            runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m
+          python3 runtime/m10/augment_appkit_input_capture.py \
+            build/generated/appkit_adapter_m8.m \
+            build/generated/appkit_adapter_m10.m
+          grep -F 'case HRT_M8_OP_POLL_INPUT:' \
+            build/generated/appkit_adapter_m10.m
+          grep -F 'HRT M10 APPKIT: pre-input capture' \
+            build/generated/appkit_adapter_m10.m
+          grep -F 'HRT M10 APPKIT: post-input capture' \
+            build/generated/appkit_adapter_m10.m
+
+          python3 runtime/m6/augment_stack_hrtappkit.py \
+            runtime/m3/stack.c build/generated/stack.c
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+            build/generated/stage9.c build/generated/stage10.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage10.c build/generated/syscall_bridge.c
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('build/generated/syscall_bridge.c')
+          text=path.read_text()
+          anchor='#define M3_TRACE_LIMIT 256u'
+          assert text.count(anchor)==1
+          path.write_text(text.replace(anchor,'#define M3_TRACE_LIMIT 80000u'))
+          PY
+          grep -q 'host_getdents64_stream_bridge' build/generated/syscall_bridge.c
+          grep -q 'case HRT_M6_HOSTCALL_SYSCALL' build/generated/syscall_bridge.c
+          shasum -a 256 build/generated/syscall_bridge.c \
+            >build/proof/generated-bridge.sha256
+          shasum -a 256 build/generated/appkit_adapter_m10.m \
+            >build/proof/generated-appkit-adapter.sha256
+
+      - name: Compile and sign the exact HWord M10 host
+        run: |
+          set -euxo pipefail
+          common=(-arch x86_64 -std=c17 -O2 -g -fno-stack-protector \
+            -fno-omit-frame-pointer -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1)
+          index=0
+          for source in runtime/m6/main.c runtime/m6/hostcall_trampoline.c \
+            runtime/m1/common.c runtime/m3/elf_map.c build/generated/stack.c \
+            runtime/m3/patch.c build/generated/syscall_bridge.c; do
+            clang "${common[@]}" -c "$source" \
+              -o "build/objects/c-${index}.o"
+            index=$((index+1))
+          done
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c build/generated/appkit_adapter_m10.m \
+            -o build/objects/appkit-adapter.o
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c runtime/m8/appkit_input.m -o build/objects/appkit-input.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S \
+            -o build/objects/enter-guest.o
+          clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \
+            -o build/objects/hostcall-trampoline.o
+          clang -arch x86_64 build/objects/*.o -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO \
+            -o build/host/hrt-m10-hword-main-input
+          file build/host/hrt-m10-hword-main-input \
+            | tee build/proof/host-file.txt
+          lipo -info build/host/hrt-m10-hword-main-input \
+            | tee build/proof/host-arch.txt
+          codesign --force --sign - --timestamp=none \
+            build/host/hrt-m10-hword-main-input
+          codesign --verify --strict \
+            build/host/hrt-m10-hword-main-input
+
+      - name: Deliver AppKit input to the real HWord editor
+        run: |
+          set -uxo pipefail
+          export HRT_M6_CAPTURE_PATH="$PWD/build/proof/pre-frame-window.png"
+          export HRT_M7_CAPTURE_PATH="$PWD/build/proof/hword-m10-gate.png"
+          export HRT_M10_PRE_INPUT_CAPTURE_PATH="$PWD/build/proof/hword-before-input.png"
+          export HRT_M10_POST_INPUT_CAPTURE_PATH="$PWD/build/proof/hword-after-input.png"
+          export HRT_M8_SYNTHETIC_INPUT=1
+          : >build/proof/stdout.txt; : >build/proof/stderr.txt
+          /usr/bin/arch -x86_64 build/host/hrt-m10-hword-main-input \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          delivered=0
+          post_capture=0
+          for _ in $(jot 1600); do
+            if grep -q 'HRT M6 QPA: CREATE .*title=Word ' \
+                 build/proof/stderr.txt 2>/dev/null && \
+               grep -q 'HRT M8 QPA: key event delivered .*accepted=1' \
+                 build/proof/stderr.txt 2>/dev/null && \
+               grep -q 'HRT M8 QPA: mouse event delivered' \
+                 build/proof/stderr.txt 2>/dev/null && \
+               grep -q 'HRT M8 QPA: input queue drained' \
+                 build/proof/stderr.txt 2>/dev/null; then
+              delivered=1
+            fi
+            if grep -q 'HRT M10 APPKIT: post-input capture result=1' \
+                 build/proof/stderr.txt 2>/dev/null; then
+              post_capture=1
+              sleep 2
+              break
+            fi
+            if grep -q 'fatal signal' build/proof/stderr.txt 2>/dev/null; then
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 0.05
+          done
+          alive=0
+          if kill -0 "$pid" 2>/dev/null; then
+            alive=1
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+              >build/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$pid" 2 1 -file build/proof/sample.txt \
+              >/dev/null 2>&1 || true
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.3
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e; wait "$pid"; raw_status=$?; set -e
+          printf '%s\n' "$raw_status" >build/proof/raw-exit-status.txt
+          printf '%s\n' "$alive" >build/proof/alive-at-observation.txt
+          printf '%s\n' "$delivered" >build/proof/input-delivered.txt
+          printf '%s\n' "$post_capture" >build/proof/post-capture.txt
+          grep -E 'HRT M6 QPA: CREATE |HRT M7 QPA|hrt-m7-hostcall: presented BGRA|HRT M8 APPKIT|HRT M8 QPA|HRT M10 QPA|host-call opcode=262|HRT M10 APPKIT|fatal signal|basic_string::substr|terminate called|Caught exception' \
+            build/proof/stderr.txt | tail -n 24000 \
+            | tee build/proof/key-lines.txt || true
+          tail -n 5000 build/proof/stderr.txt \
+            >build/proof/stderr-tail.txt
+          cat build/proof/key-lines.txt
+          echo "raw-status=$raw_status alive=$alive delivered=$delivered post-capture=$post_capture"
+
+      - name: Classify exact main-window input and repaint
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,re,struct
+          from pathlib import Path
+
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          titles=[]; geometries=[]
+          for line in re.findall(r'HRT M6 QPA: CREATE .*',stderr):
+              title=re.search(r' title=(.*?) handle=',line)
+              geometry=re.search(r' geometry=(\d+)x(\d+)',line)
+              if title: titles.append(title.group(1))
+              if geometry: geometries.append([
+                  int(geometry.group(1)),int(geometry.group(2))])
+
+          key_lines=re.findall(r'HRT M8 QPA: key event delivered .*',stderr)
+          mouse_lines=re.findall(r'HRT M8 QPA: mouse event delivered .*',stderr)
+          accepted_key_lines=[line for line in key_lines
+                              if re.search(r'accepted=1(?:\s|$)',line)]
+          queue_drained='HRT M8 QPA: input queue drained' in stderr
+          monitor_attached='HRT M8 APPKIT: input monitor attached' in stderr
+          synthetic_posted=(
+              'HRT M8 APPKIT: posted deterministic focus click, key and mouse events'
+              in stderr)
+          poll_results=[int(value) for value in re.findall(
+              r'hrt-m6: host-call opcode=262 result=(-?\d+)',stderr)]
+          frame_numbers=[int(value) for value in re.findall(
+              r'hrt-m7-hostcall: presented BGRA frame=(\d+)',stderr)]
+          max_frame=max(frame_numbers,default=0)
+          fatal_lines=re.findall(r'.*fatal signal.*',stderr)
+          exception_text=any(token in stderr for token in (
+              'basic_string::substr','std::out_of_range',
+              'terminate called','Caught exception'))
+          error_windows=[title for title in titles
+                         if title in {'Exception','Initialization Error'}]
+          word_window=any(
+              title=='Word' and geometry==[800,600]
+              for title,geometry in zip(titles,geometries))
+
+          def png_info(path: Path):
+              if not path.is_file() or path.stat().st_size==0:
+                  return None
+              data=path.read_bytes()
+              if len(data)<24 or data[:8]!=b'\x89PNG\r\n\x1a\n':
+                  raise AssertionError(f'not a PNG: {path}')
+              width,height=struct.unpack('>II',data[16:24])
+              return {
+                  'path':str(path),
+                  'size':len(data),
+                  'width':width,
+                  'height':height,
+                  'sha256':hashlib.sha256(data).hexdigest(),
+              }
+
+          before=png_info(Path('build/proof/hword-before-input.png'))
+          after=png_info(Path('build/proof/hword-after-input.png'))
+          gate=png_info(Path('build/proof/hword-m10-gate.png'))
+          visual_change=bool(before and after and
+                             before['sha256']!=after['sha256'])
+          main_sized_captures=bool(
+              before and before['width']>=800 and before['height']>=600 and
+              after and after['width']>=800 and after['height']>=600)
+          input_delivered=bool(
+              word_window and monitor_attached and synthetic_posted and
+              len(key_lines)>=2 and len(mouse_lines)>=3 and
+              accepted_key_lines and queue_drained and
+              1 in poll_results and 0 in poll_results)
+          repainted=bool(after and max_frame>=2)
+
+          if fatal_lines:
+              classification='MAIN_EDITOR_FATAL_AFTER_INPUT'
+          elif exception_text or error_windows:
+              classification='MAIN_EDITOR_ERROR_AFTER_INPUT'
+          elif input_delivered and repainted and visual_change and \
+                  main_sized_captures:
+              classification='MAIN_EDITOR_INPUT_VISIBLE'
+          elif input_delivered and repainted and main_sized_captures:
+              classification='MAIN_EDITOR_INPUT_ACCEPTED_AND_REPAINTED'
+          elif input_delivered:
+              classification='MAIN_EDITOR_INPUT_ACCEPTED_NO_POST_FRAME'
+          else:
+              classification='MAIN_EDITOR_INPUT_NOT_DELIVERED'
+
+          status='PASS' if classification in {
+              'MAIN_EDITOR_INPUT_VISIBLE',
+              'MAIN_EDITOR_INPUT_ACCEPTED_AND_REPAINTED',
+          } else 'DIAGNOSTIC'
+          lock=json.loads(Path('build/proof/qpa-lock.json').read_text())
+          patch=json.loads(Path(
+              'build/proof/culture-redirect-patch.json').read_text())
+          result={
+              'schema':1,
+              'milestone':'M10-main-window-input',
+              'status':status,
+              'classification':classification,
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'program':os.environ['PROGRAM'],
+              'program_sha256':os.environ['PROGRAM_SHA256'],
+              'package_sha256':os.environ['PACKAGE_SHA256'],
+              'culture_redirect_patch':patch,
+              'qpa_sha256':lock['plugin']['sha256_after_prepatch'],
+              'input_poll_opcode':lock['plugin']['input_poll_opcode'],
+              'window_titles':titles,
+              'window_geometries':geometries,
+              'word_window_observed':word_window,
+              'monitor_attached':monitor_attached,
+              'synthetic_input_posted':synthetic_posted,
+              'key_events_delivered':len(key_lines),
+              'accepted_key_events':len(accepted_key_lines),
+              'mouse_events_delivered':len(mouse_lines),
+              'input_queue_drained':queue_drained,
+              'poll_results':poll_results,
+              'presented_frame_numbers':frame_numbers,
+              'max_presented_frame':max_frame,
+              'input_delivered':input_delivered,
+              'repainted_after_input':repainted,
+              'visual_change':visual_change,
+              'before_capture':before,
+              'after_capture':after,
+              'gate_capture':gate,
+              'error_windows':error_windows,
+              'exception_text_observed':exception_text,
+              'fatal_lines':fatal_lines,
+              'alive_at_observation':bool(int(Path(
+                  'build/proof/alive-at-observation.txt').read_text())),
+              'raw_exit_status':int(Path(
+                  'build/proof/raw-exit-status.txt').read_text()),
+          }
+          Path('diagnostics').mkdir(exist_ok=True)
+          payload=json.dumps(result,indent=2)+'\n'
+          Path(f"diagnostics/m10-hword-main-input-{os.environ['GITHUB_RUN_ID']}.json").write_text(payload)
+          Path('diagnostics/m10-hword-main-input-latest.json').write_text(payload)
+          Path('diagnostics/m10-hword-main-input-latest.md').write_text(
+              '# HWord M10 main-window input\n\n'
+              f"- Classification: `{classification}`\n"
+              f"- Windows: `{list(zip(titles,geometries))}`\n"
+              f"- Key events: `{len(key_lines)}` "
+              f"(accepted `{len(accepted_key_lines)}`)\n"
+              f"- Mouse events: `{len(mouse_lines)}`\n"
+              f"- Maximum presented frame: `{max_frame}`\n"
+              f"- Visual change: `{visual_change}`\n"
+              f"- Before SHA-256: `{before['sha256'] if before else None}`\n"
+              f"- After SHA-256: `{after['sha256'] if after else None}`\n"
+          )
+          Path('build/proof/summary.json').write_text(payload)
+          if status=='PASS':
+              Path('proofs').mkdir(exist_ok=True)
+              Path('proofs/m10-hword-main-input.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Commit the durable M10 input result
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git add diagnostics/m10-hword-main-input-*.json \
+                  diagnostics/m10-hword-main-input-latest.md
+          if test -f proofs/m10-hword-main-input.json; then
+            git add proofs/m10-hword-main-input.json
+          fi
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: classify real HWord main-window input'
+          for _ in $(seq 1 12); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m10-hword-main-window-input-proof
+          path: |
+            build/host/hrt-m10-hword-main-input
+            build/generated/appkit_adapter_m10.m
+            build/proof
+            diagnostics/m10-hword-main-input-*.json
+            diagnostics/m10-hword-main-input-latest.md
+            proofs/m10-hword-main-input.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach the exact HWord guest
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true

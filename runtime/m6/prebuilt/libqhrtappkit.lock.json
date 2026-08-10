@@ -1,0 +1,48 @@
+{
+  "schema": 2,
+  "artifact": {
+    "kind": "repository-published-xz",
+    "workflow_run": "31305695844",
+    "source_commit": "84837ede274d98c4ca32d4475e80e3151ab16029",
+    "qpa_source_tree": "f36db5e4f973f6c44541003524d1a9a7654c4cf4"
+  },
+  "toolchain": {
+    "distribution": "Debian Buster",
+    "compiler": "g++ (Debian 8.3.0-6) 8.3.0",
+    "qt_version": "5.11.3",
+    "qtbase_archive_sha256": "c6bf887732b83ce072eb72eddb7497bedcdf9ca794e7ed91261a93f063623e1c"
+  },
+  "plugin": {
+    "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so",
+    "qpa_key": "hrtappkit",
+    "sha256_before_prepatch": "e1729cf20bf1e67a697fbe40b53ff4ad2011a9c3cfd085a926d58950112811c0",
+    "sha256_after_prepatch": "645f1ac84d5e0073c663a7bee75a696e3b4de7b6b6cb7f117087dbd6ac088c25",
+    "xz_sha256": "c072baaa97f9138f7b82f103218ea9913f5ec36b2587e613acc7c8460baaa38d",
+    "patched_syscalls": 10,
+    "rewritten_fs_prefixes": 102,
+    "vulkan_private_abi_locally_defined": true,
+    "m7_bgra_transport": true,
+    "dependencies": [
+      "libgthread-2.0.so.0",
+      "libglib-2.0.so.0",
+      "libfontconfig.so.1",
+      "libfreetype.so.6",
+      "libQt5Widgets.so.5",
+      "libQt5Gui.so.5",
+      "libQt5Core.so.5",
+      "libGL.so.1",
+      "libpthread.so.0",
+      "libstdc++.so.6",
+      "libm.so.6",
+      "libgcc_s.so.1",
+      "libc.so.6"
+    ],
+    "xz_size": 88120,
+    "compression": {
+      "format": "xz",
+      "preset": 9,
+      "check": "crc64",
+      "threads": 1
+    }
+  }
+}

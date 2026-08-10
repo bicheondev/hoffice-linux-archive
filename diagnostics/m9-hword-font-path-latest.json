@@ -1,0 +1,2323 @@
+{
+  "schema": 1,
+  "milestone": "M9-font-path-trace",
+  "status": "DIAGNOSTIC",
+  "workflow_run": "31167712787",
+  "commit": "7476a52bdb8a44e8d6c626a215e67a860cd04e55",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "window_titles": [
+    "Initialization Error"
+  ],
+  "initialization_error_observed": true,
+  "path_trace_count": 306,
+  "failed_path_operations": [
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/ld.so.preload",
+      "host_path": "/tmp/h9p-31167712787/etc/ld.so.preload"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/glibc-hwcaps/x86-64-v2/libHwordApp.so",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/glibc-hwcaps/x86-64-v2/libHwordApp.so"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/glibc-hwcaps/x86-64-v2/",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/glibc-hwcaps/x86-64-v2/"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libQt5PrintSupport.so.5",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libQt5PrintSupport.so.5"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/glibc-hwcaps/x86-64-v2/libQt5PrintSupport.so.5",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/glibc-hwcaps/x86-64-v2/libQt5PrintSupport.so.5"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/glibc-hwcaps/x86-64-v2/",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/glibc-hwcaps/x86-64-v2/"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libpthread.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libpthread.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libpthread.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libpthread.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v2/libpthread.so.0",
+      "host_path": "/tmp/h9p-31167712787/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v2/libpthread.so.0"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v2/",
+      "host_path": "/tmp/h9p-31167712787/lib/x86_64-linux-gnu/glibc-hwcaps/x86-64-v2/"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libdl.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libdl.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libdl.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libdl.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libcairo.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libcairo.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libcairo.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libcairo.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libfontconfig.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libfontconfig.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libfontconfig.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libfontconfig.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libfreetype.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libfreetype.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libfreetype.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libfreetype.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libcurl-gnutls.so.4",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libcurl-gnutls.so.4"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libcurl-gnutls.so.4",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libcurl-gnutls.so.4"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libQt5Xml.so.5",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libQt5Xml.so.5"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libxcb.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libxcb.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libxcb.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libxcb.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libQt5Widgets.so.5",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libQt5Widgets.so.5"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libQt5Gui.so.5",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libQt5Gui.so.5"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libQt5Network.so.5",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libQt5Network.so.5"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libQt5Core.so.5",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libQt5Core.so.5"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libcups.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libcups.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libcups.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libcups.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libstdc++.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libstdc++.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libstdc++.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libstdc++.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libm.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libm.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libm.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libm.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libgcc_s.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libgcc_s.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libgcc_s.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libgcc_s.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libc.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libc.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libc.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libc.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libpng16.so.16",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libpng16.so.16"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libpng16.so.16",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libpng16.so.16"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libz.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libz.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libz.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libz.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libicudata.so.56",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libicudata.so.56"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libicui18n.so.56",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libicui18n.so.56"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libicuuc.so.56",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libicuuc.so.56"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libGL.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libGL.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libGL.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libGL.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libX11.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libX11.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libX11.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libX11.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libXext.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libXext.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libXext.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libXext.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libXrender.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libXrender.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libXrender.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libXrender.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libxcb-render.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libxcb-render.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libxcb-render.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libxcb-render.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libxcb-shm.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libxcb-shm.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libxcb-shm.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libxcb-shm.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libpixman-1.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libpixman-1.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libpixman-1.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libpixman-1.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libexpat.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libexpat.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libexpat.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libexpat.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libbz2.so.1.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libbz2.so.1.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libbz2.so.1.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libbz2.so.1.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libbrotlidec.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libbrotlidec.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libbrotlidec.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libbrotlidec.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libnghttp2.so.14",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libnghttp2.so.14"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libnghttp2.so.14",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libnghttp2.so.14"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libidn2.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libidn2.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libidn2.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libidn2.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/librtmp.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/librtmp.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/librtmp.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/librtmp.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libssh.so.4",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libssh.so.4"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libssh.so.4",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libssh.so.4"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libpsl.so.5",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libpsl.so.5"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libpsl.so.5",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libpsl.so.5"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libnettle.so.8",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libnettle.so.8"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libnettle.so.8",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libnettle.so.8"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libgnutls.so.30",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libgnutls.so.30"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libgnutls.so.30",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libgnutls.so.30"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libgssapi_krb5.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libgssapi_krb5.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libgssapi_krb5.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libgssapi_krb5.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libldap.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libldap.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libldap.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libldap.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/liblber.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/liblber.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/liblber.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/liblber.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libzstd.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libzstd.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libzstd.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libzstd.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libGLU.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libGLU.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libGLU.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libGLU.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libXau.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libXau.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libXau.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libXau.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libXdmcp.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libXdmcp.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libXdmcp.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libXdmcp.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libharfbuzz-icu.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libharfbuzz-icu.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libharfbuzz-icu.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libharfbuzz-icu.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libharfbuzz.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libharfbuzz.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libharfbuzz.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libharfbuzz.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libgthread-2.0.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libgthread-2.0.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libgthread-2.0.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libgthread-2.0.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libglib-2.0.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libglib-2.0.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libglib-2.0.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libglib-2.0.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libavahi-common.so.3",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libavahi-common.so.3"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libavahi-common.so.3",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libavahi-common.so.3"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libavahi-client.so.3",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libavahi-client.so.3"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libavahi-client.so.3",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libavahi-client.so.3"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libGLdispatch.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libGLdispatch.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libGLdispatch.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libGLdispatch.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libGLX.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libGLX.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libGLX.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libGLX.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libbrotlicommon.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libbrotlicommon.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libbrotlicommon.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libbrotlicommon.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libunistring.so.5",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libunistring.so.5"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libunistring.so.5",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libunistring.so.5"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libhogweed.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libhogweed.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libhogweed.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libhogweed.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libgmp.so.10",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libgmp.so.10"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libgmp.so.10",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libgmp.so.10"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libcrypto.so.3",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libcrypto.so.3"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libcrypto.so.3",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libcrypto.so.3"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libp11-kit.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libp11-kit.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libp11-kit.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libp11-kit.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libtasn1.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libtasn1.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libtasn1.so.6",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libtasn1.so.6"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libkrb5.so.3",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libkrb5.so.3"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libkrb5.so.3",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libkrb5.so.3"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libk5crypto.so.3",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libk5crypto.so.3"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libk5crypto.so.3",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libk5crypto.so.3"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libcom_err.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libcom_err.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libcom_err.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libcom_err.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libkrb5support.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libkrb5support.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libkrb5support.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libkrb5support.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libsasl2.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libsasl2.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libsasl2.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libsasl2.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libOpenGL.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libOpenGL.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libOpenGL.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libOpenGL.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libbsd.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libbsd.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libbsd.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libbsd.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libicuuc.so.74",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libicuuc.so.74"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libicuuc.so.74",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libicuuc.so.74"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libgraphite2.so.3",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libgraphite2.so.3"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libgraphite2.so.3",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libgraphite2.so.3"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libpcre2-8.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libpcre2-8.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libpcre2-8.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libpcre2-8.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libdbus-1.so.3",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libdbus-1.so.3"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libdbus-1.so.3",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libdbus-1.so.3"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libffi.so.8",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libffi.so.8"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libffi.so.8",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libffi.so.8"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libkeyutils.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libkeyutils.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libkeyutils.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libkeyutils.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libresolv.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libresolv.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libresolv.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libresolv.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libmd.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libmd.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libmd.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libmd.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libicudata.so.74",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libicudata.so.74"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libicudata.so.74",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libicudata.so.74"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libsystemd.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libsystemd.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libsystemd.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libsystemd.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libcap.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libcap.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libcap.so.2",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libcap.so.2"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libgcrypt.so.20",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libgcrypt.so.20"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libgcrypt.so.20",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libgcrypt.so.20"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/liblz4.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/liblz4.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/liblz4.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/liblz4.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/liblzma.so.5",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/liblzma.so.5"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/liblzma.so.5",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/liblzma.so.5"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libgpg-error.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libgpg-error.so.0"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libgpg-error.so.0",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libgpg-error.so.0"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/gnutls/config",
+      "host_path": "/tmp/h9p-31167712787/etc/gnutls/config"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/plugins",
+      "host_path": "/tmp/h9p-31167712787/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/plugins"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/usr/lib/locale/locale-archive",
+      "host_path": "/tmp/h9p-31167712787/usr/lib/locale/locale-archive"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/usr/share/locale/locale.alias",
+      "host_path": "/tmp/h9p-31167712787/usr/share/locale/locale.alias"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/usr/lib/locale/C.UTF-8/LC_IDENTIFICATION",
+      "host_path": "/tmp/h9p-31167712787/usr/lib/locale/C.UTF-8/LC_IDENTIFICATION"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/usr/lib/locale/C.utf8/LC_IDENTIFICATION",
+      "host_path": "/tmp/h9p-31167712787/usr/lib/locale/C.utf8/LC_IDENTIFICATION"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/usr/lib/locale/C/LC_IDENTIFICATION",
+      "host_path": "/tmp/h9p-31167712787/usr/lib/locale/C/LC_IDENTIFICATION"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/proc/17814/exe",
+      "host_path": "/tmp/h9p-31167712787/proc/17814/exe"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt.conf",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt.conf"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/plugins",
+      "host_path": "/tmp/h9p-31167712787/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/plugins"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/qtlogging.ini",
+      "host_path": "/tmp/h9p-31167712787/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/qtlogging.ini"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/QtProject/qtlogging.ini",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/QtProject/qtlogging.ini"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/xdg/QtProject/qtlogging.ini",
+      "host_path": "/tmp/h9p-31167712787/etc/xdg/QtProject/qtlogging.ini"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/dev/urandom",
+      "host_path": "/tmp/h9p-31167712787/dev/urandom"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/dev/random",
+      "host_path": "/tmp/h9p-31167712787/dev/random"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/platforms/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/plugins/platforms/platforms/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/platforms/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/platforms/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt.conf",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt.conf"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-runtime/flatpak-info",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-runtime/flatpak-info"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/platformthemes/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/plugins/platforms/platformthemes/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platformthemes/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/plugins/platformthemes/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/platformthemes/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/platformthemes/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/styles/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/plugins/platforms/styles/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/styles/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/plugins/styles/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/styles/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/styles/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/translations/qt_C.qm",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/translations/qt_C.qm"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/translations/qt_C",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/translations/qt_C"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/translations/qt_c.qm",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/translations/qt_c.qm"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/translations/qt_c",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/translations/qt_c"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/translations/qt_",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/translations/qt_"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/translations/qt_",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/translations/qt_"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/translations/qt_C.qm",
+      "host_path": "/tmp/h9p-31167712787/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/translations/qt_C.qm"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/translations/qt_C",
+      "host_path": "/tmp/h9p-31167712787/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/translations/qt_C"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/translations/qt_c.qm",
+      "host_path": "/tmp/h9p-31167712787/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/translations/qt_c.qm"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/translations/qt_c",
+      "host_path": "/tmp/h9p-31167712787/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/translations/qt_c"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/translations/qt_",
+      "host_path": "/tmp/h9p-31167712787/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/translations/qt_"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/translations/qt_",
+      "host_path": "/tmp/h9p-31167712787/home/jenkins/sdk/Qt5.11.3/5.11.3/gcc_64/translations/qt_"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/accessiblebridge/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/plugins/platforms/accessiblebridge/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/accessiblebridge/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/plugins/accessiblebridge/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/accessiblebridge/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/accessiblebridge/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.local/share/hword/Hnc/User/Common//recentInfo.xml",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.local/share/hword/Hnc/User/Common//recentInfo.xml"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.local/share/hword/Hnc/User/Common",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.local/share/hword/Hnc/User/Common"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/hnc.conf",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/hnc.conf"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/hnc.conf",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/hnc.conf"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/hnc.conf",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/hnc.conf"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/os-release",
+      "host_path": "/tmp/h9p-31167712787/etc/os-release"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/usr/lib/os-release",
+      "host_path": "/tmp/h9p-31167712787/usr/lib/os-release"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/lsb-release",
+      "host_path": "/tmp/h9p-31167712787/etc/lsb-release"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/redhat-release",
+      "host_path": "/tmp/h9p-31167712787/etc/redhat-release"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/debian_version",
+      "host_path": "/tmp/h9p-31167712787/etc/debian_version"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/localtime",
+      "host_path": "/tmp/h9p-31167712787/etc/localtime"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/localtime",
+      "host_path": "/tmp/h9p-31167712787/etc/localtime"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/localtime",
+      "host_path": "/tmp/h9p-31167712787/etc/localtime"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.local/share/hword/Hnc/User/Common/110/recentInfo.xml",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.local/share/hword/Hnc/User/Common/110/recentInfo.xml"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.local/share/hword/Hnc/User/Common/110/themeInfo.xml",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.local/share/hword/Hnc/User/Common/110/themeInfo.xml"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/themeInfo.xml",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/themeInfo.xml"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.local/share/hword/Hnc/User/Common/110/themeInfo.xml",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.local/share/hword/Hnc/User/Common/110/themeInfo.xml"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.local/share/hword/Hnc/User/Common/110",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.local/share/hword/Hnc/User/Common/110"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/Strings/hword_strings.zh-CN.qm.qm",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/Strings/hword_strings.zh-CN.qm.qm"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/Strings/hword_strings_dlg.zh-CN.qm.qm",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/Strings/hword_strings_dlg.zh-CN.qm.qm"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/Strings/hword_strings_tooltip.zh-CN.qm.qm",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/Strings/hword_strings_tooltip.zh-CN.qm.qm"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.local/share/hword/Hnc/User/Common/110/optionInfo.xml",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.local/share/hword/Hnc/User/Common/110/optionInfo.xml"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/optionInfo.xml",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/optionInfo.xml"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/fonts/fonts.conf",
+      "host_path": "/tmp/h9p-31167712787/etc/fonts/fonts.conf"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/fonts/conf.d",
+      "host_path": "/tmp/h9p-31167712787/etc/fonts/conf.d"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/fonts/conf.d",
+      "host_path": "/tmp/h9p-31167712787/etc/fonts/conf.d"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/conf.d",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/conf.d"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/conf.d",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/conf.d"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/conf.d",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/conf.d"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/conf.d",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/conf.d"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/fonts.conf",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/fonts.conf"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/fonts.conf",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/fonts.conf"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/fonts.conf",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/fonts.conf"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/fonts.conf",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/fonts.conf"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.local/share/fonts",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.local/share/fonts"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.local/share/fonts",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.local/share/fonts"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/usr/local/share/fonts",
+      "host_path": "/tmp/h9p-31167712787/usr/local/share/fonts"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/usr/local/share/fonts",
+      "host_path": "/tmp/h9p-31167712787/usr/local/share/fonts"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/usr/share/fonts",
+      "host_path": "/tmp/h9p-31167712787/usr/share/fonts"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/usr/share/fonts",
+      "host_path": "/tmp/h9p-31167712787/usr/share/fonts"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": ":/non-existent",
+      "host_path": ":/non-existent"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": ":/non-existent",
+      "host_path": ":/non-existent"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Shared/TTF/Install/HanSantteutDotum-Regular.ttf",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Shared/TTF/Install/HanSantteutDotum-Regular.ttf"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/UxXml/Hancom2016/Hword/hword_commands_jade.xml",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/UxXml/Hancom2016/Hword/hword_commands_jade.xml"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/UxXml/Hancom2016/Common/Image/zh-CN",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/UxXml/Hancom2016/Common/Image/zh-CN"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/UxXml/Hancom2016/Hword/Image/zh-CN",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/UxXml/Hancom2016/Hword/Image/zh-CN"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/passwd",
+      "host_path": "/tmp/h9p-31167712787/etc/passwd"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hnc-user",
+      "host_path": "/tmp/h9p-31167712787/tmp/hnc-user"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hnc-user/17814",
+      "host_path": "/tmp/h9p-31167712787/tmp/hnc-user/17814"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/usr/lib/x86_64-linux-gnu/gconv/gconv-modules.cache",
+      "host_path": "/tmp/h9p-31167712787/usr/lib/x86_64-linux-gnu/gconv/gconv-modules.cache"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/usr/lib/x86_64-linux-gnu/gconv/gconv-modules",
+      "host_path": "/tmp/h9p-31167712787/usr/lib/x86_64-linux-gnu/gconv/gconv-modules"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/usr/lib/x86_64-linux-gnu/gconv/gconv-modules.d",
+      "host_path": "/tmp/h9p-31167712787/usr/lib/x86_64-linux-gnu/gconv/gconv-modules.d"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Shared/TTF/All",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Shared/TTF/All"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Shared/TTF/All",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Shared/TTF/All"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Shared/TTF/Install",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Shared/TTF/Install"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Shared/TTF/Install",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Shared/TTF/Install"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Shared/TTF/Hword",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Shared/TTF/Hword"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Shared/TTF/Hword",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Shared/TTF/Hword"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libHncOfficeFramework.res",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libHncOfficeFramework.res"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libHncImm.ENU.res",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libHncImm.ENU.res"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libHncOfficeFramework.ENU.res",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libHncOfficeFramework.ENU.res"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Help",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Help"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Help",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Help"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/hnc/registry.ini",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/hnc/registry.ini"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/hnc/registry.ini",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/hnc/registry.ini"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/hnc/registry.ini",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/hnc/registry.ini"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/hnc.ini",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/hnc.ini"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/hnc.ini",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/hnc.ini"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/hnc.ini",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/hnc.ini"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/xdg/hnc/registry.ini",
+      "host_path": "/tmp/h9p-31167712787/etc/xdg/hnc/registry.ini"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/xdg/hnc/registry.ini",
+      "host_path": "/tmp/h9p-31167712787/etc/xdg/hnc/registry.ini"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/xdg/hnc/registry.ini",
+      "host_path": "/tmp/h9p-31167712787/etc/xdg/hnc/registry.ini"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/xdg/hnc.ini",
+      "host_path": "/tmp/h9p-31167712787/etc/xdg/hnc.ini"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/xdg/hnc.ini",
+      "host_path": "/tmp/h9p-31167712787/etc/xdg/hnc.ini"
+    },
+    {
+      "operation": "stat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/xdg/hnc.ini",
+      "host_path": "/tmp/h9p-31167712787/etc/xdg/hnc.ini"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Shared/Fonts/UnlicenseFontList.ini",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Shared/Fonts/UnlicenseFontList.ini"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Bin/FontDB/UnlicenseFontList.ini",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Bin/FontDB/UnlicenseFontList.ini"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Shared/Fonts/UserPossibleFontList.ini",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Shared/Fonts/UserPossibleFontList.ini"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Shared/Fonts/HGSMJ.HFT",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Shared/Fonts/HGSMJ.HFT"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "HGSMJ.HFT",
+      "host_path": "HGSMJ.HFT"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Shared/Fonts/hftinfo.dat",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Shared/Fonts/hftinfo.dat"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Shared/Fonts/hftinfo.dat",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Shared/Fonts/hftinfo.dat"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Bin/FontDB/hftinfo.dat",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Bin/FontDB/hftinfo.dat"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Shared/Fonts/fontinfo.dat",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Shared/Fonts/fontinfo.dat"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Shared/Fonts/fontinfo.dat",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Shared/Fonts/fontinfo.dat"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Bin/FontDB/fontinfo.dat",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Bin/FontDB/fontinfo.dat"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/UxXml/Skin/Hancom2016/Image/zh-CN//dlg_data_validate_warning.png",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/UxXml/Skin/Hancom2016/Image/zh-CN//dlg_data_validate_warning.png"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/UxXml/Hancom2016/Hword/Image/zh-CN//dlg_data_validate_warning.png",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/UxXml/Hancom2016/Hword/Image/zh-CN//dlg_data_validate_warning.png"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/UxXml/Hancom2016/Common/Image/zh-CN//dlg_data_validate_warning.png",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/UxXml/Hancom2016/Common/Image/zh-CN//dlg_data_validate_warning.png"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/localtime",
+      "host_path": "/tmp/h9p-31167712787/etc/localtime"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/localtime",
+      "host_path": "/tmp/h9p-31167712787/etc/localtime"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/localtime",
+      "host_path": "/tmp/h9p-31167712787/etc/localtime"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/etc/localtime",
+      "host_path": "/tmp/h9p-31167712787/etc/localtime"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/imageformats/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/plugins/platforms/imageformats/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/imageformats/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/plugins/imageformats/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/imageformats/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/imageformats/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/accessible/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/plugins/platforms/accessible/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/plugins/accessible/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/plugins/accessible/."
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/accessible/.",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/accessible/."
+    }
+  ],
+  "font_path_operations": [
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/libfontconfig.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/libfontconfig.so.1"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice11/Bin/qt/lib/libfontconfig.so.1",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice11/Bin/qt/lib/libfontconfig.so.1"
+    },
+    {
+      "operation": "open",
+      "result": 7,
+      "host_errno": 0,
+      "guest_path": "/lib/x86_64-linux-gnu/libfontconfig.so.1",
+      "host_path": "/tmp/h9p-31167712787/lib/x86_64-linux-gnu/libfontconfig.so.1"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/conf.d",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/conf.d"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/conf.d",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/conf.d"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/conf.d",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/conf.d"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/conf.d",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/conf.d"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/fonts.conf",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/fonts.conf"
+    },
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/fonts.conf",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/fonts.conf"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/fonts.conf",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/fonts.conf"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/tmp/hrt-home/.config/fontconfig/fonts.conf",
+      "host_path": "/tmp/h9p-31167712787/tmp/hrt-home/.config/fontconfig/fonts.conf"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Shared/Fonts/UnlicenseFontList.ini",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Shared/Fonts/UnlicenseFontList.ini"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Bin/FontDB/UnlicenseFontList.ini",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Bin/FontDB/UnlicenseFontList.ini"
+    },
+    {
+      "operation": "access",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Shared/Fonts/UserPossibleFontList.ini",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Shared/Fonts/UserPossibleFontList.ini"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Shared/Fonts/HGSMJ.HFT",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Shared/Fonts/HGSMJ.HFT"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Shared/Fonts/hftinfo.dat",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Shared/Fonts/hftinfo.dat"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Shared/Fonts/hftinfo.dat",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Shared/Fonts/hftinfo.dat"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Bin/FontDB/hftinfo.dat",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Bin/FontDB/hftinfo.dat"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Shared/Fonts/fontinfo.dat",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Shared/Fonts/fontinfo.dat"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Shared/Fonts/fontinfo.dat",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Shared/Fonts/fontinfo.dat"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "/opt/hnc/hoffice1/Bin/FontDB/fontinfo.dat",
+      "host_path": "/tmp/h9p-31167712787/opt/hnc/hoffice1/Bin/FontDB/fontinfo.dat"
+    }
+  ],
+  "relative_failed_paths": [
+    {
+      "operation": "fstatat",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": ":/non-existent",
+      "host_path": ":/non-existent"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": ":/non-existent",
+      "host_path": ":/non-existent"
+    },
+    {
+      "operation": "open",
+      "result": -1,
+      "host_errno": 2,
+      "guest_path": "HGSMJ.HFT",
+      "host_path": "HGSMJ.HFT"
+    }
+  ]
+}

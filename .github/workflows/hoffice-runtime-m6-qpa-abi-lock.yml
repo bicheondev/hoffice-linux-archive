@@ -1,0 +1,160 @@
+name: HOffice runtime M6 QPA ABI lock
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m6/qpa/**'
+      - 'runtime/m3/prepatch_elf.py'
+      - '.github/workflows/hoffice-runtime-m6-qpa-abi-lock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# This independent build gate intentionally does not share the older QPA
+# workflow's concurrency group. A previously failed container run can remain
+# reported as in-progress by GitHub long enough to block its replacement.
+
+env:
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+  QTBASE_ARCHIVE_SHA256: c6bf887732b83ce072eb72eddb7497bedcdf9ca794e7ed91261a93f063623e1c
+
+jobs:
+  build-abi-locked-qpa:
+    runs-on: ubuntu-24.04
+    container: debian:buster-slim
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the exact Qt 5.11.3 development ABI
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat >/etc/apt/sources.list <<'EOF'
+          deb [trusted=yes] http://archive.debian.org/debian buster main
+          deb [trusted=yes] http://archive.debian.org/debian-security buster/updates main
+          EOF
+          apt-get -o Acquire::Check-Valid-Until=false \
+                  -o Acquire::AllowInsecureRepositories=true update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential binutils ca-certificates curl file jq python3 xz-utils \
+            qt5-qmake qtbase5-dev qtbase5-dev-tools qtbase5-private-dev
+          export QT_SELECT=qt5
+          qmake -qt=5 -query QT_VERSION | tee qt-version.txt
+          test "$(qmake -qt=5 -query QT_VERSION)" = 5.11.3
+          g++ --version | head -n 1 | tee compiler-version.txt
+
+      - name: Lock the official Qt 5.11.3 offscreen implementation
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p build/source build/qpa \
+            "build/plugin-root$(dirname "$PLUGIN_GUEST")" build/report
+          curl --fail --location --retry 4 --retry-delay 3 \
+            -o build/source/qtbase.tar.xz \
+            https://download.qt.io/archive/qt/5.11/5.11.3/submodules/qtbase-everywhere-src-5.11.3.tar.xz
+          printf '%s  %s\n' "$QTBASE_ARCHIVE_SHA256" \
+            build/source/qtbase.tar.xz | sha256sum --check -
+          tar -xJf build/source/qtbase.tar.xz -C build/source
+          qtbase=$(find build/source -mindepth 1 -maxdepth 1 -type d \
+            -name 'qtbase-*5.11.3*' -print -quit)
+          test -n "$qtbase"
+          test -f "$qtbase/src/plugins/platforms/offscreen/qoffscreenintegration.cpp"
+          printf '%s\n' "$qtbase" >build/report/qtbase-source-path.txt
+          sha256sum build/source/qtbase.tar.xz \
+            >build/report/qtbase-source.sha256
+
+      - name: Build and reject unresolved HOffice Qt private-ABI slots
+        shell: bash
+        run: |
+          set -euxo pipefail
+          export QT_SELECT=qt5
+          qtbase=$(cat build/report/qtbase-source-path.txt)
+          qpa_source="$PWD/runtime/m6/qpa/hrtappkit.pro"
+          offscreen="$PWD/$qtbase/src/plugins/platforms/offscreen"
+          cd build/qpa
+          qmake -qt=5 "$qpa_source" "QTOFFSCREEN_DIR=$offscreen"
+          make -j2 V=1
+          plugin=$(find out . -type f -name 'libqhrtappkit.so' -print -quit)
+          test -n "$plugin"
+          cp "$plugin" "$GITHUB_WORKSPACE/build/plugin-root$PLUGIN_GUEST"
+          cd "$GITHUB_WORKSPACE"
+          chmod 0755 "build/plugin-root$PLUGIN_GUEST"
+
+          file "build/plugin-root$PLUGIN_GUEST" \
+            | tee build/report/plugin-file.txt
+          readelf -hW "build/plugin-root$PLUGIN_GUEST" \
+            | tee build/report/plugin-elf-header.txt
+          readelf -dW "build/plugin-root$PLUGIN_GUEST" \
+            | tee build/report/plugin-dynamic.txt
+          readelf -Ws "build/plugin-root$PLUGIN_GUEST" \
+            | tee build/report/plugin-symbols-unpatched.txt
+          readelf -VW "build/plugin-root$PLUGIN_GUEST" \
+            | tee build/report/plugin-versions.txt
+          readelf -p .qtmetadata "build/plugin-root$PLUGIN_GUEST" \
+            | tee build/report/plugin-qtmetadata.txt || true
+          strings -a "build/plugin-root$PLUGIN_GUEST" \
+            | grep -E 'hrtappkit|HRT M6 QPA' \
+            | tee build/report/plugin-markers.txt
+
+          grep -F 'Shared library: [libQt5Gui.so.5]' \
+            build/report/plugin-dynamic.txt
+          grep -F 'Shared library: [libQt5Core.so.5]' \
+            build/report/plugin-dynamic.txt
+
+          # HOffice QtGui lacks this Debian-only trailing virtual.  A local
+          # definition is allowed; an UND relocation would still make dlopen
+          # fail against the packaged Qt library.
+          if awk '$7 == "UND" && /createPlatformVulkanInstance/' \
+               build/report/plugin-symbols-unpatched.txt | grep .; then
+            echo 'Unresolved Vulkan private-ABI relocation remains.' >&2
+            exit 1
+          fi
+          grep -F 'createPlatformVulkanInstance' \
+            build/report/plugin-symbols-unpatched.txt \
+            | grep -v ' UND ' \
+            | tee build/report/vulkan-local-definition.txt
+          printf '%s\n' \
+            'PASS: no unresolved QPlatformIntegration Vulkan relocation' \
+            | tee build/report/vulkan-slot-lock.txt
+
+      - name: Prepatch only verified Linux instruction boundaries
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/prepatch_elf.py build/plugin-root \
+            | tee build/report/plugin-prepatch.txt
+          test -s build/plugin-root/.hrt-prepatched-v1
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          marker=json.loads(Path('build/plugin-root/.hrt-prepatched-v1').read_text())
+          record,=[item for item in marker['objects']
+                   if item['path'].endswith('/libqhrtappkit.so')]
+          assert record['syscalls'] >= 1, record
+          Path('build/report/plugin-prepatch-record.json').write_text(
+              json.dumps(record,indent=2)+'\n')
+          print(json.dumps(record,indent=2))
+          PY
+          sha256sum "build/plugin-root$PLUGIN_GUEST" \
+            >build/report/plugin-patched.sha256
+          readelf -Ws "build/plugin-root$PLUGIN_GUEST" \
+            >build/report/plugin-symbols-patched.txt
+          ! awk '$7 == "UND" && /createPlatformVulkanInstance/' \
+            build/report/plugin-symbols-patched.txt | grep .
+          cat build/report/plugin-patched.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m6-qt5113-hrtappkit-qpa
+          path: |
+            build/plugin-root
+            build/report
+            qt-version.txt
+            compiler-version.txt
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

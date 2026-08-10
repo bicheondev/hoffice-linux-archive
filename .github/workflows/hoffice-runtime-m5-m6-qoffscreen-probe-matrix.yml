@@ -1,0 +1,120 @@
+name: HOffice runtime M5-M6 QOffscreen probe matrix
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m5-m6-qoffscreen-probe-matrix.yml'
+      - '.github/workflows/hoffice-runtime-guest-symbol-probe.yml'
+      - 'runtime/m3/patch_elf_int3_probe_regex.py'
+      - 'runtime/m3/augment_int3_probe.py'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m5-m6-qoffscreen-matrix-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - id: plugin-instance
+            regex: '^qt_plugin_instance$'
+            label: Qt offscreen plugin instance
+            milestone: M5-offscreen-plugin-instance-matrix
+            diagnostic: diagnostics/matrix/m5-plugin-instance.json
+            proof: proofs/m5-hword-offscreen-plugin-instance-matrix.json
+            trace: 48000
+            seconds: 30
+
+          - id: integration-create
+            regex: 'QOffscreen.*IntegrationPlugin.*create|QOffscreen.*create'
+            label: Qt offscreen integration create
+            milestone: M5-offscreen-integration-create-matrix
+            diagnostic: diagnostics/matrix/m5-integration-create.json
+            proof: proofs/m5-hword-offscreen-integration-create-matrix.json
+            trace: 56000
+            seconds: 30
+
+          - id: integration-constructor
+            regex: 'QOffscreenIntegrationC1E'
+            label: Qt offscreen integration constructor
+            milestone: M5-offscreen-integration-constructor-matrix
+            diagnostic: diagnostics/matrix/m5-integration-constructor.json
+            proof: proofs/m5-hword-offscreen-integration-constructor-matrix.json
+            trace: 64000
+            seconds: 35
+
+          - id: create-platform-window
+            regex: 'QOffscreenIntegration.*createPlatformWindow'
+            label: Qt offscreen createPlatformWindow
+            milestone: M6-offscreen-create-platform-window-matrix
+            diagnostic: diagnostics/matrix/m6-create-platform-window.json
+            proof: proofs/m6-hword-offscreen-create-platform-window-matrix.json
+            trace: 72000
+            seconds: 40
+
+          - id: window-constructor
+            regex: 'QOffscreenWindowC1E'
+            label: Qt offscreen window constructor
+            milestone: M6-offscreen-window-constructor-matrix
+            diagnostic: diagnostics/matrix/m6-window-constructor.json
+            proof: proofs/m6-hword-offscreen-window-constructor-matrix.json
+            trace: 80000
+            seconds: 45
+
+          - id: create-backing-store
+            regex: 'QOffscreenIntegration.*createPlatformBackingStore'
+            label: Qt offscreen createPlatformBackingStore
+            milestone: M6-offscreen-create-backing-store-matrix
+            diagnostic: diagnostics/matrix/m6-create-backing-store.json
+            proof: proofs/m6-hword-offscreen-create-backing-store-matrix.json
+            trace: 88000
+            seconds: 50
+
+          - id: backing-store-constructor
+            regex: 'QOffscreenBackingStoreC1E'
+            label: Qt offscreen backing store constructor
+            milestone: M6-offscreen-backing-store-constructor-matrix
+            diagnostic: diagnostics/matrix/m6-backing-store-constructor.json
+            proof: proofs/m6-hword-offscreen-backing-store-constructor-matrix.json
+            trace: 96000
+            seconds: 50
+
+          - id: paint-device
+            regex: 'QOffscreenBackingStore.*paintDevice'
+            label: Qt offscreen backing store paintDevice
+            milestone: M6-offscreen-paint-device-matrix
+            diagnostic: diagnostics/matrix/m6-paint-device.json
+            proof: proofs/m6-hword-offscreen-paint-device-matrix.json
+            trace: 104000
+            seconds: 55
+
+          - id: flush
+            regex: 'QOffscreenBackingStore.*flush'
+            label: Qt offscreen backing store flush
+            milestone: M6-offscreen-backing-store-flush-matrix
+            diagnostic: diagnostics/matrix/m6-flush.json
+            proof: proofs/m6-hword-offscreen-flush-matrix.json
+            trace: 112000
+            seconds: 60
+
+    name: ${{ matrix.id }}
+    uses: ./.github/workflows/hoffice-runtime-guest-symbol-probe.yml
+    with:
+      predecessor_proof: proofs/m3-hword-entry.json
+      symbol_regex: ${{ matrix.regex }}
+      label: ${{ matrix.label }}
+      milestone: ${{ matrix.milestone }}
+      diagnostic_path: ${{ matrix.diagnostic }}
+      proof_path: ${{ matrix.proof }}
+      trace_limit: ${{ matrix.trace }}
+      run_seconds: ${{ matrix.seconds }}
+      require_pipe2: true

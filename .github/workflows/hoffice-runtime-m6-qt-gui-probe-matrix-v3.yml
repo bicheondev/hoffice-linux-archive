@@ -1,0 +1,151 @@
+name: HOffice runtime M6 packaged Qt GUI probe matrix v3
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m6-qt-gui-probe-matrix-v3.yml'
+      - '.github/workflows/hoffice-runtime-guest-target-symbol-probe-v3.yml'
+      - 'runtime/m3/patch_elf_int3_probe_regex.py'
+      - 'runtime/m3/augment_int3_probe.py'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m6-packaged-qt-gui-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - id: qgui-create-platform-integration
+            target: /opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5
+            regex: 'QGuiApplicationPrivate.*createPlatformIntegration'
+            label: QGuiApplicationPrivate createPlatformIntegration
+            milestone: M6-v3-qgui-create-platform-integration
+            diagnostic: diagnostics/qt-v3/qgui-create-platform-integration.json
+            proof: proofs/qt-v3/qgui-create-platform-integration.json
+            trace: 72000
+            seconds: 40
+
+          - id: platform-integration-factory-create
+            target: /opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5
+            regex: 'QPlatformIntegrationFactory.*create'
+            label: QPlatformIntegrationFactory create
+            milestone: M6-v3-platform-integration-factory-create
+            diagnostic: diagnostics/qt-v3/platform-integration-factory-create.json
+            proof: proofs/qt-v3/platform-integration-factory-create.json
+            trace: 72000
+            seconds: 40
+
+          - id: qwindow-private-create
+            target: /opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5
+            regex: 'QWindowPrivate.*create'
+            label: QWindowPrivate create
+            milestone: M6-v3-qwindow-private-create
+            diagnostic: diagnostics/qt-v3/qwindow-private-create.json
+            proof: proofs/qt-v3/qwindow-private-create.json
+            trace: 88000
+            seconds: 45
+
+          - id: qwindow-set-visible
+            target: /opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5
+            regex: 'QWindow.*setVisible'
+            label: QWindow setVisible
+            milestone: M6-v3-qwindow-set-visible
+            diagnostic: diagnostics/qt-v3/qwindow-set-visible.json
+            proof: proofs/qt-v3/qwindow-set-visible.json
+            trace: 96000
+            seconds: 50
+
+          - id: qwidget-private-create
+            target: /opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so.5
+            regex: 'QWidgetPrivate.*create'
+            label: QWidgetPrivate create
+            milestone: M6-v3-qwidget-private-create
+            diagnostic: diagnostics/qt-v3/qwidget-private-create.json
+            proof: proofs/qt-v3/qwidget-private-create.json
+            trace: 104000
+            seconds: 50
+
+          - id: qwidget-show
+            target: /opt/hnc/hoffice11/Bin/qt/lib/libQt5Widgets.so.5
+            regex: 'QWidget.*show'
+            label: QWidget show
+            milestone: M6-v3-qwidget-show
+            diagnostic: diagnostics/qt-v3/qwidget-show.json
+            proof: proofs/qt-v3/qwidget-show.json
+            trace: 112000
+            seconds: 55
+
+          - id: qbackingstore-begin-paint
+            target: /opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5
+            regex: 'QBackingStore.*beginPaint'
+            label: QBackingStore beginPaint
+            milestone: M6-v3-qbackingstore-begin-paint
+            diagnostic: diagnostics/qt-v3/qbackingstore-begin-paint.json
+            proof: proofs/qt-v3/qbackingstore-begin-paint.json
+            trace: 120000
+            seconds: 55
+
+          - id: qbackingstore-end-paint
+            target: /opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5
+            regex: 'QBackingStore.*endPaint'
+            label: QBackingStore endPaint
+            milestone: M6-v3-qbackingstore-end-paint
+            diagnostic: diagnostics/qt-v3/qbackingstore-end-paint.json
+            proof: proofs/qt-v3/qbackingstore-end-paint.json
+            trace: 128000
+            seconds: 60
+
+          - id: qbackingstore-flush
+            target: /opt/hnc/hoffice11/Bin/qt/lib/libQt5Gui.so.5
+            regex: 'QBackingStore.*flush'
+            label: QBackingStore flush
+            milestone: M6-v3-qbackingstore-flush
+            diagnostic: diagnostics/qt-v3/qbackingstore-flush.json
+            proof: proofs/qt-v3/qbackingstore-flush.json
+            trace: 136000
+            seconds: 60
+
+          - id: qcoreapplication-exec
+            target: /opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5
+            regex: 'QCoreApplication.*exec'
+            label: QCoreApplication exec
+            milestone: M6-v3-qcoreapplication-exec
+            diagnostic: diagnostics/qt-v3/qcoreapplication-exec.json
+            proof: proofs/qt-v3/qcoreapplication-exec.json
+            trace: 144000
+            seconds: 60
+
+          - id: qeventloop-exec
+            target: /opt/hnc/hoffice11/Bin/qt/lib/libQt5Core.so.5
+            regex: 'QEventLoop.*exec'
+            label: QEventLoop exec
+            milestone: M6-v3-qeventloop-exec
+            diagnostic: diagnostics/qt-v3/qeventloop-exec.json
+            proof: proofs/qt-v3/qeventloop-exec.json
+            trace: 152000
+            seconds: 60
+
+    name: ${{ matrix.id }}
+    uses: ./.github/workflows/hoffice-runtime-guest-target-symbol-probe-v3.yml
+    with:
+      predecessor_proof: proofs/m3-hword-entry.json
+      target_elf: ${{ matrix.target }}
+      symbol_regex: ${{ matrix.regex }}
+      label: ${{ matrix.label }}
+      milestone: ${{ matrix.milestone }}
+      diagnostic_path: ${{ matrix.diagnostic }}
+      proof_path: ${{ matrix.proof }}
+      trace_limit: ${{ matrix.trace }}
+      run_seconds: ${{ matrix.seconds }}
+      require_offscreen_loaded: true
+      require_pipe2: true

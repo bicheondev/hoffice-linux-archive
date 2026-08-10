@@ -1,0 +1,136 @@
+{
+  "schema": 3,
+  "milestone": "M11-korean-hword-input",
+  "status": "PARTIAL_PASS",
+  "classification": "HWORD_DOCUMENT_CREATED_AND_FOCUSED_KEY_REJECTED",
+  "workflow_run": "31273037386",
+  "commit": "25cfd4f8063bc5d89aa962c927421098519f1cd9",
+  "host_run": "31272935552",
+  "qpa_run": "31270900419",
+  "prepared_run": "31235068358",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "package_sha256": "23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46",
+  "window_titles": [
+    "HWord Qt Window",
+    "한워드"
+  ],
+  "window_geometries": [
+    [
+      200,
+      100
+    ],
+    [
+      800,
+      600
+    ]
+  ],
+  "main_window_observed": true,
+  "staged_markers": {
+    "toolbar": true,
+    "focus": true,
+    "text": true
+  },
+  "stage_boundary_count": 2,
+  "stage_boundaries": [
+    "HRT M11 QPA: mouse-up stage boundary sequence=3 key=0 mouse=3",
+    "HRT M11 QPA: mouse-up stage boundary sequence=6 key=0 mouse=6"
+  ],
+  "widget_log_count": 14,
+  "focus_log_count": 25,
+  "button_click_count": 1,
+  "candidate_widget_classes": [
+    "hanul::MainWindow",
+    "QMainWindow",
+    "QToolBar",
+    "QStackedWidget",
+    "hanul::ToolBarImpl",
+    "QScrollArea",
+    "QWidget",
+    "QWidget",
+    "QToolButton",
+    "hanul::MainWindow",
+    "QMainWindow",
+    "QStackedWidget",
+    "hanul::DocumentTabImpl",
+    "QTabWidget",
+    "QStackedWidget"
+  ],
+  "selected_focus_classes": [
+    "QToolButton",
+    "QToolButton",
+    "QToolButton",
+    "QTabWidget",
+    "QTabWidget",
+    "QTabWidget"
+  ],
+  "key_target_classes": [
+    "hanul::DocumentTabImpl",
+    "hanul::DocumentTabImpl"
+  ],
+  "mouse_event_count": 6,
+  "widget_accepted_mouse_count": 6,
+  "key_event_count": 2,
+  "accepted_key_count": 0,
+  "directly_accepted_key_count": 0,
+  "delivered_sequences": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "strictly_ordered_unique_sequences": true,
+  "queue_drained": true,
+  "post_capture_completed": true,
+  "main_capture": {
+    "path": "build/proof/hword-main-window.png",
+    "width": 800,
+    "height": 628,
+    "size": 40156,
+    "sha256": "761f1eebe7070d6913afbab05c14bdd7cce47cd5e373cbb2fb11ae57523d0139"
+  },
+  "before_capture": {
+    "path": "build/proof/hword-before-input.png",
+    "width": 800,
+    "height": 628,
+    "size": 39874,
+    "sha256": "7426964eb75543b596a798c7030379ec627d9a2ba8b46776e44fa4fa62338e2c"
+  },
+  "after_capture": {
+    "path": "build/proof/hword-after-input.png",
+    "width": 800,
+    "height": 628,
+    "size": 40110,
+    "sha256": "701deb9f80be4a8a91350ce1198af1ea977069d14d899230877999a956bb25bc"
+  },
+  "visual_change": true,
+  "document_interaction_credited": true,
+  "text_interaction_credited": false,
+  "unsupported_syscalls": [
+    40
+  ],
+  "fatal_signal_observed": false,
+  "substr_exception_observed": false,
+  "alive_at_observation": true,
+  "raw_exit_status": 143,
+  "representative_button_clicks": [
+    "HRT M10 FOCUS: abstract button click invoked receiver=0xe9ebc80 text=새"
+  ],
+  "representative_focus_selection": [
+    "HRT M10 FOCUS: selected receiver=0xe9ebc80 selected=0xe9ebc80 class=QToolButton focus-policy=1 point=27,163",
+    "HRT M10 FOCUS: selected receiver=0xe9ebc80 selected=0xe9ebc80 class=QToolButton focus-policy=1 point=27,163",
+    "HRT M10 FOCUS: selected receiver=0xe9ebc80 selected=0xe9ebc80 class=QToolButton focus-policy=1 point=27,163",
+    "HRT M10 FOCUS: selected receiver=0x8c8fd00 selected=0x8c8fcc0 class=QTabWidget focus-policy=1 point=400,252",
+    "HRT M10 FOCUS: selected receiver=0x8c8fd00 selected=0x8c8fcc0 class=QTabWidget focus-policy=1 point=400,252",
+    "HRT M10 FOCUS: selected receiver=0x8c8fd00 selected=0x8c8fcc0 class=QTabWidget focus-policy=1 point=400,252"
+  ],
+  "representative_key_events": [
+    "HRT M8 QPA: key event delivered sequence=7 action=1 key=0x41 native=0 text=a accepted=0 window-accepted=0 direct-accepted=0 focus-window=0x8de2cb0 focus-object=0x8c9ddf0 focus-class=hanul::DocumentTabImpl",
+    "HRT M8 QPA: key event delivered sequence=8 action=2 key=0x41 native=0 text=a accepted=0 window-accepted=0 direct-accepted=0 focus-window=0x8de2cb0 focus-object=0x8c9ddf0 focus-class=hanul::DocumentTabImpl"
+  ],
+  "stderr_tail": "            QWidget::qt_scrollarea_vcontainer \n                            QScrollBar:: \n                            QBoxLayout:: \n                hanul::PanelScroll:: \n                    QGridLayout:: \n                    QToolButton::PanelScrollButtonStyle \n                    QToolButton::PanelScrollButtonStyle \n                    QScrollArea:: \n                        QWidget::qt_scrollarea_viewport \n                            QWidget:: \n                                QHBoxLayout:: \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                hanul::SeparatorImpl:: \n                                    QBoxLayout:: \n                                    QLabel::SeparatorCaption \n                                    QFrame::SeparatorBorder \n                                QToolButton:: \n                                QToolButton:: \n                                hanul::SeparatorImpl:: \n                                    QBoxLayout:: \n                                    QLabel::SeparatorCaption \n                                    QFrame::SeparatorBorder \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                hanul::SeparatorImpl:: \n                                    QBoxLayout:: \n                                    QLabel::SeparatorCaption \n                                    QFrame::SeparatorBorder \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                hanul::SeparatorImpl:: \n                                    QBoxLayout:: \n                                    QLabel::SeparatorCaption \n                                    QFrame::SeparatorBorder \n                                QToolButton:: \n                                QToolButton:: \n                        QWidget::qt_scrollarea_hcontainer \n                            QScrollBar:: \n                            QBoxLayout:: \n                        QWidget::qt_scrollarea_vcontainer \n                            QScrollBar:: \n                            QBoxLayout:: \n            QPropertyAnimation:: \n            QPropertyAnimation:: \n            QPropertyAnimation:: \n        QToolBar:: \n            QToolBarLayout:: \n            QToolBarExtension::qt_toolbar_ext_button \n            QAction:: \n            QWidgetAction:: \n            QStackedWidget:: \n                QStackedLayout:: \n                hanul::ToolBarImpl:: \n                    QGridLayout:: \n                    QToolButton::PanelScrollButtonStyle \n                    QToolButton::PanelScrollButtonStyle \n                    QScrollArea:: \n                        QWidget::qt_scrollarea_viewport \n                            QWidget:: \n                                QHBoxLayout:: \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                hanul::SeparatorImpl:: \n                                    QBoxLayout:: \n                                    QLabel::SeparatorCaption \n                                    QFrame::SeparatorBorder \n                                QToolButton:: \n                                QToolButton:: \n                                hanul::SeparatorImpl:: \n                                    QBoxLayout:: \n                                    QLabel::SeparatorCaption \n                                    QFrame::SeparatorBorder \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                hanul::SeparatorImpl:: \n                                    QBoxLayout:: \n                                    QLabel::SeparatorCaption \n                                    QFrame::SeparatorBorder \n                                hncofficemodule::FontNameComboImpl:: \n                                    QStandardItemModel:: \n                                    hanul::ComboImplPopupEventFilter:: \n                                    QComboBoxPrivateContainer:: \n                                        QBoxLayout:: \n                                        QComboBoxListView:: \n                                            QWidget::qt_scrollarea_viewport \n                                            QWidget::qt_scrollarea_hcontainer \n                                                QScrollBar:: \n                                                QBoxLayout:: \n                                            QWidget::qt_scrollarea_vcontainer \n                                                QScrollBar:: \n                                                QBoxLayout:: \n                                            QItemSelectionModel:: \n                                            QComboBoxDelegate:: \n                                    QStyledItemDelegate:: \n                                    QLineEdit:: \n                                        QWidgetLineControl:: \n                                        QCompleter:: \n                                            QCompletionModel:: \n                                QWidget:: \n                                    QBoxLayout:: \n                                    QLabel:: \n                                    hanul::SpinImpl:: \n                                        QLineEdit::qt_spinbox_lineedit \n                                            QWidgetLineControl:: \n                                        QValidator::qt_spinboxvalidator \n                                        QHBoxLayout:: \n                                        hanul::SpinImplUnitCombo::SpinImpl::UnitCombo \n                                            QStandardItemModel:: \n                                            QComboBoxPrivateContainer:: \n                                                QBoxLayout:: \n                                                QComboBoxListView:: \n                                                    QWidget::qt_scrollarea_viewport \n                                                    QWidget::qt_scrollarea_hcontainer \n                                                        QScrollBar:: \n                                                        QBoxLayout:: \n                                                    QWidget::qt_scrollarea_vcontainer \n                                                        QScrollBar:: \n                                                        QBoxLayout:: \n                                                    QItemSelectionModel:: \n                                        hanul::SpinComboImpl:: \n                                            QStandardItemModel:: \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                hanul::SeparatorImpl:: \n                                    QBoxLayout:: \n                                    QLabel::SeparatorCaption \n                                    QFrame::SeparatorBorder \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                QToolButton:: \n                                hanul::SeparatorImpl:: \n                                    QBoxLayout:: \n                                    QLabel::SeparatorCaption \n                                    QFrame::SeparatorBorder \n                                QToolButton:: \n                        QWidget::qt_scrollarea_hcontainer \n                            QScrollBar:: \n                            QBoxLayout:: \n                        QWidget::qt_scrollarea_vcontainer \n                            QScrollBar:: \n                            QBoxLayout:: \n            QPropertyAnimation:: \n            QPropertyAnimation:: \n            QPropertyAnimation:: \n        hanul::StatusBarPanelImpl:: \n            hanul::StatusBarImpl::IDC_PreviewStatusBar \n                QHBoxLayout:: \n                QWidget:: \n                    QGridLayout:: \n                    QWidget:: \n                        QGridLayout:: \n                        hanul::LabelImpl:: \n                            hanul::IconDisplay:: \n                            QLabel:: \n                            QHBoxLayout:: \n                        hanul::SeparatorImpl:: \n                            QBoxLayout:: \n                            QLabel::SeparatorCaption \n                            QFrame::SeparatorBorder \n            QSizeGrip:: \n            QHBoxLayout:: \n                QStackedLayout:: \n            QSizeGrip:: \n            hanul::StatusBarImpl::IDC_DefaultStatusBar \n                QHBoxLayout:: \n                QWidget:: \n                    QGridLayout:: \n                    QWidget:: \n                        QGridLayout:: \n                        QToolButton:: \n                        hanul::SeparatorImpl:: \n                            QBoxLayout:: \n                            QLabel::SeparatorCaption \n                            QFrame::SeparatorBorder \n                    QWidget:: \n                        QGridLayout:: \n                        QToolButton:: \n                        hanul::SeparatorImpl:: \n                            QBoxLayout:: \n                            QLabel::SeparatorCaption \n                            QFrame::SeparatorBorder \n                    QWidget:: \n                        QGridLayout:: \n                        QToolButton:: \n                        hanul::SeparatorImpl:: \n                            QBoxLayout:: \n                            QLabel::SeparatorCaption \n                            QFrame::SeparatorBorder \n                    QWidget:: \n                        QGridLayout:: \n                        QToolButton:: \n                        hanul::SeparatorImpl:: \n                            QBoxLayout:: \n                            QLabel::SeparatorCaption \n                            QFrame::SeparatorBorder \n                    QWidget:: \n                        QGridLayout:: \n                        hanul::LabelImpl:: \n                            hanul::IconDisplay:: \n                            QLabel:: \n                            QHBoxLayout:: \n                        hanul::SeparatorImpl:: \n                            QBoxLayout:: \n                            QLabel::SeparatorCaption \n                            QFrame::SeparatorBorder \n                    hanul::LabelImpl:: \n                        hanul::IconDisplay:: \n                        QLabel:: \n                        QHBoxLayout:: \n                    hanul::LabelImpl:: \n                        hanul::IconDisplay:: \n                        QLabel:: \n                        QHBoxLayout:: \n                    QWidget:: \n                        QGridLayout:: \n                        QToolButton:: \n                        QToolButton:: \n                        hanul::SeparatorImpl:: \n                            QBoxLayout:: \n                            QLabel::SeparatorCaption \n                            QFrame::SeparatorBorder \n                    QWidget:: \n                        QGridLayout:: \n                        QToolButton:: \n                        QWidget:: \n                            QBoxLayout:: \n                            hanul::SliderImpl:: \n                        QToolButton:: \n                    QToolButton:: \n            QProgressBar:: \n    hanul::TitleBarImpl:: \n        QHBoxLayout:: \n            QHBoxLayout:: \n                QHBoxLayout:: \n                QHBoxLayout:: \n                QHBoxLayout:: \n            QHBoxLayout:: \n        hanul::WindowLabel:: \n        QToolButton:: \n        QToolButton:: \n        hanul::SeparatorImpl:: \n            QBoxLayout:: \n            QLabel::SeparatorCaption \n            QFrame::SeparatorBorder \n        QToolButton:: \n        QToolButton:: \n        QToolButton:: \n        QToolButton:: \n        hanul::TopBorder:: \n    hanul::FramePopupImpl:: \n        QMainWindow:: \n            QMainWindowLayout::_layout \n    hanul::NotificationPanel:: \n        QDockWidgetLayout:: \n        QDockWidgetTitleButton::qt_dockwidget_floatbutton \n        QDockWidgetTitleButton::qt_dockwidget_closebutton \n        QAction:: \n        QLabel:: \n    hanul::TitleBarImpl:: \n        QHBoxLayout:: \n            QHBoxLayout:: \n                QHBoxLayout:: \n                QHBoxLayout:: \n                QHBoxLayout:: \n            QHBoxLayout:: \n        hanul::WindowIcon:: \n        QMenu:: \n            QAction:: \n            QAction:: \n            QAction:: \n            QAction:: \n            QAction:: \n        hanul::WindowLabel:: \n        QToolButton:: \n        hanul::SeparatorImpl:: \n            QBoxLayout:: \n            QLabel::SeparatorCaption \n            QFrame::SeparatorBorder \n        QToolButton:: \n        QToolButton:: \n        QToolButton:: \n        QToolButton:: \n        QToolButton:: \n        hanul::TopBorder:: \nHRT M11 INVENTORY: dump-object-tree-end\nHRT M11 FOCUS: candidate=0x8c8cdb0 class=hanul::MainWindow name=MainWindowFrame depth=0 score=291 focus-policy=0 input-method=0 visible=1 rect=0,0,800,600 point=400,252\nHRT M11 FOCUS: candidate=0x8dd8d10 class=QMainWindow name= depth=1 score=-1269 focus-policy=0 input-method=0 visible=1 rect=0,26,800,574 point=400,252\nHRT M11 FOCUS: candidate=0x8dd69a0 class=QStackedWidget name= depth=2 score=-1226 focus-policy=0 input-method=0 visible=1 rect=0,177,800,398 point=400,252\nHRT M11 FOCUS: candidate=0x8c9ddf0 class=hanul::DocumentTabImpl name= depth=3 score=1114 focus-policy=0 input-method=0 visible=1 rect=0,177,800,398 point=400,252\nHRT M11 FOCUS: candidate=0x8c8fcc0 class=QTabWidget name= depth=4 score=-906 focus-policy=1 input-method=0 visible=1 rect=0,177,785,383 point=400,252\nHRT M11 FOCUS: candidate=0x8c8fd00 class=QStackedWidget name=qt_tabwidget_stackedwidget depth=5 score=-1106 focus-policy=0 input-method=0 visible=1 rect=0,177,785,383 point=400,252\nHRT M11 FOCUS: candidate=0x8ddad00 class=QToolButton name= depth=2 score=-1286 focus-policy=1 input-method=0 visible=0 rect=0,0,640,480 point=400,252\nHRT M11 FOCUS: candidate=0x8cc0210 class=hanul::SeparatorImpl name= depth=2 score=74 focus-policy=0 input-method=0 visible=0 rect=0,0,640,480 point=400,252\nHRT M11 FOCUS: candidate=0x8dde560 class=QFrame name=SeparatorBorder depth=3 score=114 focus-policy=0 input-method=0 visible=0 rect=0,0,640,480 point=400,252\nHRT M11 FOCUS: candidate=0x8dded90 class=QToolButton name= depth=2 score=-1286 focus-policy=1 input-method=0 visible=0 rect=0,0,640,480 point=400,252\nHRT M11 FOCUS: candidate=0x8de0670 class=QToolButton name= depth=2 score=-1286 focus-policy=1 input-method=0 visible=0 rect=0,0,640,480 point=400,252\nHRT M11 FOCUS: candidate=0x8de12f0 class=QToolButton name= depth=2 score=-1286 focus-policy=1 input-method=0 visible=0 rect=0,0,640,480 point=400,252\nHRT M11 FOCUS: selected=0x8c9ddf0 class=hanul::DocumentTabImpl score=1114 point=400,252\nhrt-m7-hostcall: presented BGRA frame=8 size=800x600 stride=3200 bytes=1920000 window=25\nhrt-m6: host-call opcode=261 result=1\nHRT M10 QPA: nested input drain deferred\nHRT M11 FOCUS: repaired target=0x8c9ddf0 class=hanul::DocumentTabImpl old-policy=0 actual=0x8c9ddf0 actual-class=hanul::DocumentTabImpl press-accepted=1 release-accepted=1\nHRT M10 WIDGET: phase=key-target receiver=0x8c9ddf0 class=hanul::DocumentTabImpl name= enabled=1 visible=1 focus-policy=11 geometry=0,0,800,398 point=-1,-1 button-text= action=0x0 action-name= action-text= action-enabled=0 shortcut=\nHRT M11 IME: query receiver=0x8c9ddf0 class=hanul::DocumentTabImpl name= notified=1 accepted=1 enabled-valid=1 enabled=1 cursor-valid=1 cursor=400,0,1,398 anchor-valid=0 anchor=0,0,0,0 surrounding-valid=0 surrounding-length=0 selection-valid=0 selection-length=0 cursor-position-valid=0 cursor-position=0 anchor-position-valid=0 anchor-position=0\nHRT M11 COMPOSE: preedit receiver=0x8c9ddf0 class=hanul::DocumentTabImpl notified=1 accepted=0 text=a\nHRT M11 COMPOSE: commit receiver=0x8c9ddf0 class=hanul::DocumentTabImpl notified=1 accepted=0 preedit-accepted=0 text=a\nHRT M10 QPA: direct key fallback receiver=0x8c9ddf0 class=hanul::DocumentTabImpl name= notified=1 accepted=0 ime-accepted=0 type=6 key=0x41 text=a\nHRT M8 QPA: key event delivered sequence=7 action=1 key=0x41 native=0 text=a accepted=0 window-accepted=0 direct-accepted=0 focus-window=0x8de2cb0 focus-object=0x8c9ddf0 focus-class=hanul::DocumentTabImpl\nHRT M8 APPKIT: delivered event sequence=8 type=1 action=2 remaining=0\nhrt-m6: host-call opcode=262 result=1\nHRT M10 QPA: activation phase=before-key target=0x8de2cb0 before=0x8de2cb0 after=0x8de2cb0 focus-object=0x8c9ddf0 focus-class=hanul::DocumentTabImpl focus-name= active=1 visible=1 title=한워드\nHRT M10 WIDGET: phase=key-target receiver=0x8c9ddf0 class=hanul::DocumentTabImpl name= enabled=1 visible=1 focus-policy=11 geometry=0,0,800,398 point=-1,-1 button-text= action=0x0 action-name= action-text= action-enabled=0 shortcut=\nHRT M10 QPA: direct key fallback receiver=0x8c9ddf0 class=hanul::DocumentTabImpl name= notified=1 accepted=0 ime-accepted=0 type=7 key=0x41 text=a\nHRT M8 QPA: key event delivered sequence=8 action=2 key=0x41 native=0 text=a accepted=0 window-accepted=0 direct-accepted=0 focus-window=0x8de2cb0 focus-object=0x8c9ddf0 focus-class=hanul::DocumentTabImpl\nhrt-m6: host-call opcode=262 result=0\nHRT M8 QPA: input queue drained key=2 mouse=6\n"
+}

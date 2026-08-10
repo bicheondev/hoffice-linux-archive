@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "milestone": "M9-culture-fallback",
+  "status": "DIAGNOSTIC",
+  "classification": "NEXT_ERROR_WINDOW",
+  "workflow_run": "31173416974",
+  "commit": "beeec243f9dc93b9372d188072f91f788760fb69",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "package_sha256": "23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46",
+  "culture_patch": {
+    "schema": 1,
+    "patch": "framework-getculture-built-in-en-us-fallback",
+    "elf": "/tmp/h9c-31173416974/opt/hnc/hoffice11/Bin/libHncFoundation.so",
+    "symbol": "_ZNK3Hnc9Framework10GetCultureEv",
+    "symbol_virtual_address": 487728,
+    "symbol_size": 89,
+    "symbol_file_offset": 487728,
+    "branch_virtual_address": 487752,
+    "branch_file_offset": 487752,
+    "fallback_virtual_address": 825360,
+    "fallback_file_offset": 825360,
+    "fallback": "en-US",
+    "original_bytes_hex": "7426",
+    "patched_bytes_hex": "eb26",
+    "sha256_before": "d85a97018869421bf8b980543bba2233f29f50f833e3169dbef7c89b93d2483c",
+    "sha256_after": "62a8e1cbf8de4a31c8e28e4bfcbddcf91643cfff1acb661e4752fd291b63ba13"
+  },
+  "window_titles": [
+    "Exception"
+  ],
+  "window_geometries": [
+    [
+      400,
+      168
+    ]
+  ],
+  "error_windows": [
+    "Exception"
+  ],
+  "out_of_range_observed": false,
+  "fatal_lines": [],
+  "frame_present": true,
+  "frame_sha256": "4cbb09dbaa2b9658f5789cc96a0038ed20c5289ff7b65bb1edff449cadd8d552",
+  "alive_at_observation": true,
+  "raw_exit_status": 143
+}

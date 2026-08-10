@@ -1,0 +1,296 @@
+name: HOffice runtime production proof snapshot v2
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-progress-snapshot-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-production-proof-snapshot-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BRANCH: codex/hoffice-runtime-from-scratch
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/hoffice-runtime-from-scratch
+          fetch-depth: 0
+
+      - name: Wait for production validation workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/snapshot-v2 diagnostics
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import time
+          from pathlib import Path
+
+          workflows = [
+              'hoffice-runtime-m5-qoffscreen-symbol-inventory.yml',
+              'hoffice-runtime-augmentors-static.yml',
+              'hoffice-runtime-m5-m6-qoffscreen-probe-matrix-v2.yml',
+          ]
+          repository = os.environ['GITHUB_REPOSITORY']
+          branch = os.environ['BRANCH']
+          deadline = time.monotonic() + 65 * 60
+          latest = {}
+          while True:
+              unfinished = []
+              for workflow in workflows:
+                  completed = subprocess.run([
+                      'gh', 'run', 'list', '--repo', repository,
+                      '--workflow', workflow, '--branch', branch,
+                      '--limit', '1', '--json',
+                      'databaseId,status,conclusion,headSha,createdAt,'
+                      'updatedAt,url,workflowName',
+                  ], text=True, stdout=subprocess.PIPE,
+                     stderr=subprocess.PIPE, check=False)
+                  if completed.returncode != 0:
+                      latest[workflow] = {
+                          'status': 'lookup-error',
+                          'error': completed.stderr.strip(),
+                      }
+                      continue
+                  rows = json.loads(completed.stdout or '[]')
+                  if not rows:
+                      latest[workflow] = {'status': 'not-found'}
+                      continue
+                  latest[workflow] = rows[0]
+                  if rows[0].get('status') != 'completed':
+                      unfinished.append(workflow)
+              Path('build/snapshot-v2/workflow-runs.json').write_text(
+                  json.dumps(latest, indent=2) + '\n')
+              print(json.dumps(latest, indent=2))
+              if not unfinished or time.monotonic() >= deadline:
+                  break
+              time.sleep(20)
+          PY
+
+      - name: Fetch all branch evidence emitted during the wait
+        run: |
+          set -euxo pipefail
+          git fetch origin "$BRANCH"
+          git reset --hard "origin/$BRANCH"
+
+      - name: Build the production-safe evidence ledger
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          boundaries = [
+              ('m3-entry', 'Exact HWord original ELF entry',
+               'proofs/m3-hword-entry.json', 'm3'),
+              ('m5-plugin-instance', 'qt_plugin_instance',
+               'proofs/v2/m5-plugin-instance.json', 'symbol'),
+              ('m5-integration-create',
+               'QOffscreenIntegrationPlugin::create',
+               'proofs/v2/m5-integration-create.json', 'symbol'),
+              ('m5-integration-constructor',
+               'QOffscreenIntegration constructor',
+               'proofs/v2/m5-integration-constructor.json', 'symbol'),
+              ('m6-create-platform-window', 'createPlatformWindow',
+               'proofs/v2/m6-create-platform-window.json', 'symbol'),
+              ('m6-window-constructor', 'QOffscreenWindow constructor',
+               'proofs/v2/m6-window-constructor.json', 'symbol'),
+              ('m6-create-backing-store', 'createPlatformBackingStore',
+               'proofs/v2/m6-create-backing-store.json', 'symbol'),
+              ('m6-backing-store-constructor',
+               'QOffscreenBackingStore constructor',
+               'proofs/v2/m6-backing-store-constructor.json', 'symbol'),
+              ('m6-paint-device', 'QOffscreenBackingStore::paintDevice',
+               'proofs/v2/m6-paint-device.json', 'symbol'),
+              ('m6-flush', 'QOffscreenBackingStore::flush',
+               'proofs/v2/m6-flush.json', 'symbol'),
+          ]
+
+          records = []
+          highest = None
+          for identifier, title, filename, kind in boundaries:
+              path = Path(filename)
+              record = {
+                  'id': identifier,
+                  'title': title,
+                  'proof_path': filename,
+                  'present': path.is_file(),
+                  'accepted': False,
+              }
+              if path.is_file():
+                  try:
+                      data = json.loads(path.read_text())
+                      accepted = (
+                          data.get('status') == 'PASS'
+                          if kind == 'm3'
+                          else data.get('selected_symbol_entered') is True
+                      )
+                      record.update({
+                          'accepted': accepted,
+                          'milestone': data.get('milestone'),
+                          'commit': data.get('commit'),
+                          'workflow_run': data.get('workflow_run'),
+                          'selected_symbol': data.get('selected_symbol'),
+                          'directory_stream_yielded_offscreen':
+                              data.get('directory_stream_yielded_offscreen'),
+                          'offscreen_library_loaded':
+                              data.get('offscreen_library_loaded'),
+                          'pipe2_called': data.get('pipe2_called'),
+                          'reached_deadline': data.get('reached_deadline'),
+                          'unsupported_syscalls':
+                              data.get('unsupported_syscalls'),
+                          'fatal_signals': data.get('fatal_signals'),
+                      })
+                  except Exception as error:
+                      record['parse_error'] = str(error)
+              records.append(record)
+              if record['accepted']:
+                  highest = identifier
+
+          diagnostics = {}
+          for path in sorted(Path('diagnostics/v2').glob('*.json')):
+              try:
+                  data = json.loads(path.read_text())
+                  diagnostics[str(path)] = {
+                      'milestone': data.get('milestone'),
+                      'selected_symbol_entered':
+                          data.get('selected_symbol_entered'),
+                      'offscreen_library_loaded':
+                          data.get('offscreen_library_loaded'),
+                      'status': data.get('status'),
+                      'unsupported_syscalls':
+                          data.get('unsupported_syscalls'),
+                      'fatal_signals': data.get('fatal_signals'),
+                  }
+              except Exception as error:
+                  diagnostics[str(path)] = {'parse_error': str(error)}
+
+          inventory = None
+          inventory_path = Path('diagnostics/qoffscreen-symbol-inventory.json')
+          if inventory_path.is_file():
+              data = json.loads(inventory_path.read_text())
+              inventory = {
+                  'plugin': data.get('plugin'),
+                  'plugin_sha256': data.get('plugin_sha256'),
+                  'symbol_count': data.get('symbol_count'),
+                  'method_group_counts': {
+                      key: len(value)
+                      for key, value in data.get('method_groups', {}).items()
+                  },
+              }
+
+          static_validation = None
+          static_path = Path('diagnostics/runtime-augmentors-static.json')
+          if static_path.is_file():
+              static_validation = json.loads(static_path.read_text())
+
+          runs_path = Path('build/snapshot-v2/workflow-runs.json')
+          runs = json.loads(runs_path.read_text()) if runs_path.is_file() else {}
+          ledger = {
+              'schema': 2,
+              'branch': 'codex/hoffice-runtime-from-scratch',
+              'snapshot_workflow_run': '${{ github.run_id }}',
+              'snapshot_commit': '${{ github.sha }}',
+              'highest_accepted_boundary': highest,
+              'boundaries': records,
+              'failed_or_partial_diagnostics': diagnostics,
+              'qoffscreen_symbol_inventory': inventory,
+              'static_validation': static_validation,
+              'observed_workflow_runs': runs,
+          }
+          Path('diagnostics/runtime-progress-v2-latest.json').write_text(
+              json.dumps(ledger, indent=2) + '\n')
+
+          lines = [
+              '# HOffice runtime production proof frontier v2',
+              '',
+              f"- Branch: `{ledger['branch']}`",
+              f"- Snapshot run: `{ledger['snapshot_workflow_run']}`",
+              f"- Highest accepted boundary: `{highest or 'none'}`",
+              '',
+              '## Accepted boundaries',
+              '',
+          ]
+          for item in records:
+              state = 'PASS' if item['accepted'] else (
+                  'DIAGNOSTIC' if item['present'] else 'PENDING')
+              lines.append(
+                  f"- **{state}** — `{item['id']}`: {item['title']}")
+              if item['present']:
+                  lines.append(f"  - Evidence: `{item['proof_path']}`")
+                  if item.get('selected_symbol'):
+                      symbol = item['selected_symbol']
+                      if isinstance(symbol, dict):
+                          symbol = symbol.get('name')
+                      lines.append(f"  - Symbol: `{symbol}`")
+                  if item.get('unsupported_syscalls'):
+                      lines.append(
+                          f"  - Unsupported syscalls: "
+                          f"`{item['unsupported_syscalls']}`")
+          lines.extend(['', '## Validation inputs', ''])
+          if inventory:
+              lines.append(
+                  f"- QOffscreen symbols: `{inventory['symbol_count']}`; "
+                  f"SHA-256 `{inventory['plugin_sha256']}`")
+          else:
+              lines.append('- QOffscreen symbol inventory: unavailable')
+          if static_validation:
+              lines.append(
+                  f"- Static augmentation validation: "
+                  f"`{static_validation.get('status')}`")
+          else:
+              lines.append('- Static augmentation validation: unavailable')
+          lines.extend(['', '## Workflow conclusions', ''])
+          for workflow, run in runs.items():
+              lines.append(
+                  f"- `{workflow}` — `{run.get('status')}` / "
+                  f"`{run.get('conclusion')}`")
+          if diagnostics:
+              lines.extend(['', '## Partial diagnostics', ''])
+              for path, data in diagnostics.items():
+                  lines.append(
+                      f"- `{path}` — symbol entered "
+                      f"`{data.get('selected_symbol_entered')}`, "
+                      f"status `{data.get('status')}`")
+          Path('diagnostics/runtime-progress-v2-latest.md').write_text(
+              '\n'.join(lines) + '\n')
+          print(json.dumps(ledger, indent=2))
+          PY
+
+      - name: Commit the production-safe snapshot
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/runtime-progress-v2-latest.json \
+                  diagnostics/runtime-progress-v2-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: consolidate production-safe HWord proofs [skip ci]'
+          git pull --rebase origin "$BRANCH"
+          git push origin HEAD:"$BRANCH"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-production-proof-snapshot-v2
+          path: |
+            diagnostics/runtime-progress-v2-latest.json
+            diagnostics/runtime-progress-v2-latest.md
+            build/snapshot-v2/workflow-runs.json
+          if-no-files-found: warn
+          retention-days: 30

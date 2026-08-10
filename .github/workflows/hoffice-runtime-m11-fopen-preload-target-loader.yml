@@ -1,0 +1,210 @@
+name: HOffice runtime M11 scoped shim target-loader proof
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-fopen-preload-target-loader.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-fopen-preload-target-loader-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREPARED_RUN_ID: '31235068358'
+  SHIM_WORKFLOW_FILE: hoffice-runtime-m11-build-fopen-preload-v3.yml
+  SHIM_ARTIFACT_NAME: hrt-m11-hword-fopen-preload-v3
+
+jobs:
+  prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install deterministic rootfs tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            --no-install-recommends zstd file python3
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m9-bootstrap-prepared-guest
+          path: build/input/prepared
+          repository: ${{ github.repository }}
+          run-id: ${{ env.PREPARED_RUN_ID }}
+          github-token: ${{ github.token }}
+      - name: Resolve and download the scoped shim artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/shim build/report diagnostics
+          python3 - <<'PY'
+          import json,os,subprocess,time,urllib.parse
+          from pathlib import Path
+          repository=os.environ['GITHUB_REPOSITORY']; branch=os.environ['GITHUB_REF_NAME']
+          workflow=os.environ['SHIM_WORKFLOW_FILE']; name=os.environ['SHIM_ARTIFACT_NAME']
+          deadline=time.monotonic()+55*60; selected=None; latest=None
+          while time.monotonic()<deadline:
+              query=urllib.parse.urlencode({'branch':branch,'per_page':20})
+              try:
+                  runs=json.loads(subprocess.run(['gh','api','--method','GET',
+                      f'repos/{repository}/actions/workflows/{workflow}/runs?{query}'],
+                      check=True,stdout=subprocess.PIPE,text=True).stdout).get('workflow_runs',[])
+              except subprocess.CalledProcessError:
+                  time.sleep(20); continue
+              runs.sort(key=lambda item:item['created_at'],reverse=True)
+              if runs: latest=runs[0]
+              for run in runs:
+                  if run.get('status')!='completed' or run.get('conclusion')!='success': continue
+                  artifacts=json.loads(subprocess.run(['gh','api','--method','GET',
+                      f'repos/{repository}/actions/runs/{run["id"]}/artifacts?per_page=100'],
+                      check=True,stdout=subprocess.PIPE,text=True).stdout).get('artifacts',[])
+                  matches=[item for item in artifacts if item.get('name')==name and not item.get('expired')]
+                  if len(matches)==1: selected={'run':run,'artifact':matches[0]}; break
+              if selected: break
+              time.sleep(20)
+          if selected is None: raise SystemExit(f'no successful scoped shim; latest={json.dumps(latest)}')
+          Path('build/report/source-shim.json').write_text(
+              json.dumps(selected,indent=2)+'\n',encoding='utf-8')
+          with Path(os.environ['GITHUB_ENV']).open('a',encoding='utf-8') as env:
+              env.write(f"SHIM_RUN_ID={selected['run']['id']}\n")
+          print(json.dumps(selected,indent=2))
+          PY
+          SHIM_RUN_ID=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          source=json.loads(Path('build/report/source-shim.json').read_text())
+          print(source['run']['id'])
+          PY
+          )
+          test -n "$SHIM_RUN_ID"
+          gh run download "$SHIM_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name "$SHIM_ARTIFACT_NAME" --dir build/input/shim
+          test -s build/input/shim/libhrt_hword_fopen.so
+          test -s build/input/shim/lock.json
+      - name: Build a glibc-floor target probe
+        run: |
+          set -euxo pipefail
+          mkdir -p build/probe
+          cat >build/probe/probe.c <<'EOF'
+          #define _GNU_SOURCE 1
+          #include <stdio.h>
+          #include <string.h>
+          int main(void) {
+              FILE *stream = fopen("", "rb");
+              if (stream == NULL) return 20;
+              char buffer[16] = {0};
+              size_t size = fread(buffer, 1, sizeof(buffer) - 1, stream);
+              fclose(stream);
+              return (size == 6 && memcmp(buffer, "target", 6) == 0) ? 0 : 30;
+          }
+          EOF
+          docker pull quay.io/pypa/manylinux2014_x86_64:latest
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work \
+            quay.io/pypa/manylinux2014_x86_64:latest \
+            /bin/bash -lc 'gcc -std=c11 -O2 -Wall -Wextra -Werror -Wpedantic \
+              build/probe/probe.c -o build/probe/probe'
+          file build/probe/probe | tee build/report/probe-file.txt
+          sha256sum build/probe/probe | tee build/report/probe-sha256.txt
+      - name: Execute through the exact prepared guest loader and libc
+        run: |
+          set -euxo pipefail
+          mkdir -p build/root
+          archive=$(find build/input/prepared -type f -name '*.tar.zst' -print -quit)
+          test -n "$archive"
+          zstd -dc "$archive" | sudo tar -xf - -C build/root
+          sudo install -D -m 0755 build/input/shim/libhrt_hword_fopen.so \
+            build/root/opt/hrt/libhrt_hword_fopen.so
+          sudo install -D -m 0755 build/probe/probe \
+            build/root/opt/hnc/hoffice11/probe
+          sudo mkdir -p \
+            build/root/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR \
+            build/root/etc
+          printf target | sudo tee \
+            'build/root/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt' \
+            >/dev/null
+          printf '%s\n' '/opt/hrt/libhrt_hword_fopen.so' | sudo tee \
+            build/root/etc/ld.so.preload >/dev/null
+          sudo chroot build/root /opt/hnc/hoffice11/probe \
+            >build/report/target-probe.stdout.txt \
+            2>build/report/target-probe.stderr.txt
+          grep -F 'HRT M11 PRELOAD_FOPEN_V3: loaded=1' \
+            build/report/target-probe.stderr.txt
+          grep -F 'eligible=1 applied=1 template-ready=1' \
+            build/report/target-probe.stderr.txt
+          grep -F 'caller-object=/opt/hnc/hoffice11/probe' \
+            build/report/target-probe.stderr.txt
+      - name: Commit the exact-loader proof
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          lock=json.loads(Path('build/input/shim/lock.json').read_text())
+          library=Path('build/input/shim/libhrt_hword_fopen.so')
+          stderr=Path('build/report/target-probe.stderr.txt').read_text()
+          source=json.loads(Path('build/report/source-shim.json').read_text())
+          payload={
+              'schema':1,'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],'status':'PASS',
+              'classification':'SCOPED_FOPEN_SHIM_ACCEPTED_BY_EXACT_GUEST_LOADER',
+              'prepared_run':os.environ['PREPARED_RUN_ID'],
+              'shim_source_run':str(source['run']['id']),
+              'shim_sha256':hashlib.sha256(library.read_bytes()).hexdigest(),
+              'shim_lock':lock,
+              'loaded':('HRT M11 PRELOAD_FOPEN_V3: loaded=1' in stderr),
+              'eligible_applied':('eligible=1 applied=1 template-ready=1' in stderr),
+              'caller_resolved':('caller-object=/opt/hnc/hoffice11/probe' in stderr),
+              'stderr':stderr,
+          }
+          assert payload['shim_sha256']==lock['sha256']
+          assert payload['loaded'] and payload['eligible_applied'] and payload['caller_resolved']
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          Path('diagnostics/m11-fopen-preload-target-loader-latest.json').write_text(
+              encoded,encoding='utf-8')
+          Path(f"diagnostics/m11-fopen-preload-target-loader-{os.environ['GITHUB_RUN_ID']}.json").write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-fopen-preload-target-loader-latest.md').write_text(
+              '# Scoped fopen shim in the exact HWord guest loader\n\n'
+              '- Status: `PASS`\n'
+              '- Classification: `SCOPED_FOPEN_SHIM_ACCEPTED_BY_EXACT_GUEST_LOADER`\n'
+              f"- Prepared rootfs: `{os.environ['PREPARED_RUN_ID']}`\n"
+              f"- Shim run: `{source['run']['id']}`\n"
+              f"- Shim SHA-256: `{payload['shim_sha256']}`\n",
+              encoding='utf-8')
+          Path('build/report/target-loader-proof.json').write_text(
+              encoded,encoding='utf-8')
+          print(encoded)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-fopen-preload-target-loader-*.json \
+                  diagnostics/m11-fopen-preload-target-loader-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: prove the scoped shim in the exact guest loader'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-fopen-preload-target-loader-proof
+          path: |
+            build/report
+            diagnostics/m11-fopen-preload-target-loader-*.json
+            diagnostics/m11-fopen-preload-target-loader-latest.md
+          if-no-files-found: warn
+          retention-days: 14

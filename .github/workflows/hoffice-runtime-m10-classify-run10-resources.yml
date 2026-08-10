@@ -1,0 +1,304 @@
+name: Classify complete M10 path trace against exact HOffice package
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-classify-run10-resources.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m10-classify-complete-path-trace-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TARGET_BRANCH: codex/hoffice-runtime-from-scratch
+  SOURCE_RUN_ID: '31254233337'
+  SOURCE_ARTIFACT: hrt-m10-hword-fs-compat-proof
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+
+jobs:
+  classify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download the first complete filesystem path-trace proof
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.SOURCE_ARTIFACT }}
+          path: build/input/source
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download and lock the exact HOffice package inventory
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/package build/report diagnostics
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" \
+            --dir build/package
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/package/$ASSET_NAME" | sha256sum -c -
+          dpkg-deb --fsys-tarfile "build/package/$ASSET_NAME" \
+            | tar -tf - \
+            | sed -e 's#^\./#/#' -e 's#/$##' \
+            | LC_ALL=C sort -u >build/report/package-paths.txt
+          test -s build/report/package-paths.txt
+          wc -l build/report/package-paths.txt
+
+      - name: Build a conservative exact-resource restoration plan
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import posixpath
+          import re
+          from pathlib import Path
+
+          source = Path('build/input/source')
+          stderr_paths = list(source.rglob('stderr.txt'))
+          if len(stderr_paths) != 1:
+              raise SystemExit(
+                  f'expected one stderr.txt in source artifact, found {stderr_paths}')
+          stderr_path = stderr_paths[0]
+          stderr = stderr_path.read_text(errors='replace')
+
+          summary = {}
+          summary_path = None
+          for path in [*source.rglob('summary.json'),
+                       *source.rglob('m10-hword-fs-compat-*.json')]:
+              try:
+                  value = json.loads(path.read_text(errors='replace'))
+              except Exception:
+                  continue
+              if isinstance(value, dict) and 'classification' in value:
+                  summary = value
+                  summary_path = path
+                  if path.name == 'summary.json':
+                      break
+
+          package_paths = set(Path(
+              'build/report/package-paths.txt').read_text().splitlines())
+          pattern = re.compile(
+              r'HRT M9 PATH: op=(\S+) result=(-?\d+) errno=(\d+) '
+              r'guest=(.*?) host=(.*)$')
+          operations = []
+          for line in stderr.splitlines():
+              match = pattern.fullmatch(line)
+              if not match:
+                  continue
+              guest = match.group(4)
+              normalized = posixpath.normpath(guest) \
+                  if guest.startswith('/') else None
+              package_alias = normalized
+              if normalized and normalized.startswith('/opt/hnc/hoffice1/'):
+                  package_alias = normalized.replace(
+                      '/opt/hnc/hoffice1/',
+                      '/opt/hnc/hoffice11/', 1)
+              operations.append({
+                  'operation': match.group(1),
+                  'result': int(match.group(2)),
+                  'host_errno': int(match.group(3)),
+                  'guest_path': guest,
+                  'normalized_guest_path': normalized,
+                  'package_alias_path': package_alias,
+                  'host_path': match.group(5),
+              })
+
+          failed = [item for item in operations if item['result'] < 0]
+          expected_readlink_non_symlinks = [
+              item for item in failed
+              if item['operation'] in {'readlink', 'readlinkat'} and
+                 item['host_errno'] == 22
+          ]
+          actionable = [
+              item for item in failed
+              if item not in expected_readlink_non_symlinks and
+                 item['host_errno'] in {2, 20}
+          ]
+
+          def package_match(path):
+              if not path:
+                  return None
+              path = posixpath.normpath(path)
+              if path in package_paths:
+                  return path
+              prefix = path.rstrip('/') + '/'
+              if any(member.startswith(prefix) for member in package_paths):
+                  return path
+              return None
+
+          exact_failure_roots = []
+          for item in actionable:
+              matched = package_match(item['package_alias_path'])
+              if matched:
+                  exact_failure_roots.append(matched)
+          exact_failure_roots = sorted(set(exact_failure_roots))
+
+          # Restore only application resources that are direct bootstrap inputs.
+          # Optional Qt platform-theme/icon-engine probes are kept diagnostic so
+          # their Linux desktop dependencies are not introduced into macOS.
+          def selected_root(path):
+              exact_names = {
+                  '/opt/hnc/hoffice11/Bin/HwordAction.so',
+                  '/opt/hnc/hoffice11/Bin/themeInfo.xml',
+                  '/opt/hnc/hoffice11/Bin/optionInfo.xml',
+                  '/opt/hnc/hoffice11/Bin/libHncOfficeFramework.res',
+                  '/opt/hnc/hoffice11/Bin/libHncImm.KOR.res',
+                  '/opt/hnc/hoffice11/Bin/libHncOfficeFramework.KOR.res',
+                  '/opt/hnc/hoffice11/Bin/qt/translations/qt_ko.qm',
+                  '/opt/hnc/hoffice11/Bin/qt/translations/qt_en.qm',
+              }
+              return path in exact_names or \
+                  path == '/opt/hnc/hoffice11/Bin/Code'
+
+          restoration_roots = sorted(
+              path for path in exact_failure_roots if selected_root(path))
+          optional_exact_failures = sorted(
+              set(exact_failure_roots) - set(restoration_roots))
+
+          expanded = set()
+          for root in restoration_roots:
+              if root in package_paths:
+                  expanded.add(root)
+              prefix = root.rstrip('/') + '/'
+              expanded.update(
+                  member for member in package_paths
+                  if member.startswith(prefix))
+          # tar creates parents for file members. Avoid an empty root marker and
+          # retain only paths under the locked HOffice installation.
+          restoration_paths = sorted(
+              path for path in expanded
+              if path.startswith('/opt/hnc/hoffice11/'))
+
+          unsupported = sorted({
+              int(match.group(1))
+              for line in stderr.splitlines()
+              if (match := re.search(
+                  r'Linux syscall ENOSYS\s+([0-9]+)', line))
+          })
+          windows = summary.get('window_titles')
+          if not isinstance(windows, list):
+              windows = re.findall(
+                  r'HRT M6 QPA: CREATE .*? title=(.*?) handle=', stderr)
+
+          if 290 in unsupported:
+              frontier = 'EVENTFD2_WRAPPER_NOT_ACTIVE'
+          elif 82 in unsupported:
+              frontier = 'ATOMIC_RENAME_STILL_UNSUPPORTED'
+          elif restoration_paths:
+              frontier = 'PACKAGE_RESOURCES_MISSING_FROM_PREPARED_GUEST'
+          elif any(title == 'Exception' for title in windows):
+              frontier = 'EXCEPTION_WITHOUT_SELECTED_PACKAGE_RESOURCE_GAP'
+          elif any(title == 'Word' for title in windows):
+              frontier = 'FILESYSTEM_PATH_TRACE_PASS'
+          else:
+              frontier = summary.get('classification', 'UNCLASSIFIED')
+
+          relative_failures = sorted({
+              item['guest_path'] for item in actionable
+              if not item['guest_path'].startswith('/')
+          })
+          result = {
+              'schema': 2,
+              'milestone': 'M10-fs-path-trace',
+              'status': 'PASS' if frontier == 'FILESYSTEM_PATH_TRACE_PASS'
+                                 else 'DIAGNOSTIC',
+              'frontier': frontier,
+              'source_workflow_run': os.environ['SOURCE_RUN_ID'],
+              'source_workflow_conclusion': 'failure-commit-step-only',
+              'source_commit': summary.get('commit'),
+              'source_summary_path': str(summary_path)
+                  if summary_path else None,
+              'source_summary': summary,
+              'window_titles': windows,
+              'path_operation_count': len(operations),
+              'failed_path_operation_count': len(failed),
+              'actionable_missing_path_operation_count': len(actionable),
+              'expected_readlink_non_symlink_probe_count': len(
+                  expected_readlink_non_symlinks),
+              'exact_package_failure_roots': exact_failure_roots,
+              'restoration_roots': restoration_roots,
+              'package_resources_missing_from_prepared_guest':
+                  restoration_paths,
+              'optional_exact_package_failures_not_restored':
+                  optional_exact_failures,
+              'relative_failed_paths': relative_failures,
+              'unsupported_syscalls': unsupported,
+              'eventfd2_enosys': 290 in unsupported,
+              'rename_enosys': 82 in unsupported,
+              'fatal_signal_observed': 'fatal signal' in stderr,
+              'stderr_sha256': __import__('hashlib').sha256(
+                  stderr.encode(errors='replace')).hexdigest(),
+              'stderr_tail': stderr[-18000:],
+          }
+
+          payload = json.dumps(result, indent=2) + '\n'
+          run_id = os.environ['SOURCE_RUN_ID']
+          Path(f'diagnostics/m10-fs-path-trace-{run_id}.json').write_text(payload)
+          Path('diagnostics/m10-fs-path-trace-latest.json').write_text(payload)
+          Path('diagnostics/m10-fs-path-trace-latest.md').write_text(
+              '# HWord M10 filesystem path frontier\n\n'
+              f'- Source run: `{run_id}`\n'
+              f'- Frontier: `{frontier}`\n'
+              f'- Windows: `{windows}`\n'
+              f'- Path operations: `{len(operations)}`\n'
+              f'- Failed operations: `{len(failed)}`\n'
+              f'- Expected readlink EINVAL probes: '
+              f'`{len(expected_readlink_non_symlinks)}`\n'
+              f'- Restoration roots: `{restoration_roots}`\n'
+              f'- Restored package members: `{len(restoration_paths)}`\n'
+              f'- Optional exact-package probes: '
+              f'`{optional_exact_failures}`\n'
+              f'- Unsupported syscalls: `{unsupported}`\n')
+          Path('build/report/restoration-plan.json').write_text(payload)
+          print(payload)
+          if frontier != 'PACKAGE_RESOURCES_MISSING_FROM_PREPARED_GUEST':
+              raise SystemExit(
+                  f'expected an exact resource frontier, observed {frontier}')
+          if '/opt/hnc/hoffice11/Bin/HwordAction.so' not in restoration_paths:
+              raise SystemExit('HwordAction.so was not selected for restoration')
+          PY
+
+      - name: Commit the verified exact-resource frontier
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m10-fs-path-trace-*.json \
+                  diagnostics/m10-fs-path-trace-latest.md
+          git commit -m 'diagnostic: identify exact HWord bootstrap resources'
+          for attempt in $(seq 1 20); do
+            if git push origin "HEAD:$TARGET_BRANCH"; then
+              exit 0
+            fi
+            git fetch origin "$TARGET_BRANCH"
+            git rebase "origin/$TARGET_BRANCH"
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m10-run10-resource-classification
+          path: |
+            build/report
+            diagnostics/m10-fs-path-trace-*.json
+            diagnostics/m10-fs-path-trace-latest.md
+          if-no-files-found: warn
+          retention-days: 14

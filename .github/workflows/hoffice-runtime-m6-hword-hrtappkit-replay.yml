@@ -1,0 +1,161 @@
+name: HOffice runtime M6 exact HWord hrtappkit replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m6-hword-hrtappkit-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m6-hword-hrtappkit-replay-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HWORD_ROOTFS_RUN_ID: '31102898765'
+  QPA_BUILD_RUN_ID: '31117936555'
+  QPA_ARTIFACT_SHA256: f97648ef6fe59e1b74d3155f2ad286d3dd5c6afa7c59d66314e57014281c7cd7
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+  PLUGIN_PATCHED_SHA256: dafdd4fd8af86afe44ca2a6e2f845b0529ce08ff9e79581fc8df837574176ea9
+
+jobs:
+  replay-exact-hword:
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require the proven guest-to-AppKit transport
+        run: |
+          set -euxo pipefail
+          test -s proofs/m6-linux-guest-appkit-window.json
+          grep -F '"status": "PASS"' proofs/m6-linux-guest-appkit-window.json
+          test -f runtime/m3/augment_directory_stream.py
+
+      - name: Download the verified HWord shadow root
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input/hword
+          repository: ${{ github.repository }}
+          run-id: ${{ env.HWORD_ROOTFS_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download the Vulkan-complete Qt 5.11.3 hrtappkit build
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m6-qt5113-hrtappkit-qpa
+          path: build/input/qpa
+          repository: ${{ github.repository }}
+          run-id: ${{ env.QPA_BUILD_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Normalize and cryptographically lock the replay inputs
+        run: |
+          set -euxo pipefail
+          test -f "build/input/qpa/build/plugin-root$PLUGIN_GUEST"
+          test -s build/input/qpa/build/plugin-root/.hrt-prepatched-v1
+          test -s build/input/qpa/build/report/plugin-patched.sha256
+          rm -rf build/input/qpa/plugin-root build/input/qpa/report
+          mv build/input/qpa/build/plugin-root build/input/qpa/plugin-root
+          mv build/input/qpa/build/report build/input/qpa/report
+          printf '%s  %s\n' "$PLUGIN_PATCHED_SHA256" \
+            "build/input/qpa/plugin-root$PLUGIN_GUEST" | shasum -a 256 -c -
+          grep -F 'createPlatformVulkanInstance' \
+            build/input/qpa/report/plugin-symbols-patched.txt | grep -v ' UND '
+          ! awk '$7 == "UND" && /createPlatformVulkanInstance/' \
+            build/input/qpa/report/plugin-symbols-patched.txt | grep .
+
+          mkdir -p build/replay
+          ruby <<'RUBY'
+          require 'yaml'
+          workflow = YAML.load_file(
+            '.github/workflows/hoffice-runtime-m6-hword-hrtappkit-qpa.yml')
+          steps = workflow.fetch('jobs').fetch('run-exact-hword').fetch('steps')
+          wanted = [
+            'Reconstruct and extend the exact case-sensitive HWord root',
+            'Generate the mature runtime and select hrtappkit',
+            'Compile and sign the exact-HWord AppKit runtime',
+            'Run exact HWord until its QPA creates a native AppKit window',
+            'Accept only a real HWord-issued AppKit first-window gate',
+            'Commit a durable exact-HWord first-window proof',
+          ]
+          by_name = steps.each_with_object({}) do |step, result|
+            result[step['name']] = step if step['name']
+          end
+          wanted.each_with_index do |name, index|
+            step = by_name.fetch(name)
+            path = format('build/replay/%02d.sh', index + 1)
+            File.write(path, "#!/bin/bash\n#{step.fetch('run')}\n")
+            File.chmod(0755, path)
+          end
+          File.write('build/replay/steps.txt', wanted.join("\n") + "\n")
+          RUBY
+
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('build/replay/02.sh')
+          text = path.read_text()
+          old = '''          python3 runtime/m3/augment_directory_syscalls.py \\
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_pipe2.py \\
+            build/generated/stage2.c build/generated/stage3.c
+'''
+          new = '''          python3 runtime/m3/augment_directory_syscalls.py \\
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \\
+            build/generated/stage2.c build/generated/stage2-stream.c
+          python3 runtime/m3/augment_pipe2.py \\
+            build/generated/stage2-stream.c build/generated/stage3.c
+'''
+          if old not in text:
+              raise SystemExit('directory-stream replay anchor not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          grep -F 'augment_directory_stream.py' build/replay/02.sh
+          test "$(find build/replay -name '*.sh' | wc -l | tr -d ' ')" -eq 6
+          shasum -a 256 build/replay/*.sh > build/replay/scripts.sha256
+          cat build/replay/steps.txt
+          cat build/replay/scripts.sha256
+
+      - name: Replay the exact-HWord first-window gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          for script in build/replay/*.sh; do
+            echo "::group::$(basename "$script")"
+            bash "$script"
+            echo '::endgroup::'
+            if [ -s "$GITHUB_ENV" ]; then
+              set -a
+              source "$GITHUB_ENV"
+              set +a
+            fi
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m6-hword-hrtappkit-replay-proof
+          path: |
+            build/host/hrt-m6-hword-qpa
+            build/generated/syscall_bridge.c
+            build/input/qpa/report
+            build/replay
+            build/proof
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach the guest filesystem
+        if: always()
+        run: |
+          if [ -n "${HRT_ROOT:-}" ]; then
+            hdiutil detach -quiet "$HRT_ROOT" || true
+          fi

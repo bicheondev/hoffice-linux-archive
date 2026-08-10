@@ -1,0 +1,145 @@
+name: Build corrected HWord short path-buffer repair host
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m11/augment_sendfile.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v12.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v13.py'
+      - '.github/workflows/hoffice-runtime-m11-build-short-buffer-host-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hrt-m11-build-short-buffer-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-host:
+    runs-on: macos-14
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Generate the corrected combined bridge
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          mkdir -p build/generated build/objects build/output
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE >build/output/x86-page-size.txt
+          sw_vers >build/output/sw-vers.txt
+          python3 runtime/m8/augment_appkit_adapter_input.py \
+            runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m
+          python3 runtime/m11/augment_appkit_korean_input_capture.py \
+            build/generated/appkit_adapter_m8.m build/generated/appkit_adapter_m11.m
+          python3 runtime/m6/augment_stack_hrtappkit.py \
+            runtime/m3/stack.c build/generated/stack-m6.c
+          python3 runtime/m9/augment_stack_locale.py \
+            build/generated/stack-m6.c build/generated/stack.c
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m11/augment_clock_nanosleep.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m11/augment_sendfile.py \
+            build/generated/stage9.c build/generated/stage10.c
+          python3 runtime/m10/augment_fs_compat.py \
+            build/generated/stage10.c build/generated/stage11.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage11.c build/generated/stage12.c
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+            build/generated/stage12.c build/generated/stage13.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage13.c build/generated/stage14.c
+          python3 runtime/m10/augment_clone_compat_v4.py \
+            build/generated/stage14.c build/generated/stage15.c
+          python3 runtime/m11/augment_hword_document_io_trace_v13.py \
+            build/generated/stage15.c build/generated/syscall_bridge.c
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('build/generated/syscall_bridge.c')
+          text=path.read_text(encoding='utf-8')
+          anchor='#define M3_TRACE_LIMIT 256u'
+          if text.count(anchor)!=1:
+              raise SystemExit(f'trace-limit anchor count {text.count(anchor)}')
+          path.write_text(text.replace(anchor,'#define M3_TRACE_LIMIT 24000u'),encoding='utf-8')
+          PY
+          grep -F 'case LINUX_SYS_SENDFILE:' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 SHORTBUFFER: index=1 applied=1' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 CLASSIFIERCALLER:' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 FRAMECTX:' build/generated/syscall_bridge.c
+          shasum -a 256 build/generated/syscall_bridge.c >build/output/generated-bridge.sha256
+      - name: Compile and sign the corrected host
+        run: |
+          set -euxo pipefail
+          common=(-arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer -mfsgsbase \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m10 -Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1)
+          index=0
+          for source in runtime/m6/main.c runtime/m6/hostcall_trampoline.c \
+            runtime/m1/common.c runtime/m3/elf_map.c build/generated/stack.c \
+            runtime/m3/patch.c build/generated/syscall_bridge.c; do
+            clang "${common[@]}" -c "$source" -o "build/objects/c-${index}.o"
+            index=$((index+1))
+          done
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c build/generated/appkit_adapter_m11.m -o build/objects/appkit-adapter.o
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c runtime/m8/appkit_input.m -o build/objects/appkit-input.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S -o build/objects/enter-guest.o
+          clang -arch x86_64 -g -Iruntime/m10 -c runtime/m10/clone_trampoline.S \
+            -o build/objects/clone-trampoline.o
+          clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \
+            -o build/objects/hostcall-trampoline.o
+          output=build/output/hrt-m10-hword-main-input
+          clang -arch x86_64 build/objects/*.o -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO -o "$output"
+          chmod 0755 "$output"
+          codesign --force --sign - --timestamp=none "$output"
+          codesign --verify --strict "$output"
+          file "$output" >build/output/host-file.txt
+          lipo -info "$output" >build/output/host-arch.txt
+          shasum -a 256 "$output" >build/output/host-sha256.txt
+          python3 - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          binary=Path('build/output/hrt-m10-hword-main-input')
+          payload={'schema':2,'workflow_run':os.environ['GITHUB_RUN_ID'],
+                   'commit':os.environ['GITHUB_SHA'],
+                   'binary_sha256':hashlib.sha256(binary.read_bytes()).hexdigest(),
+                   'diagnostics':['linux-sendfile','short-guest-path-buffer-repair'],
+                   'guest_alias':'/d.hwdt','alias_bytes':8,'maximum_candidates':3,
+                   'generator':'augment_hword_document_io_trace_v13.py'}
+          Path('build/output/short-buffer-host-lock.json').write_text(
+              json.dumps(payload,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(payload,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m10-hword-main-window-input-proof
+          path: build/output
+          if-no-files-found: error
+          retention-days: 14

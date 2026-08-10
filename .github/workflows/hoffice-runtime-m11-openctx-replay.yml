@@ -1,0 +1,184 @@
+name: HOffice runtime M11 HWord open-callsite replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-openctx-replay.yml'
+      - 'runtime/m11/augment_hword_document_io_trace_v2.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v3.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v4.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v5.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v6.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v7.py'
+      - 'runtime/m11/run_korean_title_staged_replay.sh'
+      - 'runtime/m11/augment_full_product_replay.py'
+      - 'runtime/m11/augment_full_product_replay_v2.py'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: hrt-m11-hword-openctx-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREPARED_RUN_ID: '31235068358'
+  HOST_RUN_ID: '31400826337'
+  HOST_ARTIFACT_DIGEST: 792f5f55678818eb96669b16433a8fd07b84b19b0ab1b1581aa564c95439154d
+  QPA_RUN_ID: '31305695836'
+  QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  replay-open-callsite:
+    runs-on: macos-14
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the verified Korean HWord frontier
+        run: |
+          set -euxo pipefail
+          test -s proofs/m10-hword-culture-resource-window.json
+          grep -F '"status": "PASS"' \
+            proofs/m10-hword-culture-resource-window.json
+          test -s proofs/m10-clone-chdir.json
+          grep -F '"status": "PASS"' proofs/m10-clone-chdir.json
+
+      - name: Replay the exact product closure with classifier-caller tracing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HRT_M11_MODAL_CAPTURE_PATH: ${{ github.workspace }}/build/proof/hword-modal-dialog.png
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated
+          python3 runtime/m11/augment_full_product_replay_v2.py \
+            runtime/m11/run_korean_title_staged_replay.sh \
+            build/generated/run_korean_title_classifierctx.sh
+          test -x build/generated/run_korean_title_classifierctx.sh
+          build/generated/run_korean_title_classifierctx.sh
+
+      - name: Resolve empty-path opens to the direct HWord classifier caller
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -f build/proof/stderr.txt
+          grep -F 'HRT M11 OPENCTX:' build/proof/stderr.txt \
+            >build/proof/open-context-lines.txt || true
+          grep -F 'HRT M11 FRAMECTX:' build/proof/stderr.txt \
+            >build/proof/frame-context-lines.txt || true
+          grep -F 'HRT M11 CLASSIFIERCTX:' build/proof/stderr.txt \
+            >build/proof/classifier-context-lines.txt || true
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          stderr = Path('build/proof/stderr.txt').read_text(errors='replace')
+          lines = stderr.splitlines()
+          open_lines = [line for line in lines
+                        if line.startswith('HRT M11 DOCIO:') and ' op=open ' in line]
+          open_contexts = [line for line in lines
+                           if line.startswith('HRT M11 OPENCTX:')]
+          frame_contexts = [line for line in lines
+                            if line.startswith('HRT M11 FRAMECTX:')]
+          classifier_contexts = [line for line in lines
+                                 if line.startswith('HRT M11 CLASSIFIERCTX:')]
+
+          records = []
+          pending = None
+          for line in lines:
+              if line.startswith('HRT M11 DOCIO:') and ' op=open ' in line:
+                  if pending is not None:
+                      records.append(pending)
+                  pending = {'open': line}
+                  continue
+              if pending is None:
+                  continue
+              if line.startswith('HRT M11 OPENCTX:'):
+                  pending['open_context'] = line
+              elif line.startswith('HRT M11 FRAMECTX:'):
+                  pending['frame_context'] = line
+              elif line.startswith('HRT M11 CLASSIFIERCTX:'):
+                  pending['classifier_context'] = line
+                  object_match = re.search(
+                      r'caller-return-object=(\S+)', line)
+                  offset_match = re.search(
+                      r'caller-return-file-offset=(0x[0-9a-f]+)', line)
+                  return_match = re.search(
+                      r'\bcaller-return=(0x[0-9a-f]+)', line)
+                  pending['direct_caller'] = {
+                      'return_address':
+                          return_match.group(1) if return_match else None,
+                      'object':
+                          object_match.group(1) if object_match else None,
+                      'file_offset':
+                          offset_match.group(1) if offset_match else None,
+                  }
+          if pending is not None:
+              records.append(pending)
+
+          empty_records = [
+              record for record in records
+              if re.search(r' guest=(?:\s|$)', record['open'])
+          ]
+          payload = {
+              'schema': 4,
+              'host_run': os.environ['HOST_RUN_ID'],
+              'host_artifact_digest': os.environ['HOST_ARTIFACT_DIGEST'],
+              'classifier_fopen_return_file_offset': '0xe15e32',
+              'open_line_count': len(open_lines),
+              'open_context_count': len(open_contexts),
+              'frame_context_count': len(frame_contexts),
+              'classifier_context_count': len(classifier_contexts),
+              'record_count': len(records),
+              'empty_path_records': empty_records,
+              'empty_path_direct_callers': [
+                  record.get('direct_caller') for record in empty_records
+              ],
+          }
+          output = Path('build/proof/classifier-caller-summary.json')
+          output.write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8')
+          Path('build/proof/frame-context-summary.json').write_text(
+              output.read_text(encoding='utf-8'), encoding='utf-8')
+          Path('build/proof/open-context-summary.json').write_text(
+              output.read_text(encoding='utf-8'), encoding='utf-8')
+          print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+          if len(empty_records) != 3:
+              raise SystemExit(
+                  f'expected three empty-path opens, found {len(empty_records)}')
+          if not all(record.get('classifier_context') for record in empty_records):
+              raise SystemExit('an empty-path open lacks CLASSIFIERCTX')
+          if not all(record.get('direct_caller', {}).get('file_offset')
+                     for record in empty_records):
+              raise SystemExit('an empty-path classifier caller was not resolved')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-hword-classifier-caller-proof
+          path: |
+            build/generated/run_korean_title_classifierctx.sh
+            build/host/hrt-m11-korean-staged
+            build/proof
+            diagnostics/m11-korean-title-staged-*.json
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,315 @@
+name: HOffice runtime M5 HWord event loop v2
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m3/augment_directory_stream.py'
+      - 'runtime/m3/augment_directory_syscalls.py'
+      - 'runtime/m3/augment_pipe2.py'
+      - 'runtime/m3/augment_polling.py'
+      - 'runtime/m3/augment_epoll.py'
+      - 'runtime/m3/augment_tgkill.py'
+      - 'runtime/m3/augment_crash_signals.py'
+      - '.github/workflows/hoffice-runtime-m5-hword-eventloop-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m5-hword-eventloop-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN_ID: '31102898765'
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+
+jobs:
+  run-offscreen-event-loop:
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Verify and mount the exact HWord root
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated build/host build/proof diagnostics proofs
+          expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)
+          actual=$(shasum -a 256 build/input/hword-rootfs.tar.gz | awk '{print $1}')
+          test "$actual" = "$expected"
+          printf '%s\n' "$actual" > build/proof/rootfs-archive.sha256
+
+          image="$RUNNER_TEMP/hrt-m5-eventloop-v2.sparsebundle"
+          root="$RUNNER_TEMP/hrt-m5-eventloop-v2-root"
+          rm -rf "$image" "$root"
+          mkdir -p "$root"
+          if ! hdiutil create -quiet -size 8g -fs APFSX \
+               -volname HRTM5E2 -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 8g -fs HFSX \
+              -volname HRTM5E2 -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >> "$GITHUB_ENV"
+          tar -xzf build/input/hword-rootfs.tar.gz -C "$root"
+          test -s "$root/.hrt-closure-v1.json"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+          test -d "$root/opt/hnc/hoffice11/Bin/Hword"
+          test -f "$root/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so"
+
+          python3 - "$root" "$PROGRAM" "$PROGRAM_SHA256" <<'PY'
+          import hashlib, json, pathlib, sys
+          root = pathlib.Path(sys.argv[1]); guest = sys.argv[2]
+          manifest = json.loads((root / '.hrt-prepatched-v1').read_text())
+          record, = [item for item in manifest['objects'] if item['path'] == guest]
+          assert record['sha256_before'] == sys.argv[3]
+          actual = hashlib.sha256((root / guest.lstrip('/')).read_bytes()).hexdigest()
+          assert actual == record['sha256_after'], (actual, record)
+          pathlib.Path('build/proof/hword-prepatch-lock.json').write_text(
+              json.dumps(record, indent=2) + '\n')
+          PY
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+          grep -F 'Case-sensitive' build/proof/guest-volume.txt
+
+      - name: Generate the full M5 event-loop bridge
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_polling.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_epoll.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_tgkill.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage7.c build/generated/syscall_bridge.c
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('build/generated/syscall_bridge.c')
+          text = path.read_text()
+          anchor = '#define M3_TRACE_LIMIT 256u'
+          assert text.count(anchor) == 1
+          path.write_text(text.replace(anchor, '#define M3_TRACE_LIMIT 32000u'))
+          PY
+
+          grep -Fq 'host_getdents64_stream_bridge' build/generated/syscall_bridge.c
+          grep -Fq 'host_pipe2_bridge' build/generated/syscall_bridge.c
+          grep -Fq 'host_poll_bridge' build/generated/syscall_bridge.c
+          grep -Fq 'host_epoll_create1_bridge' build/generated/syscall_bridge.c
+          grep -Fq 'host_tgkill_bridge' build/generated/syscall_bridge.c
+          grep -Fq 'last-syscall-rip=' build/generated/syscall_bridge.c
+
+      - name: Compile and sign the x86-64 host
+        run: |
+          set -euxo pipefail
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Iruntime/m3 -Iruntime/m1 \
+            runtime/m3/main.c runtime/m1/common.c runtime/m3/elf_map.c \
+            runtime/m3/stack.c runtime/m3/patch.c \
+            build/generated/syscall_bridge.c runtime/m1/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/host/hrt-m5-eventloop-v2
+          file build/host/hrt-m5-eventloop-v2 | tee build/proof/host-file.txt
+          lipo -info build/host/hrt-m5-eventloop-v2 | tee build/proof/host-arch.txt
+          codesign --force --sign - --timestamp=none build/host/hrt-m5-eventloop-v2
+          codesign --verify --strict build/host/hrt-m5-eventloop-v2
+
+      - name: Execute exact HWord for thirty seconds
+        run: |
+          set -uxo pipefail
+          : > build/proof/stdout.txt
+          : > build/proof/stderr.txt
+          /usr/bin/arch -x86_64 build/host/hrt-m5-eventloop-v2 \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          deadline=1
+          for _ in $(jot 600); do
+            if ! kill -0 "$pid" 2>/dev/null; then
+              deadline=0
+              break
+            fi
+            sleep 0.05
+          done
+          if [ "$deadline" -ne 0 ]; then
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+              >build/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$pid" 2 1 -file build/proof/sample.txt \
+              >/dev/null 2>&1 || true
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.2
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e
+          wait "$pid"
+          status=$?
+          set -e
+          if [ "$deadline" -ne 0 ]; then status=124; fi
+          printf '%s\n' "$status" > build/proof/exit-status.txt
+          printf '%s\n' "$deadline" > build/proof/reached-deadline.txt
+
+          grep -E 'HRT M5: directory stream|Found metadata|Got keys|loaded library|GWakeup|Linux syscall ENOSYS|fatal signal|Qt platform plugin|QFactoryLoader|syscall (7|213|232|233|234|271|281|290|291|293) ' \
+            build/proof/stderr.txt | tail -n 4000 \
+            | tee build/proof/key-lines.txt || true
+          grep -E 'Call graph:|Thread_.*DispatchQueue|hrt-m5|libqoffscreen|Qt5|GLib|poll|ppoll|kevent|QEventLoop|QCoreApplication' \
+            build/proof/sample.txt 2>/dev/null | head -n 1200 \
+            > build/proof/sample-key-lines.txt || true
+          echo '--- key lines ---'; cat build/proof/key-lines.txt
+          echo '--- stderr tail ---'; tail -n 2200 build/proof/stderr.txt || true
+          echo '--- stdout tail ---'; tail -n 500 build/proof/stdout.txt || true
+          echo '--- process ---'; cat build/proof/process.txt 2>/dev/null || true
+          echo '--- sample ---'; cat build/proof/sample-key-lines.txt || true
+          echo "status=$status deadline=$deadline"
+
+      - name: Write the complete diagnosis
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+
+          stderr = Path('build/proof/stderr.txt').read_text(errors='replace')
+          stdout = Path('build/proof/stdout.txt').read_text(errors='replace')
+          sample = (Path('build/proof/sample.txt').read_text(errors='replace')
+                    if Path('build/proof/sample.txt').exists() else '')
+          unsupported = sorted({
+              int(match.group(1))
+              for line in stderr.splitlines()
+              if (match := re.search(r'Linux syscall ENOSYS ([0-9]+)', line))
+          })
+          summary = {
+              'schema': 1,
+              'milestone': 'M5-eventloop-v2',
+              'commit': '${{ github.sha }}',
+              'workflow_run': '${{ github.run_id }}',
+              'source_rootfs_run': '${{ env.SOURCE_RUN_ID }}',
+              'program': '${{ env.PROGRAM }}',
+              'program_sha256_before_prepatch': '${{ env.PROGRAM_SHA256 }}',
+              'status': int(Path('build/proof/exit-status.txt').read_text()),
+              'reached_deadline': bool(int(Path('build/proof/reached-deadline.txt').read_text())),
+              'directory_stream_yielded_offscreen': (
+                  'HRT M5: directory stream yielded libqoffscreen.so' in stderr),
+              'offscreen_metadata_observed': (
+                  'Got keys from plugin meta data ("offscreen")' in stderr or
+                  ('Found metadata in lib' in stderr and 'libqoffscreen.so' in stderr)),
+              'offscreen_library_loaded': (
+                  'loaded library "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so"'
+                  in stderr),
+              'pipe2_called': 'hrt-m3: syscall 293 ' in stderr,
+              'poll_called': 'hrt-m3: syscall 7 ' in stderr,
+              'ppoll_called': 'hrt-m3: syscall 271 ' in stderr,
+              'epoll_create_called': 'hrt-m3: syscall 213 ' in stderr,
+              'epoll_create1_called': 'hrt-m3: syscall 291 ' in stderr,
+              'epoll_ctl_called': 'hrt-m3: syscall 233 ' in stderr,
+              'epoll_wait_called': 'hrt-m3: syscall 232 ' in stderr,
+              'epoll_pwait_called': 'hrt-m3: syscall 281 ' in stderr,
+              'eventfd2_called': 'hrt-m3: syscall 290 ' in stderr,
+              'tgkill_called': 'hrt-m3: syscall 234 ' in stderr,
+              'glib_gwakeup_pipe_failure': 'Creating pipes for GWakeup' in stderr,
+              'qt_platform_error_observed': 'Qt platform plugin' in stderr,
+              'fatal_signals': [line for line in stderr.splitlines()
+                                if 'hrt-m3: fatal signal ' in line],
+              'unsupported_syscalls': unsupported,
+              'sample_mentions_event_loop': any(token in sample for token in
+                  ('poll', 'ppoll', 'kevent', 'QEventLoop', 'QCoreApplication')),
+              'stdout_tail': stdout[-2400:],
+          }
+          encoded = json.dumps(summary, indent=2) + '\n'
+          Path('build/proof/summary.json').write_text(encoded)
+          Path('diagnostics/m5-hword-eventloop-v2-latest.json').write_text(encoded)
+          print(encoded)
+          PY
+
+      - name: Persist diagnosis independently of the acceptance gate
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m5-hword-eventloop-v2-latest.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: record HWord M5 event-loop v2 boundary [skip ci]'
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git push origin HEAD:codex/hoffice-runtime-from-scratch
+
+      - name: Gate the verified offscreen and wakeup boundary
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          summary = json.loads(Path('build/proof/summary.json').read_text())
+          assert summary['directory_stream_yielded_offscreen']
+          assert summary['offscreen_metadata_observed']
+          assert summary['offscreen_library_loaded']
+          assert summary['pipe2_called']
+          assert 293 not in summary['unsupported_syscalls']
+          assert not summary['glib_gwakeup_pipe_failure']
+          PY
+
+      - name: Commit a stable-event-loop proof when the process survives
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          summary = json.loads(Path('build/proof/summary.json').read_text())
+          if not summary['reached_deadline']:
+              raise SystemExit(0)
+          target = Path('proofs/m5-hword-offscreen-eventloop-stable.json')
+          target.write_text(json.dumps(summary, indent=2) + '\n')
+          PY
+          test -f proofs/m5-hword-offscreen-eventloop-stable.json || exit 0
+          git fetch origin codex/hoffice-runtime-from-scratch
+          git reset --hard origin/codex/hoffice-runtime-from-scratch
+          cp build/proof/summary.json \
+            proofs/m5-hword-offscreen-eventloop-stable.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add proofs/m5-hword-offscreen-eventloop-stable.json
+          git commit -m 'proof: verify stable HWord offscreen event loop [skip ci]' || exit 0
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git push origin HEAD:codex/hoffice-runtime-from-scratch
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m5-hword-eventloop-v2-proof
+          path: |
+            build/generated/syscall_bridge.c
+            build/host/hrt-m5-eventloop-v2
+            build/proof
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach guest filesystem
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true

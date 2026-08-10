@@ -1,0 +1,298 @@
+name: HOffice runtime M11 canonical-frame static follow-up
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-frame-static-followup.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: hrt-m11-canonical-frame-static-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FRAME_RUN_ID: '31398852160'
+  FRAME_ARTIFACT_NAME: hrt-m11-hword-frame-callsite-proof
+  PREPARED_RUN_ID: '31235068358'
+
+jobs:
+  attribute-first-hoffice-frame:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deterministic ELF tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            --no-install-recommends binutils file jq unzip zstd
+
+      - name: Wait for and download the canonical-frame replay artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/frame build/reports
+          artifact_id=''
+          for attempt in $(seq 1 180); do
+            artifact_id=$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$FRAME_RUN_ID/artifacts" \
+              --jq ".artifacts[] | select(.name == \"$FRAME_ARTIFACT_NAME\") | .id" \
+              | head -n 1 || true)
+            if test -n "$artifact_id"; then break; fi
+            sleep 5
+          done
+          test -n "$artifact_id"
+          printf '%s\n' "$artifact_id" >build/reports/frame-artifact-id.txt
+          curl --fail --location --retry 5 --retry-delay 2 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
+            -o build/frame-artifact.zip
+          sha256sum build/frame-artifact.zip \
+            >build/reports/frame-artifact.sha256.txt
+          unzip -q build/frame-artifact.zip -d build/frame
+          summary=$(find build/frame -type f \
+            -name frame-context-summary.json -print -quit)
+          test -n "$summary"
+          cp "$summary" build/reports/frame-context-summary.json
+
+      - name: Select only the first canonical HOffice return frame
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          summary = json.loads(Path(
+              'build/reports/frame-context-summary.json').read_text(
+                  encoding='utf-8'))
+          pairs = summary.get('empty_path_pairs', [])
+          selected = []
+          for pair_index, pair in enumerate(pairs):
+              frame = pair.get('first_hoffice_frame')
+              if not frame:
+                  continue
+              selected.append({
+                  'pair_index': pair_index,
+                  'open': pair.get('open'),
+                  'frame': frame,
+              })
+          result = {
+              'schema': 1,
+              'frame_run': summary.get('host_run'),
+              'source_replay_run': 31398852160,
+              'empty_path_pair_count': len(pairs),
+              'selected_frames': selected,
+          }
+          if not selected:
+              result['classification'] = 'NO_CANONICAL_HOFFICE_FRAME'
+          else:
+              objects = {item['frame']['object'] for item in selected}
+              offsets = {item['frame']['file_offset'] for item in selected}
+              result['classification'] = (
+                  'STABLE_CANONICAL_HOFFICE_FRAME'
+                  if len(objects) == 1 and len(offsets) == 1
+                  else 'MULTIPLE_CANONICAL_HOFFICE_FRAMES')
+              result['selected_object'] = selected[0]['frame']['object']
+              result['selected_file_offset'] = selected[0]['frame']['file_offset']
+          Path('build/reports/selected-frame.json').write_text(
+              json.dumps(result, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8')
+          print(json.dumps(result, ensure_ascii=False, indent=2))
+          if not selected:
+              raise SystemExit('canonical frame walk did not reach HOffice code')
+          PY
+
+      - name: Download the exact prepared HWord guest
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m9-bootstrap-prepared-guest
+          path: build/input/prepared
+          repository: ${{ github.repository }}
+          run-id: ${{ env.PREPARED_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Extract the exact caller object from the prepared shadow root
+        run: |
+          set -euxo pipefail
+          mkdir -p build/root build/object
+          archive=$(find build/input/prepared -type f \
+            \( -name '*.tar.zst' -o -name '*.tzst' -o \
+               -name '*.tar.gz' -o -name '*.tgz' \) -print -quit)
+          test -n "$archive"
+          object=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          value = json.loads(Path(
+              'build/reports/selected-frame.json').read_text())
+          print(value['selected_object'])
+          PY
+          )
+          relative=".${object}"
+          printf '%s\n' "$relative" >build/reports/requested-object.txt
+          case "$archive" in
+            *.tar.zst|*.tzst)
+              zstd -dc "$archive" | tar -tf - \
+                | grep -Fx "$relative"
+              zstd -dc "$archive" | tar -xf - -C build/root "$relative"
+              ;;
+            *.tar.gz|*.tgz)
+              tar -tzf "$archive" | grep -Fx "$relative"
+              tar -xzf "$archive" -C build/root "$relative"
+              ;;
+            *) exit 1 ;;
+          esac
+          source="build/root/${object#/}"
+          test -s "$source"
+          cp "$source" build/object/caller.elf
+          file build/object/caller.elf | tee build/reports/caller.file.txt
+          sha256sum build/object/caller.elf \
+            >build/reports/caller.sha256.txt
+          readelf -hW build/object/caller.elf \
+            >build/reports/caller.elf-header.txt
+          readelf -lW build/object/caller.elf \
+            >build/reports/caller.program-headers.txt
+          readelf -SW build/object/caller.elf \
+            >build/reports/caller.sections.txt
+          readelf -Ws build/object/caller.elf \
+            >build/reports/caller.symbols.txt
+          readelf -rW build/object/caller.elf \
+            >build/reports/caller.relocations.txt
+
+      - name: Convert the file offset and disassemble the exact caller
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from __future__ import annotations
+          import json
+          from pathlib import Path
+          import re
+          import struct
+          import subprocess
+
+          selection = json.loads(Path(
+              'build/reports/selected-frame.json').read_text())
+          file_offset = int(selection['selected_file_offset'], 0)
+          path = Path('build/object/caller.elf')
+          blob = path.read_bytes()
+          header = struct.unpack_from('<16sHHIQQQIHHHHHH', blob, 0)
+          ident = header[0]
+          if ident[:4] != b'\x7fELF' or ident[4] != 2 or ident[5] != 1:
+              raise SystemExit('caller is not little-endian ELF64')
+          phoff = header[5]
+          phentsize = header[9]
+          phnum = header[10]
+          if phentsize != 56:
+              raise SystemExit(f'unexpected program-header size {phentsize}')
+
+          segment = None
+          for index in range(phnum):
+              values = struct.unpack_from(
+                  '<IIQQQQQQ', blob, phoff + index * phentsize)
+              p_type, p_flags, p_offset, p_vaddr, _paddr, \
+                  p_filesz, p_memsz, p_align = values
+              if p_type == 1 and p_offset <= file_offset < p_offset + p_filesz:
+                  segment = {
+                      'index': index,
+                      'flags': p_flags,
+                      'file_offset': p_offset,
+                      'virtual_address': p_vaddr,
+                      'file_size': p_filesz,
+                      'memory_size': p_memsz,
+                      'alignment': p_align,
+                  }
+                  break
+          if segment is None:
+              raise SystemExit(
+                  f'file offset 0x{file_offset:x} is outside PT_LOAD')
+          virtual = (segment['virtual_address'] + file_offset -
+                     segment['file_offset'])
+
+          symbols = []
+          pattern = re.compile(
+              r'^\s*\d+:\s+([0-9a-fA-F]+)\s+(\d+)\s+(\S+)\s+'
+              r'(\S+)\s+(\S+)\s+(\S+)\s+(.*)$')
+          for line in Path('build/reports/caller.symbols.txt').read_text(
+                  errors='replace').splitlines():
+              match = pattern.match(line)
+              if not match:
+                  continue
+              value = int(match.group(1), 16)
+              size = int(match.group(2))
+              name = match.group(7).strip()
+              if value == 0 or not name:
+                  continue
+              symbols.append({
+                  'value': value,
+                  'size': size,
+                  'type': match.group(3),
+                  'binding': match.group(4),
+                  'visibility': match.group(5),
+                  'section': match.group(6),
+                  'name': name,
+              })
+          containing = [item for item in symbols
+                        if item['value'] <= virtual and item['size'] > 0 and
+                           virtual < item['value'] + item['size']]
+          preceding = [item for item in symbols if item['value'] <= virtual]
+          nearest = max(containing or preceding,
+                        key=lambda item: item['value'], default=None)
+
+          start = max(segment['virtual_address'], virtual - 0x300)
+          stop = min(segment['virtual_address'] + segment['memory_size'],
+                     virtual + 0x400)
+          disassembly = subprocess.run(
+              ['objdump', '-dC', f'--start-address={start}',
+               f'--stop-address={stop}', str(path)],
+              check=True, stdout=subprocess.PIPE,
+              stderr=subprocess.STDOUT, text=True).stdout
+          Path('build/reports/caller.disassembly.txt').write_text(
+              disassembly, encoding='utf-8')
+
+          result = {
+              **selection,
+              'caller_file_offset_integer': file_offset,
+              'caller_virtual_address': virtual,
+              'load_segment': segment,
+              'segment_executable': bool(segment['flags'] & 1),
+              'nearest_symbol': nearest,
+              'offset_from_nearest_symbol':
+                  virtual - nearest['value'] if nearest else None,
+              'bytes_before': blob[max(0, file_offset - 64):file_offset].hex(),
+              'bytes_at_and_after': blob[
+                  file_offset:min(len(blob), file_offset + 128)].hex(),
+          }
+          Path('build/reports/canonical-frame-static.json').write_text(
+              json.dumps(result, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8')
+          Path('build/reports/canonical-frame-static.md').write_text(
+              '# Canonical HWord frame attribution\n\n'
+              f"- Classification: `{result['classification']}`\n"
+              f"- Object: `{result['selected_object']}`\n"
+              f"- File offset: `{result['selected_file_offset']}`\n"
+              f"- Virtual address: `0x{virtual:x}`\n"
+              f"- Executable segment: `{bool(segment['flags'] & 1)}`\n"
+              f"- Nearest symbol: `{nearest['name'] if nearest else None}`\n"
+              f"- Offset from symbol: `{virtual-nearest['value'] if nearest else None}`\n",
+              encoding='utf-8')
+          print(json.dumps(result, ensure_ascii=False, indent=2))
+          if not (segment['flags'] & 1):
+              raise SystemExit('canonical return is not in executable code')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m11-canonical-frame-static-proof
+          path: |
+            build/object/caller.elf
+            build/reports
+          if-no-files-found: error
+          retention-days: 14

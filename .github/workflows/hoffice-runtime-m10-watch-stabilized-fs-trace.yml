@@ -1,0 +1,272 @@
+name: Watch stabilized M10 filesystem path trace
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-watch-stabilized-fs-trace.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m10-watch-stabilized-fs-trace-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TARGET_BRANCH: codex/hoffice-runtime-from-scratch
+  TARGET_WORKFLOW: hoffice-runtime-m10-hword-fs-compat.yml
+  TARGET_ARTIFACT: hrt-m10-hword-fs-compat-proof
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+
+jobs:
+  persist:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Wait until the self-contained bridge is on the target branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input build/report build/package
+          start=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          printf '%s\n' "$start" >build/report/watcher-start.txt
+          marker_ready=0
+          for attempt in $(seq 1 90); do
+            git fetch origin "$TARGET_BRANCH"
+            if git show "origin/$TARGET_BRANCH:runtime/m10/augment_fs_compat.py" \
+                 | grep -Fq 'HRT_M10_FS_SELF_CONTAINED_TRACE_V3'; then
+              marker_ready=1
+              break
+            fi
+            echo "waiting for stabilized bridge attempt=$attempt"
+            sleep 10
+          done
+          test "$marker_ready" -eq 1
+
+      - name: Wait for the next stabilized filesystem replay
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          start=$(cat build/report/watcher-start.txt)
+          run_id=
+          status=
+          conclusion=
+          for attempt in $(seq 1 180); do
+            response=$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/$TARGET_WORKFLOW/runs" \
+              -f branch="$TARGET_BRANCH" -f per_page=30)
+            run_id=$(printf '%s' "$response" | jq -r --arg start "$start" \
+              '[.workflow_runs[] | select(.created_at >= $start)] | sort_by(.created_at) | last | .id // empty')
+            status=$(printf '%s' "$response" | jq -r --arg start "$start" \
+              '[.workflow_runs[] | select(.created_at >= $start)] | sort_by(.created_at) | last | .status // empty')
+            conclusion=$(printf '%s' "$response" | jq -r --arg start "$start" \
+              '[.workflow_runs[] | select(.created_at >= $start)] | sort_by(.created_at) | last | .conclusion // empty')
+            echo "attempt=$attempt run=$run_id status=$status conclusion=$conclusion"
+            if test -n "$run_id" && test "$status" = completed; then
+              break
+            fi
+            sleep 20
+          done
+          test -n "$run_id"
+          test "$status" = completed
+          printf '%s\n' "$run_id" >build/report/source-run-id.txt
+          printf '%s\n' "$conclusion" >build/report/source-conclusion.txt
+          gh run download "$run_id" \
+            --repo "$GITHUB_REPOSITORY" --name "$TARGET_ARTIFACT" \
+            --dir build/input
+          find build/input -type f -print | LC_ALL=C sort \
+            | tee build/report/artifact-files.txt
+
+      - name: Download and inventory the exact package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" \
+            --dir build/package
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/package/$ASSET_NAME" | sha256sum -c -
+          dpkg-deb --fsys-tarfile "build/package/$ASSET_NAME" \
+            | tar -tf - | sed -e 's#^\./#/#' -e 's#/$##' \
+            | LC_ALL=C sort -u >build/report/package-paths.txt
+
+      - name: Persist the exact stabilized frontier
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          import posixpath
+          import re
+          from pathlib import Path
+
+          root = Path('build/input')
+          run_id = Path('build/report/source-run-id.txt').read_text().strip()
+          conclusion = Path('build/report/source-conclusion.txt').read_text().strip()
+          package_paths = set(Path(
+              'build/report/package-paths.txt').read_text().splitlines())
+
+          stderr_file = next(iter(root.rglob('stderr.txt')), None)
+          stdout_file = next(iter(root.rglob('stdout.txt')), None)
+          stderr = stderr_file.read_text(errors='replace') if stderr_file else ''
+          stdout = stdout_file.read_text(errors='replace') if stdout_file else ''
+
+          source = {}
+          source_path = None
+          for path in list(root.rglob('summary.json')) + \
+                      list(root.rglob('m10-hword-fs-compat-*.json')):
+              try:
+                  value = json.loads(path.read_text(errors='replace'))
+              except Exception:
+                  continue
+              if isinstance(value, dict):
+                  source, source_path = value, path
+                  if 'classification' in value:
+                      break
+
+          pattern = re.compile(
+              r'HRT M9 PATH: op=(\S+) result=(-?\d+) errno=(\d+) '
+              r'guest=(.*?) host=(.*)$')
+          operations = []
+          for line in stderr.splitlines():
+              match = pattern.fullmatch(line)
+              if not match:
+                  continue
+              guest = match.group(4)
+              normalized = posixpath.normpath(guest) \
+                  if guest.startswith('/') else None
+              operations.append({
+                  'operation': match.group(1),
+                  'result': int(match.group(2)),
+                  'host_errno': int(match.group(3)),
+                  'guest_path': guest,
+                  'normalized_guest_path': normalized,
+                  'host_path': match.group(5),
+              })
+          failed = [item for item in operations if item['result'] < 0]
+          missing = sorted({
+              item['normalized_guest_path'] for item in failed
+              if item['normalized_guest_path'] in package_paths
+          })
+          absent = sorted({
+              item['normalized_guest_path'] for item in failed
+              if item['normalized_guest_path'] and
+                 item['normalized_guest_path'] not in package_paths
+          })
+          relative = sorted({
+              item['guest_path'] for item in failed
+              if not item['guest_path'].startswith('/')
+          })
+          unsupported = sorted({
+              int(match.group(1)) for line in stderr.splitlines()
+              if (match := re.search(
+                  r'Linux syscall ENOSYS\s+([0-9]+)', line))
+          })
+          if isinstance(source.get('unsupported_syscalls'), list):
+              unsupported = sorted({
+                  *unsupported,
+                  *(int(value) for value in source['unsupported_syscalls']
+                    if str(value).lstrip('-').isdigit()),
+              })
+          windows = source.get('window_titles')
+          if not isinstance(windows, list):
+              windows = re.findall(
+                  r'HRT M6 QPA: CREATE .*? title=(.*?) handle=', stderr)
+
+          if 290 in unsupported:
+              frontier = 'EVENTFD2_STILL_ENOSYS'
+          elif 82 in unsupported:
+              frontier = 'RENAME_STILL_ENOSYS'
+          elif missing:
+              frontier = 'PACKAGE_RESOURCES_MISSING_FROM_PREPARED_GUEST'
+          elif relative:
+              frontier = 'RELATIVE_PATH_RESOLUTION_FAILURES'
+          elif any(title == 'Exception' for title in windows):
+              frontier = 'EXCEPTION_WITHOUT_PACKAGE_RESOURCE_GAP'
+          elif any(title == 'Word' for title in windows):
+              frontier = 'FILESYSTEM_PATH_TRACE_PASS'
+          elif 'fatal signal' in stderr:
+              frontier = 'FATAL_AFTER_STABILIZED_FILESYSTEM_BRIDGE'
+          else:
+              frontier = source.get('classification', 'UNCLASSIFIED')
+
+          result = {
+              'schema': 1,
+              'milestone': 'M10-stabilized-fs-path-trace',
+              'status': 'PASS' if frontier == 'FILESYSTEM_PATH_TRACE_PASS'
+                                 else 'DIAGNOSTIC',
+              'frontier': frontier,
+              'source_workflow_run': run_id,
+              'source_workflow_conclusion': conclusion,
+              'source_summary_path': str(source_path) if source_path else None,
+              'source_summary': source,
+              'window_titles': windows,
+              'path_operation_count': len(operations),
+              'failed_path_operation_count': len(failed),
+              'failed_path_operations': failed,
+              'package_resources_missing_from_prepared_guest': missing,
+              'failed_absolute_paths_absent_from_package': absent,
+              'relative_failed_paths': relative,
+              'unsupported_syscalls': unsupported,
+              'eventfd2_enosys': 290 in unsupported,
+              'rename_enosys': 82 in unsupported,
+              'fatal_signal_observed': 'fatal signal' in stderr,
+              'stdout_tail': stdout[-6000:],
+              'stderr_tail': stderr[-18000:],
+          }
+          Path('diagnostics').mkdir(exist_ok=True)
+          payload = json.dumps(result, indent=2) + '\n'
+          Path(f'diagnostics/m10-fs-path-trace-{run_id}.json').write_text(payload)
+          Path('diagnostics/m10-fs-path-trace-latest.json').write_text(payload)
+          Path('diagnostics/m10-fs-path-trace-latest.md').write_text(
+              '# HWord M10 stabilized filesystem path frontier\n\n'
+              f'- Source run: `{run_id}`\n'
+              f'- Frontier: `{frontier}`\n'
+              f'- Windows: `{windows}`\n'
+              f'- Failed operations: `{len(failed)}`\n'
+              f'- Missing package resources: `{missing}`\n'
+              f'- Relative failures: `{relative}`\n'
+              f'- Unsupported syscalls: `{unsupported}`\n'
+          )
+          Path('build/report/normalized-summary.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Commit the stabilized path frontier
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m10-fs-path-trace-*.json \
+                  diagnostics/m10-fs-path-trace-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: persist stabilized M10 filesystem frontier'
+          for attempt in $(seq 1 20); do
+            if git push origin "HEAD:$TARGET_BRANCH"; then exit 0; fi
+            git fetch origin "$TARGET_BRANCH"
+            git rebase "origin/$TARGET_BRANCH"
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m10-stabilized-fs-path-frontier
+          path: |
+            build/report
+            diagnostics/m10-fs-path-trace-*.json
+            diagnostics/m10-fs-path-trace-latest.md
+          if-no-files-found: warn
+          retention-days: 14

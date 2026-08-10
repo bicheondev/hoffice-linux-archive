@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "gate": "M6 host prerequisite",
+  "status": "PASS",
+  "boundary": "an ad-hoc-signed x86_64 Mach-O process running under Rosetta created, displayed, enumerated, and captured a real AppKit NSWindow on the Apple Silicon GitHub runner",
+  "commit": "1611a06e55686392d40d8ebbd95eb11cafee24f2",
+  "workflow_run": "31111179827",
+  "workflow": "HOffice runtime M6 AppKit host capability",
+  "runner": "macos-14-arm64",
+  "execution_architecture": "x86_64 under Rosetta",
+  "artifact": {
+    "id": "8971731971",
+    "name": "hrt-m6-appkit-host-proof",
+    "digest": "sha256:085a8fdf843d726211e163b56b43a235957c72d7caf4412cd412d6a717cf02fa"
+  },
+  "observations": {
+    "window_number": 24,
+    "visible": true,
+    "key_window": true,
+    "main_window": true,
+    "window_server_listed": true,
+    "screenshot_created": true,
+    "screen_available": true
+  },
+  "scope": {
+    "integrated_with_linux_guest": false,
+    "integrated_with_hword": false,
+    "does_not_credit": [
+      "M6 HWord rendering",
+      "Qt QPA to AppKit transport",
+      "native HWord input",
+      "Korean IME",
+      "document operations"
+    ]
+  }
+}

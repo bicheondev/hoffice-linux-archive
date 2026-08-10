@@ -1,0 +1,295 @@
+name: HOffice runtime M11 corrected v9 caller replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-v9-direct-replay.yml'
+      - 'runtime/m11/augment_hword_document_io_trace_v8.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v9.py'
+      - 'runtime/m11/augment_empty_open_template_substitution_v5.py'
+      - 'runtime/m11/augment_sendfile_compat_v2.py'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-v9-caller-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREPARED_RUN_ID: '31235068358'
+  QPA_RUN_ID: '31305695836'
+  QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  build-host:
+    runs-on: macos-14
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Generate corrected sendfile and caller bridge
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          mkdir -p build/generated build/objects build/output
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/output/x86-page-size.txt
+          sw_vers | tee build/output/sw-vers.txt
+          python3 runtime/m8/augment_appkit_adapter_input.py \
+            runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m
+          python3 runtime/m11/augment_appkit_korean_input_capture.py \
+            build/generated/appkit_adapter_m8.m build/generated/appkit_adapter_m11.m
+          python3 runtime/m6/augment_stack_hrtappkit.py \
+            runtime/m3/stack.c build/generated/stack-m6.c
+          python3 runtime/m9/augment_stack_locale.py \
+            build/generated/stack-m6.c build/generated/stack.c
+
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m11/augment_clock_nanosleep.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m11/augment_sendfile_compat_v2.py \
+            build/generated/stage9.c build/generated/stage10.c
+          python3 runtime/m10/augment_fs_compat.py \
+            build/generated/stage10.c build/generated/stage11.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage11.c build/generated/stage12.c
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+            build/generated/stage12.c build/generated/stage13.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage13.c build/generated/stage14.c
+          python3 runtime/m10/augment_clone_compat_v4.py \
+            build/generated/stage14.c build/generated/stage15.c
+          python3 runtime/m11/augment_empty_open_template_substitution_v5.py \
+            build/generated/stage15.c build/generated/syscall_bridge.c
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('build/generated/syscall_bridge.c')
+          text=path.read_text()
+          anchor='#define M3_TRACE_LIMIT 256u'
+          if text.count(anchor)!=1:
+              raise SystemExit(f'trace-limit anchor count {text.count(anchor)}')
+          path.write_text(text.replace(anchor,'#define M3_TRACE_LIMIT 24000u'))
+          PY
+          grep -F 'M11_DOCIO_CALLSCAN_WORD_COUNT 256u' \
+            build/generated/syscall_bridge.c
+          grep -F 'index >= M11_DOCIO_CALLSCAN_WORD_COUNT' \
+            build/generated/syscall_bridge.c
+          grep -F 'HRT M11 FRAMECTX: stage=' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 CALLCTX: stage=' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 SENDFILE: out=' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 EMPTYOPEN: ordinal=' build/generated/syscall_bridge.c
+          shasum -a 256 build/generated/syscall_bridge.c \
+            >build/output/generated-bridge.sha256
+
+      - name: Compile and sign corrected v9 host
+        run: |
+          set -euxo pipefail
+          common=(-arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer -mfsgsbase \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m10 -Iruntime/m8 -Iruntime/m6 \
+            -Iruntime/m3 -Iruntime/m1)
+          index=0
+          for source in runtime/m6/main.c runtime/m6/hostcall_trampoline.c \
+            runtime/m1/common.c runtime/m3/elf_map.c build/generated/stack.c \
+            runtime/m3/patch.c build/generated/syscall_bridge.c; do
+            clang "${common[@]}" -c "$source" -o "build/objects/c-${index}.o"
+            index=$((index+1))
+          done
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c build/generated/appkit_adapter_m11.m -o build/objects/appkit-adapter.o
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c runtime/m8/appkit_input.m -o build/objects/appkit-input.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S \
+            -o build/objects/enter-guest.o
+          clang -arch x86_64 -g -Iruntime/m10 \
+            -c runtime/m10/clone_trampoline.S -o build/objects/clone-trampoline.o
+          clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \
+            -o build/objects/hostcall-trampoline.o
+          output=build/output/hrt-m10-hword-main-input
+          clang -arch x86_64 build/objects/*.o -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO \
+            -o "$output"
+          chmod 0755 "$output"
+          codesign --force --sign - --timestamp=none "$output"
+          codesign --verify --strict "$output"
+          file "$output" | tee build/output/host-file.txt
+          lipo -info "$output" | tee build/output/host-arch.txt
+          shasum -a 256 "$output" | tee build/output/host-sha256.txt
+          strings "$output" >build/output/host-strings.txt
+          grep -F 'HRT M11 CALLCTX:' build/output/host-strings.txt
+          grep -F 'HRT M11 FRAMECTX:' build/output/host-strings.txt
+          grep -F 'HRT M11 SENDFILE:' build/output/host-strings.txt
+          python3 - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          binary=Path('build/output/hrt-m10-hword-main-input')
+          lock={'schema':1,'workflow_run':os.environ['GITHUB_RUN_ID'],
+                'commit':os.environ['GITHUB_SHA'],
+                'binary_sha256':hashlib.sha256(binary.read_bytes()).hexdigest(),
+                'openctx_words_stored':32,'validated_callscan_words':256,
+                'canonical_frame_count':8,'linux_sendfile':True}
+          Path('build/output/v9-host-lock.json').write_text(
+              json.dumps(lock,indent=2)+'\n')
+          print(json.dumps(lock,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m10-hword-main-window-input-proof
+          path: build/output
+          if-no-files-found: error
+          retention-days: 14
+
+  replay:
+    needs: build-host
+    runs-on: macos-14
+    timeout-minutes: 80
+    env:
+      HOST_RUN_ID: ${{ github.run_id }}
+      HRT_M11_EMPTY_OPEN_SUBSTITUTE: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Resolve host digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          digest=''
+          for attempt in $(seq 1 30); do
+            digest=$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+              --jq '.artifacts[] | select(.name == "hrt-m10-hword-main-window-input-proof") | .digest' \
+              | head -n1 | sed 's/^sha256://' || true)
+            test -n "$digest" && break
+            sleep 5
+          done
+          test -n "$digest"
+          echo "HOST_ARTIFACT_DIGEST=$digest" >>"$GITHUB_ENV"
+      - name: Run exact v9 replay
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HRT_M11_MODAL_CAPTURE_PATH: ${{ github.workspace }}/build/proof/hword-modal-dialog-v9.png
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated
+          python3 runtime/m11/augment_full_product_replay_v2.py \
+            runtime/m11/run_korean_title_staged_replay.sh \
+            build/generated/run_korean_title_v9.sh
+          build/generated/run_korean_title_v9.sh
+      - name: Commit corrected caller summary
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -s build/proof/stderr.txt
+          mkdir -p diagnostics build/result
+          python3 - <<'PY'
+          import json,os,re
+          from pathlib import Path
+          lines=Path('build/proof/stderr.txt').read_text(errors='replace').splitlines()
+          records=[]; active=None
+          for line in lines:
+              if line.startswith('HRT M11 DOCIO:') and ' op=open ' in line:
+                  if active: records.append(active)
+                  active={'open':line,'openctx':None,'framectx':None,'callctx':[]}
+              elif active and line.startswith('HRT M11 OPENCTX:'):
+                  active['openctx']=line
+              elif active and line.startswith('HRT M11 FRAMECTX:'):
+                  active['framectx']=line
+              elif active and line.startswith('HRT M11 CALLCTX:'):
+                  def value(pattern):
+                      m=re.search(pattern,line); return m.group(1) if m else None
+                  active['callctx'].append({
+                      'stack_word':int(value(r'stack-word=(\d+)')),
+                      'return':value(r'\breturn=(0x[0-9a-f]+)'),
+                      'target':value(r'\btarget=(0x[0-9a-f]+)'),
+                      'return_object':value(r'return-object=(.*?)(?=\s+return-file-offset=|$)'),
+                      'return_file_offset':value(r'return-file-offset=(0x[0-9a-f]+)'),
+                      'target_object':value(r'target-object=(.*?)(?=\s+target-file-offset=|$)'),
+                      'target_file_offset':value(r'target-file-offset=(0x[0-9a-f]+)'),
+                      'raw':line})
+          if active: records.append(active)
+          empty=[r for r in records if re.search(r' guest=(?:\s|$)',r['open'])]
+          payload={'schema':1,'workflow_run':os.environ['GITHUB_RUN_ID'],
+                   'host_run':os.environ['HOST_RUN_ID'],
+                   'empty_path_open_count':len(empty),
+                   'canonical_frame_count':sum(1 for r in empty if r['framectx']),
+                   'validated_call_candidate_count':sum(len(r['callctx']) for r in empty),
+                   'sendfile_trace_count':sum(1 for l in lines if l.startswith('HRT M11 SENDFILE:')),
+                   'sendfile_enosys_count':sum(1 for l in lines if 'Linux syscall ENOSYS 40' in l),
+                   'modal_observed':any('HRT M11 APPKIT: modal first-frame capture result=1' in l for l in lines),
+                   'records':empty}
+          text=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          Path('diagnostics/m11-hword-v9-caller-summary.json').write_text(text)
+          Path('diagnostics/m11-hword-v9-caller-summary.md').write_text(
+              '# HWord corrected v9 caller summary\n\n'
+              f"- Empty opens: `{payload['empty_path_open_count']}`\n"
+              f"- Canonical frame records: `{payload['canonical_frame_count']}`\n"
+              f"- Validated call candidates: `{payload['validated_call_candidate_count']}`\n"
+              f"- Sendfile traces: `{payload['sendfile_trace_count']}`\n"
+              f"- ENOSYS 40: `{payload['sendfile_enosys_count']}`\n"
+              f"- Validation modal: `{payload['modal_observed']}`\n")
+          Path('build/result/v9-caller-summary.json').write_text(text)
+          print(text)
+          if not empty: raise SystemExit('no empty path open')
+          if payload['sendfile_enosys_count']: raise SystemExit('sendfile remains ENOSYS')
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-hword-v9-caller-summary.json \
+                  diagnostics/m11-hword-v9-caller-summary.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: preserve corrected HWord caller attribution'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-hword-v9-caller-proof
+          path: |
+            build/proof
+            build/result
+            diagnostics/m11-hword-v9-caller-summary.json
+            diagnostics/m11-hword-v9-caller-summary.md
+          if-no-files-found: warn
+          retention-days: 14

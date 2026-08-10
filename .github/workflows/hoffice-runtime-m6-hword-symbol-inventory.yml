@@ -1,0 +1,274 @@
+name: HOffice runtime exact HWord symbol inventory
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m6-hword-symbol-inventory.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-exact-hword-symbols-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN_ID: '31102898765'
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+
+jobs:
+  inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Verify and extract exact HWord executable and modules
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            binutils file python3
+          mkdir -p build/root build/report diagnostics
+          expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)
+          actual=$(sha256sum build/input/hword-rootfs.tar.gz | awk '{print $1}')
+          test "$actual" = "$expected"
+          tar -xzf build/input/hword-rootfs.tar.gz -C build/root \
+            './opt/hnc/hoffice11/Bin/hword' \
+            --wildcards './opt/hnc/hoffice11/Bin/Hword/*'
+          test -f "build/root${PROGRAM}"
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          root=pathlib.Path('build/root')
+          program=root/'opt/hnc/hoffice11/Bin/hword'
+          marker=json.loads((root/'.hrt-prepatched-v1').read_text()) \
+              if (root/'.hrt-prepatched-v1').is_file() else None
+          # The selective extraction does not include the marker, so lock the
+          # transferred patched image against the known original in the later
+          # complete-root runtime jobs.  Here we record the image actually
+          # inventoried.
+          pathlib.Path('build/report/hword-inventory.sha256').write_text(
+              hashlib.sha256(program.read_bytes()).hexdigest()+'\n')
+          PY
+          find build/root/opt/hnc/hoffice11/Bin/Hword -maxdepth 3 \
+            -type f -print | sort > build/report/hword-module-files.txt
+          file "build/root${PROGRAM}" | tee build/report/hword-file.txt
+          wc -l build/report/hword-module-files.txt
+
+      - name: Identify every x86-64 ELF candidate
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import pathlib
+          import subprocess
+
+          root=pathlib.Path('build/root')
+          candidates=[root/'opt/hnc/hoffice11/Bin/hword']
+          candidates.extend(sorted(
+              (root/'opt/hnc/hoffice11/Bin/Hword').rglob('*')))
+          elf=[]
+          lines=[]
+          for path in candidates:
+              if not path.is_file():
+                  continue
+              completed=subprocess.run(
+                  ['file','-b',str(path)],text=True,
+                  stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                  check=False)
+              description=completed.stdout.strip()
+              relative='/' + str(path.relative_to(root))
+              lines.append(f'{relative}\t{description}')
+              if 'ELF 64-bit' in description and 'x86-64' in description:
+                  elf.append(relative)
+          pathlib.Path('build/report/hword-file-types.txt').write_text(
+              '\n'.join(lines)+'\n')
+          pathlib.Path('build/report/hword-elf-files.txt').write_text(
+              '\n'.join(elf)+'\n')
+          print(f'ELF files: {len(elf)}')
+          assert elf
+          PY
+
+      - name: Build ranked HWord-specific symbol candidates
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import re
+          import subprocess
+
+          root=pathlib.Path('build/root')
+          elf_files=[line for line in
+              pathlib.Path('build/report/hword-elf-files.txt').read_text().splitlines()
+              if line]
+          keywords={
+              'main_window': (
+                  'MainWindow','MainWnd','MainFrame','FrameWindow',
+                  'DocumentWindow','DocWindow'),
+              'application': (
+                  'HWordApplication','HwordApplication','WordApplication',
+                  'Application::','App::','initialize','Initialize'),
+              'document': (
+                  'HwpDocument','HWordDocument','WordDocument',
+                  'Document::','Doc::','openDocument','newDocument'),
+              'editor_view': (
+                  'EditorView','EditView','DocumentView','PageView',
+                  'Canvas','View::','paintEvent','render'),
+              'window_visibility': (
+                  'showEvent','setVisible','showWindow','createWindow'),
+              'qt_main_window': ('QMainWindow',),
+          }
+          records=[]
+          file_records=[]
+          for guest in elf_files:
+              path=root/guest.lstrip('/')
+              file_record={
+                  'guest_path':guest,
+                  'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),
+                  'size':path.stat().st_size,
+                  'symbols_available':False,
+                  'matching_symbol_count':0,
+              }
+              completed=subprocess.run([
+                  'nm','-a','--defined-only','--format=posix',str(path)
+              ],text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                 check=False)
+              file_record['nm_returncode']=completed.returncode
+              file_record['nm_stderr']=completed.stderr[-1000:]
+              if completed.returncode==0 and completed.stdout.strip():
+                  file_record['symbols_available']=True
+              for line in completed.stdout.splitlines():
+                  parts=line.rsplit(maxsplit=3)
+                  if len(parts)<3:
+                      continue
+                  if len(parts)==3:
+                      name,symbol_type,value=parts; size=None
+                  else:
+                      name,symbol_type,value,size=parts
+                  demangled_result=subprocess.run(
+                      ['c++filt','-n',name],text=True,
+                      stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                      check=False)
+                  demangled=demangled_result.stdout.rstrip('\n') or name
+                  groups=[group for group,tokens in keywords.items()
+                          if any(token in demangled for token in tokens)]
+                  if not groups:
+                      continue
+                  score=0
+                  if 'MainWindow' in demangled or 'MainFrame' in demangled:
+                      score+=100
+                  if re.search(r'::(show|showEvent|setVisible|create|init|initialize|run|exec)\b',demangled):
+                      score+=40
+                  if 'Document' in demangled or 'Hwp' in demangled or 'HWord' in demangled:
+                      score+=30
+                  if symbol_type.upper() in ('T','W'):
+                      score+=10
+                  records.append({
+                      'guest_path':guest,
+                      'mangled':name,
+                      'demangled':demangled,
+                      'type':symbol_type,
+                      'value_hex':value,
+                      'size_hex':size,
+                      'groups':groups,
+                      'score':score,
+                  })
+                  file_record['matching_symbol_count']+=1
+              file_records.append(file_record)
+
+          records.sort(key=lambda item:(-item['score'],item['guest_path'],
+                                        item['value_hex'],item['mangled']))
+          inventory={
+              'schema':1,
+              'source_rootfs_run':'${{ env.SOURCE_RUN_ID }}',
+              'program':'${{ env.PROGRAM }}',
+              'original_program_sha256':'${{ env.PROGRAM_SHA256 }}',
+              'elf_file_count':len(file_records),
+              'matching_symbol_count':len(records),
+              'files':file_records,
+              'symbols':records[:5000],
+              'top_candidates':records[:200],
+              'groups':{
+                  group:[record for record in records
+                         if group in record['groups']][:300]
+                  for group in keywords
+              },
+          }
+          pathlib.Path('diagnostics/hword-symbol-inventory.json').write_text(
+              json.dumps(inventory,indent=2)+'\n')
+          lines=[
+              f"ELF files: {inventory['elf_file_count']}",
+              f"matching symbols: {inventory['matching_symbol_count']}",
+              '',
+          ]
+          for record in inventory['top_candidates']:
+              lines.append(
+                  f"score={record['score']} {record['guest_path']} "
+                  f"{record['value_hex']} {record['type']}\n"
+                  f"  {record['mangled']}\n  {record['demangled']}\n"
+                  f"  groups={','.join(record['groups'])}")
+          pathlib.Path('diagnostics/hword-symbol-inventory.txt').write_text(
+              '\n'.join(lines)+'\n')
+          print(json.dumps({
+              'elf_file_count':inventory['elf_file_count'],
+              'matching_symbol_count':inventory['matching_symbol_count'],
+              'group_counts':{key:len(value)
+                              for key,value in inventory['groups'].items()},
+              'top_candidates':inventory['top_candidates'][:20],
+          },indent=2))
+          assert inventory['elf_file_count']>=1
+          PY
+
+      - name: Add printable-string window and object-name evidence
+        run: |
+          set -euxo pipefail
+          {
+            strings -a -n 8 "build/root${PROGRAM}" || true
+            while IFS= read -r guest; do
+              strings -a -n 8 "build/root${guest}" || true
+            done < build/report/hword-elf-files.txt
+          } | grep -Ei \
+            'mainwindow|main window|hword|hanword|document|editor|frame|windowtitle|objectname|qmainwindow|paintEvent|showEvent' \
+            | sort -u | head -n 10000 \
+            > diagnostics/hword-ui-strings.txt || true
+          wc -l diagnostics/hword-ui-strings.txt
+
+      - name: Commit the HWord-specific inventory
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/hword-symbol-inventory.json \
+                  diagnostics/hword-symbol-inventory.txt \
+                  diagnostics/hword-ui-strings.txt
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: lock exact HWord UI symbol candidates [skip ci]'
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git push origin HEAD:codex/hoffice-runtime-from-scratch
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-exact-hword-symbol-inventory
+          path: |
+            diagnostics/hword-symbol-inventory.json
+            diagnostics/hword-symbol-inventory.txt
+            diagnostics/hword-ui-strings.txt
+            build/report
+          if-no-files-found: warn
+          retention-days: 30

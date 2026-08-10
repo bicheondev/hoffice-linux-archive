@@ -1,0 +1,121 @@
+name: HOffice runtime M2 glibc bootstrap v2
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m2/**'
+      - '.github/workflows/hoffice-runtime-m2-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux-rootfs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build dynamic Linux program and minimal glibc rootfs
+        run: |
+          set -euxo pipefail
+          mkdir -p build/rootfs/lib64 build/rootfs/lib/x86_64-linux-gnu \
+                   build/rootfs/opt/hrt
+          cc -O2 -fPIE -pie -fno-stack-protector \
+            -Wl,--build-id=none \
+            -Wl,--dynamic-linker=/lib64/ld-linux-x86-64.so.2 \
+            runtime/m2/test_dynamic.c -o build/rootfs/opt/hrt/dynamic-main
+          loader=$(realpath "$(gcc -print-file-name=ld-linux-x86-64.so.2)")
+          libc=$(realpath "$(gcc -print-file-name=libc.so.6)")
+          cp -L "$loader" build/rootfs/lib64/ld-linux-x86-64.so.2
+          cp -L "$libc" build/rootfs/lib/x86_64-linux-gnu/libc.so.6
+          readelf -lW build/rootfs/opt/hrt/dynamic-main \
+            | grep -F 'Requesting program interpreter: /lib64/ld-linux-x86-64.so.2'
+          readelf -dW build/rootfs/opt/hrt/dynamic-main \
+            | grep -F 'Shared library: [libc.so.6]'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m2-v2-linux-rootfs
+          path: build/rootfs
+          if-no-files-found: error
+          retention-days: 7
+
+  execute-on-apple-silicon:
+    needs: build-linux-rootfs
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m2-v2-linux-rootfs
+          path: build/rootfs
+      - name: Ensure Rosetta and record x86 page size
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE | tee build/x86-page-size.txt
+      - name: Compile M2 host with anonymous file-mapping shim
+        run: |
+          set -euxo pipefail
+          mkdir -p build/host
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -Wall -Wextra -Werror -Wpedantic \
+            -fno-stack-protector -mfsgsbase \
+            -include runtime/m2/mmap_shim.h \
+            runtime/m2/main.c runtime/m2/common.c runtime/m2/elf_map.c \
+            runtime/m2/stack.c runtime/m2/syscall_bridge.c \
+            runtime/m2/mmap_shim.c runtime/m2/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/host/hrt-m2-v2
+          file build/host/hrt-m2-v2
+          lipo -info build/host/hrt-m2-v2
+          codesign --force --sign - --timestamp=none build/host/hrt-m2-v2
+          codesign --verify --strict build/host/hrt-m2-v2
+      - name: Start real ld-linux and preserve complete diagnostics
+        run: |
+          set -uxo pipefail
+          set +e
+          python3 - <<'PY'
+          import pathlib
+          import subprocess
+
+          root = pathlib.Path.cwd()
+          command = [
+              '/usr/bin/arch', '-x86_64', str(root / 'build/host/hrt-m2-v2'),
+              '--rootfs', str(root / 'build/rootfs'),
+              '--program', '/opt/hrt/dynamic-main',
+          ]
+          stdout_path = root / 'build/stdout.txt'
+          stderr_path = root / 'build/stderr.txt'
+          try:
+              with stdout_path.open('wb') as stdout, stderr_path.open('wb') as stderr:
+                  completed = subprocess.run(command, stdout=stdout, stderr=stderr,
+                                             timeout=30, check=False)
+              status = completed.returncode
+          except subprocess.TimeoutExpired:
+              status = 124
+          (root / 'build/exit-status.txt').write_text(f'{status}\n')
+          PY
+          status=$(cat build/exit-status.txt)
+          echo '--- stderr ---'
+          cat build/stderr.txt || true
+          echo '--- stdout ---'
+          cat build/stdout.txt || true
+          echo "--- exit status: $status ---"
+          test "$status" -eq 0
+          grep -Fx 'HRT M2: real ld-linux and glibc reached the dynamic main program' \
+            build/stdout.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m2-v2-macos-proof
+          path: |
+            build/host/hrt-m2-v2
+            build/rootfs
+            build/x86-page-size.txt
+            build/stdout.txt
+            build/stderr.txt
+            build/exit-status.txt
+          if-no-files-found: warn
+          retention-days: 7

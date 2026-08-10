@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "milestone": "M10-provider-fs-main-window",
+  "status": "DIAGNOSTIC",
+  "classification": "PROVIDER_REPAIRED_WITH_REMAINING_ENOSYS",
+  "workflow_run": "31254233341",
+  "commit": "c8b3987c635b660526ec8ccd29117f7c31e04564",
+  "source_m9_run": "31235068358",
+  "program": "/opt/hnc/hoffice11/Bin/hword",
+  "program_sha256": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+  "provider_values": {
+    "method_130": "HWP",
+    "method_138": "en-US"
+  },
+  "provider_override_lines": [
+    "HRT M9 PROVIDER OVERRIDE: key=method_130 slot=0x130 value=HWP abi=this-output provider=0x87677f0 output=0x11695d90",
+    "HRT M9 PROVIDER OVERRIDE: key=method_138 slot=0x138 value=en-US abi=this-output provider=0x87677f0 output=0x11695db0"
+  ],
+  "method_130_override_hits": 1,
+  "method_138_override_hits": 1,
+  "window_titles": [
+    "HWord Qt Window",
+    "\ud55c\uc6cc\ub4dc"
+  ],
+  "window_geometries": [
+    [
+      200,
+      100
+    ],
+    [
+      800,
+      600
+    ]
+  ],
+  "main_window_candidates": [
+    {
+      "title": "\ud55c\uc6cc\ub4dc",
+      "geometry": [
+        800,
+        600
+      ]
+    }
+  ],
+  "error_windows": [],
+  "unsupported_syscalls": [
+    56,
+    80
+  ],
+  "substr_exception_observed": false,
+  "fatal_signal_observed": false,
+  "frame": {
+    "path": "build/proof/hword-provider-fs-frame.png",
+    "width": 800,
+    "height": 628,
+    "size": 40182,
+    "sha256": "c58d241a91f742dc2d14f869f8a2fe4cb02923c0698e9b235d9be0efe986cf8c"
+  },
+  "large_frame": true,
+  "alive_after_frame": true,
+  "raw_exit_status": 143
+}

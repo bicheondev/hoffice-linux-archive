@@ -1,0 +1,189 @@
+name: Stream-scan exact HWord DocumentTab implementation
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m11/scan_exact_documenttab_binaries.py'
+      - '.github/workflows/hoffice-runtime-m11-documenttab-static-analysis-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hrt-m11-documenttab-static-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deterministic ELF inspection tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            binutils elfutils file jq python3-pyelftools xz-utils zstd
+
+      - name: Download and lock the exact package data archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input build/report build/matched
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" \
+            --dir build/input
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/input/$ASSET_NAME" | sha256sum -c -
+          data_member=$(ar t "build/input/$ASSET_NAME" \
+            | awk '/^data\.tar/{print; exit}')
+          test -n "$data_member"
+          ar p "build/input/$ASSET_NAME" "$data_member" \
+            >"build/input/$data_member"
+          printf '%s\n' "$data_member" \
+            | tee build/report/data-member.txt
+          sha256sum "build/input/$data_member" \
+            | tee build/report/data-member.sha256
+
+      - name: Stream-scan every HOffice Bin member for document markers
+        run: |
+          set -euxo pipefail
+          data_member=$(cat build/report/data-member.txt)
+          python3 runtime/m11/scan_exact_documenttab_binaries.py \
+            "build/input/$data_member" build/matched \
+            build/report/matches.json
+          jq '.matches | length' build/report/matches.json \
+            | tee build/report/match-count.txt
+          test "$(jq '.matches | length' build/report/matches.json)" -gt 0
+
+      - name: Inspect every exact matching binary
+        run: |
+          set -euxo pipefail
+          for binary in build/matched/*; do
+            test -f "$binary"
+            name=$(basename "$binary")
+            out="build/report/$name"
+            mkdir -p "$out"
+            file "$binary" | tee "$out/file.txt"
+            sha256sum "$binary" | tee "$out/sha256.txt"
+            strings -a -t x "$binary" >"$out/strings-offsets.txt"
+            grep -aEin \
+              'DocumentTabImpl|HwordFrameManager|CreateFrame|Launcher|InputMethod|keyPress|keyRelease|ShortcutOverride|HorzScrollbar|VertScrollbar|SelectionChanged|Adding' \
+              "$out/strings-offsets.txt" >"$out/relevant-strings.txt" || true
+            if head -c 4 "$binary" | grep -q $'\x7fELF'; then
+              readelf -hW "$binary" >"$out/elf-header.txt"
+              readelf -SW "$binary" >"$out/sections.txt"
+              readelf -dW "$binary" >"$out/dynamic.txt" || true
+              readelf -WsW "$binary" >"$out/symbols.txt" || true
+              readelf -rW "$binary" >"$out/relocations.txt" || true
+              nm -a -C "$binary" >"$out/nm-all-demangled.txt" 2>&1 || true
+              nm -D -C "$binary" >"$out/nm-dynamic-demangled.txt" 2>&1 || true
+              objdump -T -C "$binary" >"$out/dynamic-table.txt" 2>&1 || true
+              grep -aEin \
+                'DocumentTabImpl|HwordFrameManager|CreateFrame|Launcher|InputMethod|keyPress|keyRelease|ShortcutOverride|HorzScrollbar|VertScrollbar|SelectionChanged|Adding' \
+                "$out/symbols.txt" >"$out/relevant-symbols.txt" || true
+              grep -aEin \
+                'DocumentTabImpl|HwordFrameManager|CreateFrame|Launcher|InputMethod|keyPress|keyRelease|ShortcutOverride|HorzScrollbar|VertScrollbar|SelectionChanged|Adding' \
+                "$out/nm-all-demangled.txt" >"$out/relevant-nm.txt" || true
+              eu-readelf --notes "$binary" >"$out/notes.txt" 2>&1 || true
+            fi
+          done
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from elftools.elf.elffile import ELFFile
+
+          manifest = json.loads(
+              Path('build/report/matches.json').read_text(encoding='utf-8'))
+          rows = []
+          for match in manifest['matches']:
+              path = Path(match['output'])
+              row = dict(match)
+              row['elf'] = None
+              if match['is_elf']:
+                  with path.open('rb') as stream:
+                      elf = ELFFile(stream)
+                      sections = [section.name for section in elf.iter_sections()]
+                      dynsym = elf.get_section_by_name('.dynsym')
+                      symbols = []
+                      if dynsym is not None:
+                          for symbol in dynsym.iter_symbols():
+                              symbol_name = symbol.name
+                              if any(token in symbol_name for token in (
+                                  'DocumentTab', 'HwordFrame', 'Launcher',
+                                  'InputMethod', 'keyPress', 'keyRelease',
+                                  'CreateFrame')):
+                                  symbols.append({
+                                      'name': symbol_name,
+                                      'value': int(symbol['st_value']),
+                                      'size': int(symbol['st_size']),
+                                      'bind': symbol['st_info']['bind'],
+                                      'type': symbol['st_info']['type'],
+                                  })
+                      row['elf'] = {
+                          'type': elf['e_type'],
+                          'machine': elf['e_machine'],
+                          'entry': int(elf['e_entry']),
+                          'has_symtab': '.symtab' in sections,
+                          'has_debug_info': '.debug_info' in sections,
+                          'relevant_dynamic_symbols': symbols,
+                      }
+              rows.append(row)
+          Path('build/report/summary.json').write_text(
+              json.dumps({'schema': 1, 'matches': rows},
+                         ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8')
+          print(json.dumps(rows, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Build the readable static frontier report
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          payload = json.loads(
+              Path('build/report/summary.json').read_text(encoding='utf-8'))
+          lines = ['# Exact HWord DocumentTab static frontier', '']
+          for item in payload['matches']:
+              lines.extend([
+                  f"## `{item['member']}`",
+                  '',
+                  f"- SHA-256: `{item['sha256']}`",
+                  f"- Size: `{item['size']}`",
+                  f"- Markers: {', '.join(item['hits'])}",
+                  f"- ELF: `{item['is_elf']}`",
+              ])
+              if item['elf'] is not None:
+                  lines.extend([
+                      f"- Machine: `{item['elf']['machine']}`",
+                      f"- Full symbol table: `{item['elf']['has_symtab']}`",
+                      f"- DWARF: `{item['elf']['has_debug_info']}`",
+                      f"- Relevant exports: `{len(item['elf']['relevant_dynamic_symbols'])}`",
+                  ])
+              lines.append('')
+          Path('build/report/README.md').write_text(
+              '\n'.join(lines) + '\n', encoding='utf-8')
+          PY
+          cat build/report/README.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m11-documenttab-static-analysis-v2
+          path: |
+            build/report
+            build/matched
+          if-no-files-found: error
+          retention-days: 14

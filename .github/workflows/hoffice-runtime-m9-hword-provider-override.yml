@@ -1,0 +1,399 @@
+name: HOffice runtime M9 provider culture override
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m9/patch_provider_methods.py'
+      - 'runtime/m9/augment_provider_culture_override.py'
+      - 'diagnostics/m9-hword-provider-substr-latest.json'
+      - '.github/workflows/hoffice-runtime-m9-hword-provider-override.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m9-hword-provider-override-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  QPA_RUN_ID: '31166152504'
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  test-provider-override:
+    runs-on: macos-14
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the exact provider/substr diagnosis
+        run: |
+          set -euxo pipefail
+          test -s diagnostics/m9-hword-provider-substr-latest.json
+          grep -F '"status": "PASS"' \
+            diagnostics/m9-hword-provider-substr-latest.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          diagnosis=json.loads(Path(
+              'diagnostics/m9-hword-provider-substr-latest.json').read_text())
+          substring=diagnosis['substring']
+          assert substring['position'] > substring['source_size'],substring
+          print(json.dumps({
+              'classification':diagnosis['classification'],
+              'substring':substring,
+              'provider_type':diagnosis['provider']['type_name'],
+          },indent=2))
+          PY
+
+      - name: Select the newest full-font Korean rootfs artifact
+        id: rootfs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json,os,subprocess
+          response=subprocess.run([
+              'gh','api',f'repos/{os.environ["GITHUB_REPOSITORY"]}/actions/artifacts',
+              '-f','name=hrt-m9-hword-korean-rootfs','-f','per_page=100'],
+              check=True,text=True,stdout=subprocess.PIPE).stdout
+          candidates=[item for item in json.loads(response)['artifacts']
+              if not item['expired'] and
+                 item.get('workflow_run',{}).get('head_branch')==
+                    'codex/hoffice-runtime-from-scratch']
+          candidates.sort(key=lambda item:item['created_at'],reverse=True)
+          if not candidates:
+              raise SystemExit('no full-font Korean rootfs artifact exists')
+          selected=candidates[0]
+          with open(os.environ['GITHUB_OUTPUT'],'a') as output:
+              output.write(f"run_id={selected['workflow_run']['id']}\n")
+              output.write(f"artifact_id={selected['id']}\n")
+              output.write(f"digest={selected.get('digest','')}\n")
+          print(json.dumps(selected,indent=2))
+          PY
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m9-hword-korean-rootfs
+          path: build/input/rootfs
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.rootfs.outputs.run_id }}
+          github-token: ${{ github.token }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m8-qt5113-hrtappkit-input-qpa
+          path: build/input/qpa
+          repository: ${{ github.repository }}
+          run-id: ${{ env.QPA_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Reconstruct the exact case-sensitive guest and patch its provider
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated build/objects build/host build/proof
+          expected=$(awk '{print $1; exit}' \
+            build/input/rootfs/report/hword-ko-rootfs.tar.zst.sha256)
+          actual=$(shasum -a 256 build/input/rootfs/hword-ko-rootfs.tar.zst \
+            | awk '{print $1}')
+          test "$actual" = "$expected"
+
+          image="$RUNNER_TEMP/hrt-m9-provider.sparsebundle"
+          root="/tmp/h9provider-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"; mkdir -p "$root"
+          if ! hdiutil create -quiet -size 12g -fs APFSX \
+               -volname HRTM9PROVIDER -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 12g -fs HFSX \
+              -volname HRTM9PROVIDER -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >>"$GITHUB_ENV"
+          echo "HRT_IMAGE=$image" >>"$GITHUB_ENV"
+          zstd -dc build/input/rootfs/hword-ko-rootfs.tar.zst \
+            | tar -xf - -C "$root"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+          test -s "$root/usr/lib/locale/locale-archive"
+
+          mkdir -p "$root$(dirname "$PLUGIN_GUEST")"
+          python3 - build/input/qpa/libqhrtappkit.so.xz \
+            build/input/qpa/lock.json "$root$PLUGIN_GUEST" <<'PY'
+          import hashlib,json,lzma,pathlib,sys
+          compressed=pathlib.Path(sys.argv[1]).read_bytes()
+          lock=json.loads(pathlib.Path(sys.argv[2]).read_text())
+          assert hashlib.sha256(compressed).hexdigest()==lock['plugin']['xz_sha256']
+          plugin=lzma.decompress(compressed)
+          assert hashlib.sha256(plugin).hexdigest()==lock['plugin']['sha256_after_prepatch']
+          pathlib.Path(sys.argv[3]).write_bytes(plugin)
+          pathlib.Path('build/proof/qpa-lock.json').write_text(
+              json.dumps(lock,indent=2)+'\n')
+          PY
+          chmod 0755 "$root$PLUGIN_GUEST"
+
+          python3 runtime/m9/patch_provider_methods.py \
+            --root "$root" \
+            --diagnosis diagnostics/m9-hword-provider-substr-latest.json \
+            --manifest build/proof/provider-patch-manifest.json
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          diagnosis=json.loads(Path(
+              'diagnostics/m9-hword-provider-substr-latest.json').read_text())
+          matched=diagnosis['substring']['matching_provider_sources']
+          if matched==['second_string']:
+              value130,value138='UTF-8','ko_KR'
+          else:
+              value130,value138='ko_KR','UTF-8'
+          config={'value_130':value130,'value_138':value138,
+                  'matched_provider_sources':matched}
+          Path('build/proof/provider-override-config.json').write_text(
+              json.dumps(config,indent=2)+'\n')
+          with open(Path('build/proof/provider-values.env'),'w') as output:
+              output.write(f'VALUE_130={value130}\nVALUE_138={value138}\n')
+          print(json.dumps(config,indent=2))
+          PY
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+          grep -F 'Case-sensitive' build/proof/guest-volume.txt
+
+      - name: Generate the mature runtime with the exact provider override
+        run: |
+          set -euxo pipefail
+          source build/proof/provider-values.env
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+
+          python3 runtime/m8/augment_appkit_adapter_input.py \
+            runtime/m6/appkit_adapter.m build/generated/appkit_adapter_m8.m
+          python3 runtime/m6/augment_stack_hrtappkit.py \
+            runtime/m3/stack.c build/generated/stack-m6.c
+          python3 runtime/m9/augment_stack_locale.py \
+            build/generated/stack-m6.c build/generated/stack.c
+
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+            build/generated/stage9.c build/generated/stage10.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage10.c build/generated/stage11.c
+          python3 runtime/m9/augment_provider_culture_override.py \
+            build/generated/stage11.c \
+            build/proof/provider-patch-manifest.json \
+            build/generated/syscall_bridge.c \
+            --value-130 "$VALUE_130" --value-138 "$VALUE_138"
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('build/generated/syscall_bridge.c')
+          path.write_text(path.read_text().replace(
+              '#define M3_TRACE_LIMIT 256u','#define M3_TRACE_LIMIT 30000u'))
+          PY
+          grep -Fq 'HRT M9 PROVIDER OVERRIDE:' \
+            build/generated/syscall_bridge.c
+
+      - name: Compile and sign the provider-override runtime
+        run: |
+          set -euxo pipefail
+          common=(-arch x86_64 -std=c17 -O2 -g -fno-stack-protector \
+            -fno-omit-frame-pointer -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m8 -Iruntime/m6 -Iruntime/m3 -Iruntime/m1)
+          index=0
+          for source in runtime/m6/main.c runtime/m6/hostcall_trampoline.c \
+            runtime/m1/common.c runtime/m3/elf_map.c build/generated/stack.c \
+            runtime/m3/patch.c build/generated/syscall_bridge.c; do
+            clang "${common[@]}" -c "$source" \
+              -o "build/objects/c-${index}.o"
+            index=$((index+1))
+          done
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c build/generated/appkit_adapter_m8.m \
+            -o build/objects/appkit-adapter.o
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m8 -Iruntime/m6 \
+            -c runtime/m8/appkit_input.m -o build/objects/appkit-input.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S \
+            -o build/objects/enter-guest.o
+          clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \
+            -o build/objects/hostcall-trampoline.o
+          clang -arch x86_64 build/objects/*.o -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO \
+            -o build/host/hrt-m9-hword-provider-override
+          file build/host/hrt-m9-hword-provider-override \
+            | tee build/proof/host-file.txt
+          codesign --force --sign - --timestamp=none \
+            build/host/hrt-m9-hword-provider-override
+          codesign --verify --strict build/host/hrt-m9-hword-provider-override
+
+      - name: Run exact HWord through the overridden culture provider
+        run: |
+          set -uxo pipefail
+          export HRT_M6_CAPTURE_PATH="$PWD/build/proof/pre-frame-window.png"
+          export HRT_M7_CAPTURE_PATH="$PWD/build/proof/hword-provider-frame.png"
+          unset HRT_M8_SYNTHETIC_INPUT
+          : >build/proof/stdout.txt; : >build/proof/stderr.txt
+          /usr/bin/arch -x86_64 build/host/hrt-m9-hword-provider-override \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          frame_seen=0
+          for _ in $(jot 1200); do
+            if grep -q 'HRT M7 QPA: BGRA frame accepted' \
+                 build/proof/stderr.txt 2>/dev/null; then
+              frame_seen=1
+              sleep 5
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 0.05
+          done
+          alive=0
+          if [ "$frame_seen" -eq 1 ] && kill -0 "$pid" 2>/dev/null; then
+            alive=1
+          fi
+          if kill -0 "$pid" 2>/dev/null; then
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+              >build/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$pid" 1 1 -file build/proof/sample.txt \
+              >/dev/null 2>&1 || true
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.25
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e; wait "$pid"; raw_status=$?; set -e
+          printf '%s\n' "$raw_status" >build/proof/raw-exit-status.txt
+          printf '%s\n' "$frame_seen" >build/proof/frame-seen.txt
+          printf '%s\n' "$alive" >build/proof/alive-after-frame.txt
+          grep -E 'HRT M9 PROVIDER OVERRIDE:|HRT M6 QPA: CREATE |HRT M7 QPA: BGRA frame accepted|out_of_range|fatal signal|Linux syscall ENOSYS' \
+            build/proof/stderr.txt | tail -n 12000 \
+            | tee build/proof/key-lines.txt || true
+          cat build/proof/key-lines.txt
+
+      - name: Classify the provider-override boundary
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,re
+          from pathlib import Path
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          titles=[]; geometries=[]
+          for line in re.findall(r'HRT M6 QPA: CREATE .*',stderr):
+              title=re.search(r' title=(.*?) handle=',line)
+              geometry=re.search(r' geometry=(\d+)x(\d+)',line)
+              if title: titles.append(title.group(1))
+              if geometry: geometries.append([
+                  int(geometry.group(1)),int(geometry.group(2))])
+          overrides=[line for line in stderr.splitlines()
+                     if line.startswith('HRT M9 PROVIDER OVERRIDE:')]
+          frame=Path('build/proof/hword-provider-frame.png')
+          frame_present=frame.is_file() and frame.stat().st_size>0
+          alive=bool(int(Path('build/proof/alive-after-frame.txt').read_text()))
+          init_error='Initialization Error' in titles
+          throw_seen=('__pos (which is' in stderr or
+                      'std::out_of_range' in stderr)
+          if len(overrides)<2:
+              classification='PROVIDER_OVERRIDE_INCOMPLETE'
+          elif not titles:
+              classification='NO_NATIVE_QT_WINDOW'
+          elif init_error:
+              classification='INITIALIZATION_ERROR_REMAINS'
+          elif throw_seen:
+              classification='SUBSTR_EXCEPTION_REMAINS'
+          elif frame_present and alive:
+              classification='HWORD_PROVIDER_OVERRIDE_STABLE_FRAME'
+          elif frame_present:
+              classification='NONERROR_FRAME_PROCESS_EXITED'
+          else:
+              classification='NONERROR_WINDOW_WITHOUT_FRAME'
+          result={
+              'schema':1,'milestone':'M9-provider-culture-override',
+              'status':'PASS' if classification=='HWORD_PROVIDER_OVERRIDE_STABLE_FRAME' else 'DIAGNOSTIC',
+              'classification':classification,
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'program':os.environ['PROGRAM'],
+              'program_sha256':os.environ['PROGRAM_SHA256'],
+              'source_rootfs_artifact_id':'${{ steps.rootfs.outputs.artifact_id }}',
+              'source_provider_diagnosis':json.loads(Path(
+                  'diagnostics/m9-hword-provider-substr-latest.json').read_text()),
+              'override_config':json.loads(Path(
+                  'build/proof/provider-override-config.json').read_text()),
+              'override_markers':overrides,
+              'window_titles':titles,'window_geometries':geometries,
+              'initialization_error_observed':init_error,
+              'substr_exception_observed':throw_seen,
+              'frame_present':frame_present,
+              'frame_sha256':hashlib.sha256(frame.read_bytes()).hexdigest()
+                  if frame_present else None,
+              'alive_after_frame':alive,
+              'raw_exit_status':int(Path('build/proof/raw-exit-status.txt').read_text()),
+          }
+          Path('diagnostics').mkdir(exist_ok=True)
+          payload=json.dumps(result,indent=2)+'\n'
+          Path(f"diagnostics/m9-hword-provider-override-{os.environ['GITHUB_RUN_ID']}.json").write_text(payload)
+          Path('diagnostics/m9-hword-provider-override-latest.json').write_text(payload)
+          Path('build/proof/summary.json').write_text(payload)
+          if result['status']=='PASS':
+              Path('proofs').mkdir(exist_ok=True)
+              Path('proofs/m9-hword-provider-culture-override.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Commit the durable override result
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git pull --rebase origin codex/hoffice-runtime-from-scratch
+          git add diagnostics/m9-hword-provider-override-*.json
+          if test -f proofs/m9-hword-provider-culture-override.json; then
+            git add proofs/m9-hword-provider-culture-override.json
+          fi
+          if ! git diff --cached --quiet; then
+            git commit -m 'diagnostic: classify exact HWord provider culture override'
+            git push origin HEAD:codex/hoffice-runtime-from-scratch
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m9-hword-provider-override-proof
+          path: |
+            build/host/hrt-m9-hword-provider-override
+            build/proof
+            diagnostics/m9-hword-provider-override-*.json
+            proofs/m9-hword-provider-culture-override.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach the exact HWord guest
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true

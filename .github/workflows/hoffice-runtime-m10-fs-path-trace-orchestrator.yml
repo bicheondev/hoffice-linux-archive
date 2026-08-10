@@ -1,0 +1,410 @@
+name: HOffice runtime M10 filesystem path-trace orchestrator
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m10-fs-path-trace-orchestrator.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: hrt-m10-fs-path-trace-orchestrator-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TARGET_BRANCH: codex/hoffice-runtime-from-scratch
+  TARGET_WORKFLOW: hoffice-runtime-m10-hword-fs-compat.yml
+  TARGET_ARTIFACT: hrt-m10-hword-fs-compat-proof
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+
+jobs:
+  trace-classify-and-persist:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compose filesystem, eventfd2, and bounded path tracing
+        run: |
+          set -euxo pipefail
+          target=runtime/m10/augment_fs_compat.py
+          base=runtime/m10/augment_fs_compat_base.py
+
+          if test ! -s "$base"; then
+            test -s "$target"
+            cp "$target" "$base"
+          fi
+
+          cat > "$target" <<'PY'
+          #!/usr/bin/env python3
+          """Compose M10 filesystem, eventfd2, and path-failure tracing.
+
+          The base file is the exact rename-capable filesystem bridge preserved
+          before composition.  The mature eventfd2 implementation is applied
+          next, followed by the M9 bounded path tracer.  Failed path operations
+          are always recorded; successful operations are limited to the known
+          HOffice font/resource families.
+          """
+          from __future__ import annotations
+
+          import importlib.util
+          from pathlib import Path
+          import shutil
+          import subprocess
+          import sys
+          import tempfile
+
+          HRT_M10_FS_PATH_TRACE_WRAPPER_V2 = True
+
+
+          def run_python_module(module_path: Path, argv: list[str]) -> None:
+              spec = importlib.util.spec_from_file_location(
+                  'hrt_dynamic_' + module_path.stem, module_path)
+              if spec is None or spec.loader is None:
+                  raise SystemExit(f'unable to load {module_path}')
+              module = importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(module)
+              previous = sys.argv
+              try:
+                  sys.argv = [str(module_path), *argv]
+                  module.main()
+              finally:
+                  sys.argv = previous
+
+
+          def main() -> int:
+              if len(sys.argv) != 3:
+                  print(f'usage: {sys.argv[0]} INPUT.c OUTPUT.c', file=sys.stderr)
+                  return 64
+
+              source = Path(sys.argv[1])
+              output = Path(sys.argv[2])
+              here = Path(__file__).resolve()
+              base = here.with_name('augment_fs_compat_base.py')
+              eventfd = here.parents[1] / 'm3' / 'augment_eventfd2.py'
+              path_trace = here.parents[1] / 'm9' / 'augment_path_trace.py'
+              for required in (base, eventfd, path_trace):
+                  if not required.is_file():
+                      raise SystemExit(f'missing composed augmenter: {required}')
+
+              with tempfile.TemporaryDirectory(prefix='hrt-m10-fs-trace-') as tmp:
+                  tmpdir = Path(tmp)
+                  stage1 = tmpdir / 'filesystem.c'
+                  stage2 = tmpdir / 'eventfd2.c'
+                  run_python_module(base, [str(source), str(stage1)])
+
+                  stage1_text = stage1.read_text(encoding='utf-8')
+                  if ('case LINUX_SYS_EVENTFD2:' in stage1_text and
+                      'host_eventfd2_bridge' in stage1_text):
+                      shutil.copy2(stage1, stage2)
+                  else:
+                      subprocess.run(
+                          [sys.executable, str(eventfd),
+                           str(stage1), str(stage2)],
+                          check=True,
+                      )
+
+                  stage2_text = stage2.read_text(encoding='utf-8')
+                  if 'HRT M9 PATH:' in stage2_text:
+                      shutil.copy2(stage2, output)
+                  else:
+                      subprocess.run(
+                          [sys.executable, str(path_trace),
+                           str(stage2), str(output)],
+                          check=True,
+                      )
+
+              final = output.read_text(encoding='utf-8')
+              required_markers = {
+                  'case LINUX_SYS_RENAME:': 1,
+                  'case LINUX_SYS_EVENTFD2:': 1,
+                  'host_eventfd2_bridge': 2,
+                  'HRT M9 PATH:': 1,
+                  'm9_trace_path("open"': 1,
+                  'm9_trace_path("fstatat"': 1,
+              }
+              for marker, minimum in required_markers.items():
+                  count = final.count(marker)
+                  if count < minimum:
+                      raise SystemExit(
+                          f'composed marker {marker!r}: expected at least '
+                          f'{minimum}, found {count}')
+              return 0
+
+
+          if __name__ == '__main__':
+              raise SystemExit(main())
+          PY
+          chmod +x "$target"
+          python3 -m py_compile "$target" "$base"
+          grep -F 'HRT_M10_FS_PATH_TRACE_WRAPPER_V2' "$target"
+          grep -F 'augment_path_trace.py' "$target"
+
+      - name: Commit the traced bridge with conflict retry
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add runtime/m10/augment_fs_compat.py \
+                  runtime/m10/augment_fs_compat_base.py
+          if ! git diff --cached --quiet; then
+            git commit -m 'runtime: trace M10 filesystem failures after eventfd2'
+            for attempt in $(seq 1 16); do
+              if git push origin "HEAD:$TARGET_BRANCH"; then
+                break
+              fi
+              git fetch origin "$TARGET_BRANCH"
+              git rebase "origin/$TARGET_BRANCH"
+              sleep "$attempt"
+            done
+          fi
+          git fetch origin "$TARGET_BRANCH"
+          source_sha=$(git rev-parse "origin/$TARGET_BRANCH")
+          printf '%s\n' "$source_sha" >source-sha.txt
+
+      - name: Dispatch and wait for the traced exact-HWord replay
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input build/report build/package
+          start=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          gh workflow run "$TARGET_WORKFLOW" \
+            --repo "$GITHUB_REPOSITORY" --ref "$TARGET_BRANCH"
+
+          run_id=
+          status=
+          conclusion=
+          for attempt in $(seq 1 165); do
+            response=$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/$TARGET_WORKFLOW/runs" \
+              -f branch="$TARGET_BRANCH" -f event=workflow_dispatch -f per_page=20)
+            run_id=$(printf '%s' "$response" | jq -r --arg start "$start" \
+              '[.workflow_runs[] | select(.created_at >= $start)] | sort_by(.created_at) | last | .id // empty')
+            status=$(printf '%s' "$response" | jq -r --arg start "$start" \
+              '[.workflow_runs[] | select(.created_at >= $start)] | sort_by(.created_at) | last | .status // empty')
+            conclusion=$(printf '%s' "$response" | jq -r --arg start "$start" \
+              '[.workflow_runs[] | select(.created_at >= $start)] | sort_by(.created_at) | last | .conclusion // empty')
+            echo "attempt=$attempt run=$run_id status=$status conclusion=$conclusion"
+            if test -n "$run_id" && test "$status" = completed; then
+              break
+            fi
+            sleep 20
+          done
+          test -n "$run_id"
+          test "$status" = completed
+          printf '%s\n' "$run_id" >build/report/source-run-id.txt
+          printf '%s\n' "$conclusion" >build/report/source-conclusion.txt
+          gh run download "$run_id" \
+            --repo "$GITHUB_REPOSITORY" --name "$TARGET_ARTIFACT" \
+            --dir build/input
+          find build/input -type f -print | LC_ALL=C sort \
+            | tee build/report/artifact-files.txt
+
+      - name: Lock the exact package file inventory
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" \
+            --dir build/package
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/package/$ASSET_NAME" | sha256sum -c -
+          dpkg-deb --fsys-tarfile "build/package/$ASSET_NAME" \
+            | tar -tf - | sed -e 's#^\./#/#' -e 's#/$##' \
+            | LC_ALL=C sort -u >build/report/package-paths.txt
+          wc -l build/report/package-paths.txt
+
+      - name: Convert path failures into an exact resource-restoration plan
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          import posixpath
+          import re
+          from pathlib import Path
+
+          root = Path('build/input')
+          run_id = Path('build/report/source-run-id.txt').read_text().strip()
+          conclusion = Path('build/report/source-conclusion.txt').read_text().strip()
+          package_paths = set(Path(
+              'build/report/package-paths.txt').read_text().splitlines())
+
+          stderr_paths = list(root.rglob('stderr.txt'))
+          stdout_paths = list(root.rglob('stdout.txt'))
+          stderr = stderr_paths[0].read_text(errors='replace') \
+              if stderr_paths else ''
+          stdout = stdout_paths[0].read_text(errors='replace') \
+              if stdout_paths else ''
+
+          summary = {}
+          summary_path = None
+          for path in list(root.rglob('summary.json')) + \
+                      list(root.rglob('m10-hword-fs-compat-*.json')):
+              try:
+                  candidate = json.loads(path.read_text(errors='replace'))
+              except Exception:
+                  continue
+              if isinstance(candidate, dict):
+                  summary = candidate
+                  summary_path = path
+                  if 'classification' in candidate:
+                      break
+
+          path_pattern = re.compile(
+              r'HRT M9 PATH: op=(\S+) result=(-?\d+) errno=(\d+) '
+              r'guest=(.*?) host=(.*)$')
+          operations = []
+          for line in stderr.splitlines():
+              match = path_pattern.fullmatch(line)
+              if not match:
+                  continue
+              guest = match.group(4)
+              normalized = None
+              if guest.startswith('/'):
+                  normalized = posixpath.normpath(guest)
+              operations.append({
+                  'operation': match.group(1),
+                  'result': int(match.group(2)),
+                  'host_errno': int(match.group(3)),
+                  'guest_path': guest,
+                  'normalized_guest_path': normalized,
+                  'host_path': match.group(5),
+              })
+
+          failed = [item for item in operations if item['result'] < 0]
+          exact_missing = sorted({
+              item['normalized_guest_path']
+              for item in failed
+              if item['normalized_guest_path'] in package_paths
+          })
+          package_absent = sorted({
+              item['normalized_guest_path']
+              for item in failed
+              if item['normalized_guest_path'] and
+                 item['normalized_guest_path'] not in package_paths
+          })
+          relative_failures = sorted({
+              item['guest_path'] for item in failed
+              if not item['guest_path'].startswith('/')
+          })
+
+          unsupported = sorted({
+              int(match.group(1))
+              for line in stderr.splitlines()
+              if (match := re.search(
+                  r'Linux syscall ENOSYS\s+([0-9]+)', line))
+          })
+          if isinstance(summary.get('unsupported_syscalls'), list):
+              unsupported = sorted({
+                  *unsupported,
+                  *(int(value) for value in summary['unsupported_syscalls']
+                    if str(value).lstrip('-').isdigit()),
+              })
+
+          windows = summary.get('window_titles')
+          if not isinstance(windows, list):
+              windows = re.findall(
+                  r'HRT M6 QPA: CREATE .*? title=(.*?) handle=', stderr)
+          eventfd2_enosys = 290 in unsupported
+          rename_enosys = 82 in unsupported
+
+          if eventfd2_enosys:
+              frontier = 'EVENTFD2_WRAPPER_NOT_ACTIVE'
+          elif rename_enosys:
+              frontier = 'ATOMIC_RENAME_STILL_UNSUPPORTED'
+          elif exact_missing:
+              frontier = 'PACKAGE_RESOURCES_MISSING_FROM_PREPARED_GUEST'
+          elif relative_failures:
+              frontier = 'RELATIVE_PATH_RESOLUTION_FAILURES'
+          elif any(title == 'Exception' for title in windows):
+              frontier = 'EXCEPTION_WITHOUT_PACKAGE_RESOURCE_GAP'
+          elif any(title == 'Word' for title in windows):
+              frontier = 'FILESYSTEM_PATH_TRACE_PASS'
+          else:
+              frontier = summary.get('classification', 'UNCLASSIFIED')
+
+          result = {
+              'schema': 1,
+              'milestone': 'M10-fs-path-trace',
+              'status': 'PASS' if frontier == 'FILESYSTEM_PATH_TRACE_PASS'
+                                 else 'DIAGNOSTIC',
+              'frontier': frontier,
+              'source_workflow_run': run_id,
+              'source_workflow_conclusion': conclusion,
+              'source_commit': Path('source-sha.txt').read_text().strip(),
+              'source_summary_path': str(summary_path) if summary_path else None,
+              'source_summary': summary,
+              'window_titles': windows,
+              'path_operation_count': len(operations),
+              'failed_path_operation_count': len(failed),
+              'failed_path_operations': failed,
+              'package_resources_missing_from_prepared_guest': exact_missing,
+              'failed_absolute_paths_absent_from_package': package_absent,
+              'relative_failed_paths': relative_failures,
+              'unsupported_syscalls': unsupported,
+              'eventfd2_enosys': eventfd2_enosys,
+              'rename_enosys': rename_enosys,
+              'fatal_signal_observed': 'fatal signal' in stderr,
+              'stdout_tail': stdout[-6000:],
+              'stderr_tail': stderr[-18000:],
+          }
+
+          Path('diagnostics').mkdir(exist_ok=True)
+          payload = json.dumps(result, indent=2) + '\n'
+          Path(f'diagnostics/m10-fs-path-trace-{run_id}.json').write_text(payload)
+          Path('diagnostics/m10-fs-path-trace-latest.json').write_text(payload)
+          Path('diagnostics/m10-fs-path-trace-latest.md').write_text(
+              '# HWord M10 filesystem path frontier\n\n'
+              f'- Source run: `{run_id}`\n'
+              f'- Frontier: `{frontier}`\n'
+              f'- Windows: `{windows}`\n'
+              f'- Failed path operations: `{len(failed)}`\n'
+              f'- Missing exact package resources: `{exact_missing}`\n'
+              f'- Relative failures: `{relative_failures}`\n'
+              f'- Unsupported syscalls: `{unsupported}`\n'
+          )
+          Path('build/report/restoration-plan.json').write_text(payload)
+          print(payload)
+          PY
+
+      - name: Commit the durable path frontier with retry
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m10-fs-path-trace-*.json \
+                  diagnostics/m10-fs-path-trace-latest.md
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'diagnostic: persist exact HWord filesystem path frontier'
+          for attempt in $(seq 1 20); do
+            if git push origin "HEAD:$TARGET_BRANCH"; then
+              exit 0
+            fi
+            git fetch origin "$TARGET_BRANCH"
+            git rebase "origin/$TARGET_BRANCH"
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m10-fs-path-trace-frontier
+          path: |
+            build/report
+            diagnostics/m10-fs-path-trace-*.json
+            diagnostics/m10-fs-path-trace-latest.md
+          if-no-files-found: warn
+          retention-days: 14

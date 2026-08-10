@@ -1,0 +1,295 @@
+name: HOffice runtime M6 HWord hrtappkit ABI-closed replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m6-hword-hrtappkit-replay-localabi.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m6-hword-localabi-replay-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HWORD_ROOT_RUN_ID: '31102898765'
+  RUNTIME_RUN_ID: '31116524723'
+  QPA_RUN_ID: '31117936555'
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+  PLUGIN_PATCHED_SHA256: dafdd4fd8af86afe44ca2a6e2f845b0529ce08ff9e79581fc8df837574176ea9
+
+jobs:
+  replay-exact-hword:
+    runs-on: macos-14
+    timeout-minutes: 25
+    steps:
+      - name: Download the exact prepatched HWord root
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input/hword
+          repository: ${{ github.repository }}
+          run-id: ${{ env.HWORD_ROOT_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download the previously verified mature runtime host
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m6-hword-hrtappkit-run-v2-proof
+          path: build/input/runtime
+          repository: ${{ github.repository }}
+          run-id: ${{ env.RUNTIME_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download the ABI-closed Qt 5.11.3 hrtappkit plugin
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m6-qt5113-hrtappkit-qpa
+          path: build/input/qpa
+          repository: ${{ github.repository }}
+          run-id: ${{ env.QPA_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Reconstruct the exact case-sensitive guest root
+        run: |
+          set -euxo pipefail
+          mkdir -p build/proof
+
+          expected=$(awk '{print $1; exit}' \
+            build/input/hword/hword-rootfs.tar.gz.sha256)
+          actual=$(shasum -a 256 build/input/hword/hword-rootfs.tar.gz \
+            | awk '{print $1}')
+          test "$actual" = "$expected"
+
+          host=build/input/runtime/host/hrt-m6-hword-qpa-v2
+          test -s "$host"
+          chmod 0755 "$host"
+          file "$host" | tee build/proof/host-file.txt
+          lipo -info "$host" | tee build/proof/host-arch.txt
+          codesign --verify --strict "$host"
+          echo "HRT_HOST=$PWD/$host" >> "$GITHUB_ENV"
+
+          qpa_root=build/input/qpa/build/plugin-root
+          qpa_report=build/input/qpa/build/report
+          test -f "$qpa_root$PLUGIN_GUEST"
+          test -s "$qpa_root/.hrt-prepatched-v1"
+          test -s "$qpa_report/plugin-prepatch-record.json"
+          actual_plugin=$(shasum -a 256 "$qpa_root$PLUGIN_GUEST" | awk '{print $1}')
+          test "$actual_plugin" = "$PLUGIN_PATCHED_SHA256"
+          ! readelf -Ws "$qpa_root$PLUGIN_GUEST" \
+            | awk '$7 == "UND" && /createPlatformVulkanInstance/' \
+            | grep .
+          readelf -Ws "$qpa_root$PLUGIN_GUEST" \
+            | grep 'createPlatformVulkanInstance' \
+            | grep -v ' UND ' \
+            | tee build/proof/vulkan-local-definition.txt
+
+          image="$RUNNER_TEMP/hrt-m6-localabi.sparsebundle"
+          root="/tmp/h6abi-$GITHUB_RUN_ID"
+          rm -rf "$image" "$root"
+          mkdir -p "$root"
+          if ! hdiutil create -quiet -size 8g -fs APFSX \
+               -volname HRTM6ABI -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 8g -fs HFSX \
+              -volname HRTM6ABI -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >> "$GITHUB_ENV"
+          echo "HRT_IMAGE=$image" >> "$GITHUB_ENV"
+
+          tar -xzf build/input/hword/hword-rootfs.tar.gz -C "$root"
+          test -s "$root/.hrt-closure-v1.json"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+          test -d "$root/opt/hnc/hoffice11/Bin/Hword"
+
+          mkdir -p "$root$(dirname "$PLUGIN_GUEST")"
+          cp "$qpa_root$PLUGIN_GUEST" "$root$PLUGIN_GUEST"
+          chmod 0755 "$root$PLUGIN_GUEST"
+          cp "$qpa_root/.hrt-prepatched-v1" \
+            build/proof/hrtappkit-prepatch.json
+          cp "$qpa_report/plugin-prepatch-record.json" \
+            build/proof/hrtappkit-prepatch-record.json
+          cp "$qpa_report/plugin-dynamic.txt" \
+            build/proof/hrtappkit-dynamic.txt
+
+          python3 - "$root" "$PROGRAM" "$PROGRAM_SHA256" \
+                    "$PLUGIN_GUEST" "$PLUGIN_PATCHED_SHA256" <<'PY'
+          import hashlib,json,pathlib,sys
+          root=pathlib.Path(sys.argv[1]); program=sys.argv[2]
+          marker=json.loads((root/'.hrt-prepatched-v1').read_text())
+          record,=[item for item in marker['objects'] if item['path']==program]
+          assert record['sha256_before']==sys.argv[3],record
+          actual=hashlib.sha256((root/program.lstrip('/')).read_bytes()).hexdigest()
+          assert actual==record['sha256_after'],(actual,record)
+          plugin=root/sys.argv[4].lstrip('/')
+          assert hashlib.sha256(plugin.read_bytes()).hexdigest()==sys.argv[5]
+          PY
+          file "$root$PLUGIN_GUEST" | tee build/proof/plugin-file.txt
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+          sw_vers | tee build/proof/sw-vers.txt
+
+      - name: Run exact HWord until the custom QPA issues a native first-window call
+        run: |
+          set -uxo pipefail
+          export HRT_M6_CAPTURE_PATH="$PWD/build/proof/hword-hrtappkit-window.png"
+          : >build/proof/stdout.txt
+          : >build/proof/stderr.txt
+          /usr/bin/arch -x86_64 "$HRT_HOST" \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          reached=0
+          for _ in $(jot 900); do
+            if grep -q 'hrt-m6: host-call opcode=259 result=1' \
+                 build/proof/stderr.txt 2>/dev/null; then
+              reached=1
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 0.05
+          done
+
+          if kill -0 "$pid" 2>/dev/null; then
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+              >build/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$pid" 1 1 -file build/proof/sample.txt \
+              >/dev/null 2>&1 || true
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.25
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e
+          wait "$pid"
+          raw_status=$?
+          set -e
+          printf '%s\n' "$raw_status" >build/proof/raw-exit-status.txt
+          printf '%s\n' "$reached" >build/proof/reached-window.txt
+
+          grep -E 'libqhrtappkit|HRT M6 QPA|host-call opcode=25[6-9]|fatal signal|Qt platform plugin|Linux syscall ENOSYS|symbol lookup error' \
+            build/proof/stderr.txt | tail -n 2400 \
+            | tee build/proof/key-lines.txt || true
+          echo '--- stdout tail ---'; tail -n 300 build/proof/stdout.txt || true
+          echo '--- process ---'; cat build/proof/process.txt 2>/dev/null || true
+          echo "raw-status=$raw_status reached=$reached"
+
+      - name: Classify the observed exact-HWord boundary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          stdout=Path('build/proof/stdout.txt').read_text(errors='replace')
+          reached=int(Path('build/proof/reached-window.txt').read_text())
+          raw_status=int(Path('build/proof/raw-exit-status.txt').read_text())
+          calls=[]
+          for line in stderr.splitlines():
+              match=re.fullmatch(r'hrt-m6: host-call opcode=(\d+) result=(-?\d+)',line)
+              if match:
+                  calls.append({'opcode':int(match.group(1)),
+                                'result':int(match.group(2))})
+          summary={
+              'reached_window':bool(reached),
+              'raw_status':raw_status,
+              'plugin_metadata_observed':'Got keys from plugin meta data ("hrtappkit")' in stderr,
+              'plugin_loaded':'loaded library "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so"' in stderr,
+              'integration_constructed':'HRT M6 QPA: integration constructed' in stderr,
+              'platform_window_constructed':'HRT M6 QPA: QPlatformWindow constructed' in stderr,
+              'vulkan_lookup_failure':'createPlatformVulkanInstance' in stderr,
+              'fatal_signal_observed':'fatal signal' in stderr,
+              'unsupported_syscalls':sorted({int(m.group(1)) for line in stderr.splitlines()
+                  if (m:=re.search(r'Linux syscall ENOSYS ([0-9]+)',line))}),
+              'host_calls':calls,
+              'stdout_tail':stdout[-1200:],
+          }
+          Path('build/proof/summary.json').write_text(
+              json.dumps(summary,indent=2)+'\n')
+          print(json.dumps(summary,indent=2))
+          PY
+
+      - name: Accept only an exact-HWord-issued WindowServer window
+        run: |
+          set -euxo pipefail
+          test "$(cat build/proof/reached-window.txt)" -eq 1
+          grep -F 'Got keys from plugin meta data ("hrtappkit")' \
+            build/proof/stderr.txt
+          grep -F 'loaded library "/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so"' \
+            build/proof/stderr.txt
+          grep -F 'HRT M6 QPA: integration constructed' build/proof/stderr.txt
+          grep -F 'HRT M6 QPA: QPlatformWindow constructed' build/proof/stderr.txt
+          grep -E 'hrt-m6: host-call opcode=256 result=[1-9][0-9]*' \
+            build/proof/stderr.txt
+          grep -E 'hrt-m6: host-call opcode=258 result=1[0-9][0-9]' \
+            build/proof/stderr.txt
+          grep -F 'hrt-m6: host-call opcode=259 result=1' \
+            build/proof/stderr.txt
+          ! grep -F 'createPlatformVulkanInstance' build/proof/stderr.txt
+          ! grep -F 'Linux syscall ENOSYS 1073676288' build/proof/stderr.txt
+          ! grep -F 'fatal signal' build/proof/stderr.txt
+          test -s build/proof/hword-hrtappkit-window.png
+          sips -g pixelWidth -g pixelHeight \
+            build/proof/hword-hrtappkit-window.png \
+            | tee build/proof/screenshot-info.txt
+
+      - name: Commit a durable exact-HWord first-window proof
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p proofs
+          cat > proofs/m6-hword-hrtappkit-first-window.json <<JSON
+          {
+            "schema": 1,
+            "milestone": "M6 HWord hrtappkit first window",
+            "status": "PASS",
+            "commit": "$GITHUB_SHA",
+            "workflow_run": "$GITHUB_RUN_ID",
+            "program": "$PROGRAM",
+            "program_sha256_before_prepatch": "$PROGRAM_SHA256",
+            "qpa_plugin": "$PLUGIN_GUEST",
+            "qpa_plugin_patched_sha256": "$PLUGIN_PATCHED_SHA256",
+            "boundary": "the exact HWord process loaded the ABI-closed Qt 5.11.3 hrtappkit QPA, whose QPlatformWindow lifecycle issued deferred host calls and created a visible WindowServer-listed AppKit NSWindow",
+            "not_credited": ["HWord pixel transport", "native input", "Korean IME", "document operations", "clean shutdown"]
+          }
+          JSON
+          git clone --depth=1 --branch codex/hoffice-runtime-from-scratch \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            build/repo
+          cp proofs/m6-hword-hrtappkit-first-window.json build/repo/proofs/
+          cd build/repo
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add proofs/m6-hword-hrtappkit-first-window.json
+          git commit -m 'proof: verify exact HWord hrtappkit first window [skip ci]'
+          git push origin HEAD:codex/hoffice-runtime-from-scratch
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m6-hword-hrtappkit-localabi-replay-proof
+          path: build/proof
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach guest filesystem
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true

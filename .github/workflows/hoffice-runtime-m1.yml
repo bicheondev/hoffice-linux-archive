@@ -1,0 +1,117 @@
+name: HOffice runtime M1
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux-images:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build freestanding interpreter and relocated PIE main
+        run: |
+          set -euxo pipefail
+          mkdir -p build/guest/rootfs/bin build/guest/rootfs/lib64 build/guest/objects
+          clang -c -nostdlib -fPIC -fno-asynchronous-unwind-tables \
+            runtime/m1/test_interp.S -o build/guest/objects/test_interp.o
+          clang -c -nostdlib -fPIC -fno-asynchronous-unwind-tables \
+            runtime/m1/test_main.S -o build/guest/objects/test_main.o
+          ld -shared -nostdlib --build-id=none -z max-page-size=4096 \
+            -e _start build/guest/objects/test_interp.o \
+            -o build/guest/rootfs/lib64/hrt-m1-interp.so
+          ld -pie -nostdlib --build-id=none -z max-page-size=4096 \
+            --dynamic-linker /lib64/hrt-m1-interp.so -e _start \
+            build/guest/objects/test_main.o \
+            -o build/guest/rootfs/bin/hrt-m1-main
+
+          file build/guest/rootfs/lib64/hrt-m1-interp.so \
+               build/guest/rootfs/bin/hrt-m1-main
+          readelf -hW build/guest/rootfs/bin/hrt-m1-main
+          readelf -lW build/guest/rootfs/bin/hrt-m1-main
+          readelf -dW build/guest/rootfs/bin/hrt-m1-main
+          readelf -rW build/guest/rootfs/bin/hrt-m1-main
+          readelf -hW build/guest/rootfs/bin/hrt-m1-main | grep -q 'Type:.*DYN'
+          readelf -lW build/guest/rootfs/bin/hrt-m1-main | \
+            grep -q 'Requesting program interpreter: /lib64/hrt-m1-interp.so'
+          readelf -lW build/guest/rootfs/bin/hrt-m1-main | grep -q 'DYNAMIC'
+          readelf -rW build/guest/rootfs/bin/hrt-m1-main | \
+            grep -q 'R_X86_64_RELATIVE'
+          readelf -lW build/guest/rootfs/lib64/hrt-m1-interp.so | \
+            grep -q 'DYNAMIC'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m1-linux-images
+          path: build/guest/rootfs
+          if-no-files-found: error
+          retention-days: 2
+
+  execute-on-apple-silicon:
+    needs: build-linux-images
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m1-linux-images
+          path: build/guest/rootfs
+      - name: Ensure Rosetta is available
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+      - name: Compile clean-room M1 Mach-O host
+        run: |
+          set -euxo pipefail
+          mkdir -p build/host
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -Wall -Wextra -Werror -Wpedantic \
+            runtime/m1/main.c runtime/m1/common.c runtime/m1/elf_map.c \
+            runtime/m1/stack.c runtime/m1/syscall_bridge.c \
+            runtime/m1/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/host/hrt-m1
+          file build/host/hrt-m1
+          lipo -info build/host/hrt-m1
+          codesign --force --sign - --timestamp=none build/host/hrt-m1
+          codesign --verify --strict build/host/hrt-m1
+      - name: Enter PT_INTERP, apply relocation, and hand off to main
+        run: |
+          set -uxo pipefail
+          set +e
+          /usr/bin/arch -x86_64 build/host/hrt-m1 \
+            --root "$PWD/build/guest/rootfs" \
+            --program /bin/hrt-m1-main \
+            >build/stdout.txt 2>build/stderr.txt
+          status=$?
+          set -e
+          printf '%s\n' "$status" > build/exit-status.txt
+          echo '--- stderr ---'
+          cat build/stderr.txt
+          echo '--- stdout ---'
+          cat build/stdout.txt
+          echo "--- exit status: $status ---"
+          test "$status" -eq 0
+          grep -Fx 'HRT M1: PT_INTERP entered' build/stdout.txt
+          grep -Fx 'HRT M1: relocated PIE main entered' build/stdout.txt
+          grep -E 'program .*relocations=1 .*interp=/lib64/hrt-m1-interp.so' \
+            build/stderr.txt
+          grep -E 'interpreter .*base=0x[1-9a-f][0-9a-f]* .*patched=[1-9][0-9]*' \
+            build/stderr.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m1-macos-proof
+          path: |
+            build/host/hrt-m1
+            build/guest/rootfs
+            build/stdout.txt
+            build/stderr.txt
+            build/exit-status.txt
+          if-no-files-found: error
+          retention-days: 2

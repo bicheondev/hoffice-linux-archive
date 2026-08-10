@@ -1,0 +1,31 @@
+name: HOffice runtime M6 HWord offscreen backing store flush
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'proofs/m6-hword-offscreen-paint-device.json'
+      - '.github/workflows/hoffice-runtime-m6-hword-flush.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m6-backing-store-flush-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    uses: ./.github/workflows/hoffice-runtime-guest-symbol-probe.yml
+    with:
+      predecessor_proof: proofs/m6-hword-offscreen-paint-device.json
+      symbol_regex: QOffscreenBackingStore.*flush
+      label: Qt offscreen backing store flush
+      milestone: M6-offscreen-backing-store-flush
+      diagnostic_path: diagnostics/m6-hword-flush-latest.json
+      proof_path: proofs/m6-hword-offscreen-flush.json
+      trace_limit: 104000
+      run_seconds: 60
+      require_pipe2: true

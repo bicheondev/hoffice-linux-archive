@@ -1,0 +1,195 @@
+name: HOffice runtime M5 HWord directory bridge v2
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m3/augment_directory_syscalls.py'
+      - '.github/workflows/hoffice-runtime-m5-hword-dirents-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: hrt-m5-hword-dirents-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN_ID: '31102898765'
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+
+jobs:
+  discover-offscreen-qpa:
+    runs-on: macos-14
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m5-hword-offscreen-rootfs
+          path: build/input
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Verify and expand the exact case-sensitive HWord root
+        run: |
+          set -euxo pipefail
+          mkdir -p build/host build/generated build/proof
+          expected=$(awk '{print $1; exit}' build/input/hword-rootfs.tar.gz.sha256)
+          actual=$(shasum -a 256 build/input/hword-rootfs.tar.gz | awk '{print $1}')
+          test "$actual" = "$expected"
+
+          image="$RUNNER_TEMP/hrt-m5-dirents-v2.sparsebundle"
+          root="$RUNNER_TEMP/hrt-m5-dirents-v2-root"
+          rm -rf "$image" "$root"
+          mkdir -p "$root"
+          if ! hdiutil create -quiet -size 8g -fs APFSX \
+               -volname HRTM5D2 -type SPARSEBUNDLE "$image"; then
+            rm -rf "$image"
+            hdiutil create -quiet -size 8g -fs HFSX \
+              -volname HRTM5D2 -type SPARSEBUNDLE "$image"
+          fi
+          hdiutil attach -quiet -nobrowse -mountpoint "$root" "$image"
+          echo "HRT_ROOT=$root" >> "$GITHUB_ENV"
+          tar -xzf build/input/hword-rootfs.tar.gz -C "$root"
+          test -s "$root/.hrt-closure-v1.json"
+          test -s "$root/.hrt-prepatched-v1"
+          test -f "$root$PROGRAM"
+          test -d "$root/opt/hnc/hoffice11/Bin/Hword"
+          test -f "$root/opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqoffscreen.so"
+          python3 - "$root" "$PROGRAM" "$PROGRAM_SHA256" <<'PY'
+          import hashlib, json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          guest = sys.argv[2]
+          expected_before = sys.argv[3]
+          marker = json.loads((root / '.hrt-prepatched-v1').read_text())
+          record, = [item for item in marker['objects'] if item['path'] == guest]
+          assert record['sha256_before'] == expected_before
+          actual = hashlib.sha256((root / guest.lstrip('/')).read_bytes()).hexdigest()
+          assert actual == record['sha256_after']
+          pathlib.Path('build/proof/hword-prepatch-lock.json').write_text(
+              json.dumps(record, indent=2) + '\n')
+          PY
+          diskutil info "$root" | tee build/proof/guest-volume.txt
+
+      - name: Generate and compile the directory-aware bridge
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/proof/x86-page-size.txt
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/syscall_bridge.c
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('build/generated/syscall_bridge.c')
+          text = path.read_text().replace('#define M3_TRACE_LIMIT 256u',
+                                          '#define M3_TRACE_LIMIT 8192u')
+          path.write_text(text)
+          PY
+          grep -q 'case LINUX_SYS_GETDENTS64' build/generated/syscall_bridge.c
+          grep -q 'case LINUX_SYS_PRCTL' build/generated/syscall_bridge.c
+          clang -arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Iruntime/m3 -Iruntime/m1 \
+            runtime/m3/main.c runtime/m1/common.c runtime/m3/elf_map.c \
+            runtime/m3/stack.c runtime/m3/patch.c \
+            build/generated/syscall_bridge.c runtime/m1/enter_guest.S \
+            -Wl,-pagezero_size,0x1000 -o build/host/hrt-m5-dirents
+          file build/host/hrt-m5-dirents | tee build/proof/host-file.txt
+          codesign --force --sign - --timestamp=none build/host/hrt-m5-dirents
+          codesign --verify --strict build/host/hrt-m5-dirents
+
+      - name: Execute exact HWord through bundled QPA discovery
+        run: |
+          set -uxo pipefail
+          : >build/proof/stdout.txt
+          : >build/proof/stderr.txt
+          /usr/bin/arch -x86_64 build/host/hrt-m5-dirents \
+            --root "$HRT_ROOT" --program "$PROGRAM" \
+            >build/proof/stdout.txt 2>build/proof/stderr.txt &
+          pid=$!
+          deadline=1
+          for _ in $(jot 300); do
+            if ! kill -0 "$pid" 2>/dev/null; then deadline=0; break; fi
+            sleep 0.05
+          done
+          if [ "$deadline" -ne 0 ]; then
+            ps -o pid,ppid,state,%cpu,%mem,etime,command -p "$pid" \
+              >build/proof/process.txt 2>&1 || true
+            /usr/bin/sample "$pid" 1 1 -file build/proof/sample.txt \
+              >/dev/null 2>&1 || true
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 0.2
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          set +e
+          wait "$pid"
+          status=$?
+          set -e
+          if [ "$deadline" -ne 0 ]; then status=124; fi
+          printf '%s\n' "$status" >build/proof/exit-status.txt
+          printf '%s\n' "$deadline" >build/proof/reached-deadline.txt
+          tail -n 1800 build/proof/stderr.txt || true
+          tail -n 300 build/proof/stdout.txt || true
+          echo "status=$status deadline=$deadline"
+
+      - name: Accept only demonstrated plugin enumeration
+        run: |
+          set -euxo pipefail
+          grep -Fx 'hrt-m3: verified instruction-boundary shadow root enabled' \
+            build/proof/stderr.txt
+          grep -F 'libqoffscreen.so' build/proof/stderr.txt
+          ! grep -F 'Linux syscall ENOSYS 217' build/proof/stderr.txt
+          ! grep -F 'Linux syscall ENOSYS 157' build/proof/stderr.txt
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          stderr = Path('build/proof/stderr.txt').read_text(errors='replace')
+          stdout = Path('build/proof/stdout.txt').read_text(errors='replace')
+          unsupported = sorted({int(m.group(1)) for line in stderr.splitlines()
+              if (m := re.search(r'Linux syscall ENOSYS ([0-9]+)', line))})
+          summary = {
+              'status': int(Path('build/proof/exit-status.txt').read_text()),
+              'reached_deadline': bool(int(Path('build/proof/reached-deadline.txt').read_text())),
+              'getdents64_translated': 217 not in unsupported,
+              'pr_capbset_read_translated': 157 not in unsupported,
+              'offscreen_plugin_observed': 'libqoffscreen.so' in stderr,
+              'offscreen_metadata_observed': (
+                  'Got keys from plugin meta data ("offscreen")' in stderr or
+                  ('Found metadata in lib' in stderr and 'libqoffscreen.so' in stderr)),
+              'offscreen_library_loaded': (
+                  'loaded library' in stderr and 'libqoffscreen.so' in stderr),
+              'qt_platform_error_observed': 'Qt platform plugin' in stderr,
+              'fatal_signal_observed': 'fatal signal' in stderr,
+              'unsupported_syscalls': unsupported,
+              'stdout_tail': stdout[-1000:],
+          }
+          Path('build/proof/summary.json').write_text(
+              json.dumps(summary, indent=2) + '\n')
+          print(json.dumps(summary, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m5-hword-dirents-v2-proof
+          path: |
+            build/host/hrt-m5-dirents
+            build/generated/syscall_bridge.c
+            build/proof
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Detach guest filesystem
+        if: always()
+        run: hdiutil detach -quiet "$HRT_ROOT" || true

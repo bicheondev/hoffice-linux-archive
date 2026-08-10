@@ -1,0 +1,354 @@
+name: HOffice runtime M6 Linux guest AppKit window
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m6/appkit_adapter.h'
+      - 'runtime/m6/appkit_adapter.m'
+      - 'runtime/m6/augment_appkit_hostcall.py'
+      - 'runtime/m6/guest_window.c'
+      - 'runtime/m6/main.c'
+      - '.github/workflows/hoffice-runtime-m6-linux-guest-window.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hrt-m6-linux-guest-window-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GUEST_PROGRAM: /opt/hrt/m6-linux-window-guest
+
+jobs:
+  build-linux-guest-root:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build a dependency-free dynamic Linux x86-64 guest
+        run: |
+          set -euxo pipefail
+          mkdir -p build/m6/rootfs/opt/hrt build/m6/rootfs/lib64 \
+                   build/m6/report
+          gcc -std=c17 -O2 -fPIE -pie -nostdlib \
+            -fno-stack-protector -fno-builtin \
+            -fno-asynchronous-unwind-tables -fno-unwind-tables \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m6 \
+            -Wl,-e,_start -Wl,--build-id=none \
+            -Wl,--dynamic-linker=/lib64/ld-linux-x86-64.so.2 \
+            -Wl,-z,now -Wl,-z,relro \
+            runtime/m6/guest_window.c \
+            -o "build/m6/rootfs${GUEST_PROGRAM}"
+          loader=$(readlink -f /lib64/ld-linux-x86-64.so.2)
+          test -f "$loader"
+          cp "$loader" build/m6/rootfs/lib64/ld-linux-x86-64.so.2
+          chmod 0755 "build/m6/rootfs${GUEST_PROGRAM}" \
+                     build/m6/rootfs/lib64/ld-linux-x86-64.so.2
+
+          file "build/m6/rootfs${GUEST_PROGRAM}" \
+            | tee build/m6/report/guest-file.txt
+          readelf -hW "build/m6/rootfs${GUEST_PROGRAM}" \
+            | tee build/m6/report/guest-elf-header.txt
+          readelf -lW "build/m6/rootfs${GUEST_PROGRAM}" \
+            | tee build/m6/report/guest-program-headers.txt
+          readelf -dW "build/m6/rootfs${GUEST_PROGRAM}" \
+            | tee build/m6/report/guest-dynamic.txt
+          readelf -sW "build/m6/rootfs${GUEST_PROGRAM}" \
+            | tee build/m6/report/guest-symbols.txt
+          grep -F 'Requesting program interpreter: /lib64/ld-linux-x86-64.so.2' \
+            build/m6/report/guest-program-headers.txt
+          grep -E '[[:space:]]_start$' build/m6/report/guest-symbols.txt
+          ! grep -F '(NEEDED)' build/m6/report/guest-dynamic.txt
+          sha256sum "build/m6/rootfs${GUEST_PROGRAM}" \
+            build/m6/rootfs/lib64/ld-linux-x86-64.so.2 \
+            | tee build/m6/report/rootfs-sha256.txt
+
+      - name: Prepatch the two verified ELF objects
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          root = Path('build/m6/rootfs')
+          objects = []
+          for guest_path in (
+              '/opt/hrt/m6-linux-window-guest',
+              '/lib64/ld-linux-x86-64.so.2',
+          ):
+              path = root / guest_path.lstrip('/')
+              objects.append({
+                  'guest_path': guest_path,
+                  'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+                  'size': path.stat().st_size,
+              })
+          (root / '.hrt-closure-v1.json').write_text(
+              json.dumps({
+                  'schema': 1,
+                  'program': '/opt/hrt/m6-linux-window-guest',
+                  'interpreter': '/lib64/ld-linux-x86-64.so.2',
+                  'object_count': len(objects),
+                  'objects': objects,
+              }, indent=2) + '\n')
+          PY
+          python3 runtime/m3/prepatch_elf.py build/m6/rootfs \
+            | tee build/m6/report/prepatch.txt
+          test -s build/m6/rootfs/.hrt-closure-v1.json
+          test -s build/m6/rootfs/.hrt-prepatched-v1
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          marker = json.loads(
+              Path('build/m6/rootfs/.hrt-prepatched-v1').read_text())
+          assert marker['object_count'] == 2, marker
+          assert marker['syscall_count'] >= 2, marker
+          print(json.dumps({
+              'object_count': marker['object_count'],
+              'syscall_count': marker['syscall_count'],
+              'fs_to_gs_count': marker['fs_to_gs_count'],
+          }, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m6-linux-guest-root
+          path: |
+            build/m6/rootfs
+            build/m6/report
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  dispatch-window-host-call:
+    needs: build-linux-guest-root
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m6-linux-guest-root
+          path: build/m6/input
+
+      - name: Verify the guest root and Rosetta environment
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+          mkdir -p build/m6/generated build/m6/objects \
+                   build/m6/host build/m6/proof
+          chmod 0755 "build/m6/input/rootfs${GUEST_PROGRAM}" \
+                     build/m6/input/rootfs/lib64/ld-linux-x86-64.so.2
+          test -s build/m6/input/rootfs/.hrt-closure-v1.json
+          test -s build/m6/input/rootfs/.hrt-prepatched-v1
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/m6/proof/x86-page-size.txt
+          sw_vers | tee build/m6/proof/sw-vers.txt
+
+      - name: Generate the M6 AppKit host-call bridge
+        run: |
+          set -euxo pipefail
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/m6/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/m6/generated/stage1.c build/m6/generated/stage2.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/m6/generated/stage2.c build/m6/generated/stage3.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/m6/generated/stage3.c build/m6/generated/stage4.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/m6/generated/stage4.c build/m6/generated/stage5.c
+          python3 runtime/m3/augment_poll.py \
+            build/m6/generated/stage5.c build/m6/generated/stage6.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/m6/generated/stage6.c build/m6/generated/stage7.c
+          python3 runtime/m3/augment_connect.py \
+            build/m6/generated/stage7.c build/m6/generated/stage8.c
+          python3 runtime/m6/augment_appkit_hostcall.py \
+            build/m6/generated/stage8.c build/m6/generated/stage9.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/m6/generated/stage9.c \
+            build/m6/generated/syscall_bridge.c
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('build/m6/generated/syscall_bridge.c')
+          path.write_text(path.read_text().replace(
+              '#define M3_TRACE_LIMIT 256u',
+              '#define M3_TRACE_LIMIT 4096u'))
+          PY
+          grep -q 'case HRT_M6_HOSTCALL_SYSCALL' \
+            build/m6/generated/syscall_bridge.c
+          grep -q 'hrt-m6: host-call opcode=' \
+            build/m6/generated/syscall_bridge.c
+          grep -q 'hrt_m6_appkit_hostcall' \
+            build/m6/generated/syscall_bridge.c
+          test "$(grep -c '"+d"(argument3_register)' \
+            build/m6/generated/syscall_bridge.c)" -eq 2
+
+      - name: Compile and sign the x86_64 runtime with AppKit
+        run: |
+          set -euxo pipefail
+          common=(
+            -arch x86_64 -std=c17 -O2 -g
+            -fno-stack-protector -fno-omit-frame-pointer
+            -Wall -Wextra -Werror -Wpedantic
+            -Iruntime/m6 -Iruntime/m3 -Iruntime/m1
+          )
+          index=0
+          for source in \
+            runtime/m6/main.c \
+            runtime/m1/common.c \
+            runtime/m3/elf_map.c \
+            runtime/m3/stack.c \
+            runtime/m3/patch.c \
+            build/m6/generated/syscall_bridge.c; do
+            object="build/m6/objects/c-${index}.o"
+            clang "${common[@]}" -c "$source" -o "$object"
+            index=$((index + 1))
+          done
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic -Iruntime/m6 \
+            -c runtime/m6/appkit_adapter.m \
+            -o build/m6/objects/appkit-adapter.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S \
+            -o build/m6/objects/enter-guest.o
+          clang -arch x86_64 build/m6/objects/*.o \
+            -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO \
+            -o build/m6/host/hrt-m6-linux-window
+          file build/m6/host/hrt-m6-linux-window \
+            | tee build/m6/proof/host-file.txt
+          lipo -info build/m6/host/hrt-m6-linux-window \
+            | tee build/m6/proof/host-arch.txt
+          codesign --force --sign - --timestamp=none \
+            build/m6/host/hrt-m6-linux-window
+          codesign --verify --strict build/m6/host/hrt-m6-linux-window
+
+      - name: Let the Linux guest create and capture a WindowServer window
+        run: |
+          set -uxo pipefail
+          python3 - <<'PY'
+          import os
+          import pathlib
+          import subprocess
+
+          root = pathlib.Path.cwd()
+          environment = os.environ.copy()
+          environment['HRT_M6_CAPTURE_PATH'] = str(
+              root / 'build/m6/proof/guest-window.png')
+          command = [
+              '/usr/bin/arch', '-x86_64',
+              str(root / 'build/m6/host/hrt-m6-linux-window'),
+              '--root', str(root / 'build/m6/input/rootfs'),
+              '--program', '/opt/hrt/m6-linux-window-guest',
+          ]
+          status = 124
+          try:
+              with (root / 'build/m6/proof/stdout.txt').open('wb') as stdout, \
+                   (root / 'build/m6/proof/stderr.txt').open('wb') as stderr:
+                  completed = subprocess.run(
+                      command, env=environment, stdout=stdout, stderr=stderr,
+                      timeout=35, check=False)
+              status = completed.returncode
+          except subprocess.TimeoutExpired:
+              with (root / 'build/m6/proof/stderr.txt').open('ab') as stderr:
+                  stderr.write(b'\nhrt-m6: guest window timeout\n')
+          (root / 'build/m6/proof/exit-status.txt').write_text(
+              f'{status}\n')
+          PY
+          status=$(cat build/m6/proof/exit-status.txt)
+          set -e
+          echo '--- stderr ---'
+          cat build/m6/proof/stderr.txt || true
+          echo '--- stdout ---'
+          cat build/m6/proof/stdout.txt || true
+          echo "--- exit status: $status ---"
+          test "$status" -eq 0
+
+      - name: Accept only guest-issued native window operations
+        run: |
+          set -euxo pipefail
+          grep -Fx \
+            'HRT M6 GUEST PASS: trapped Linux host call created a visible AppKit window' \
+            build/m6/proof/stdout.txt
+          grep -F 'hrt-m6-hostcall: AppKit initialized ' \
+            build/m6/proof/stderr.txt
+          grep -E 'hrt-m6: host-call opcode=256 result=[1-9][0-9]*' \
+            build/m6/proof/stderr.txt
+          grep -F 'hrt-m6: host-call opcode=257 result=0' \
+            build/m6/proof/stderr.txt
+          grep -E 'hrt-m6: host-call opcode=258 result=1[0-9][0-9]' \
+            build/m6/proof/stderr.txt
+          grep -F 'hrt-m6: host-call opcode=259 result=1' \
+            build/m6/proof/stderr.txt
+          grep -F 'hrt-m6: host-call opcode=260 result=0' \
+            build/m6/proof/stderr.txt
+          ! grep -F 'Linux syscall ENOSYS 1073676288' \
+            build/m6/proof/stderr.txt
+          test -s build/m6/proof/guest-window.png
+
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          stderr = Path('build/m6/proof/stderr.txt').read_text(errors='replace')
+          stdout = Path('build/m6/proof/stdout.txt').read_text(errors='replace')
+          operations = []
+          for line in stderr.splitlines():
+              match = re.fullmatch(
+                  r'hrt-m6: host-call opcode=(\d+) result=(-?\d+)', line)
+              if match:
+                  operations.append({
+                      'opcode': int(match.group(1)),
+                      'result': int(match.group(2)),
+                  })
+          by_opcode = {item['opcode']: item['result'] for item in operations}
+          required_flags = 0x01 | 0x02 | 0x04 | 0x20 | 0x40
+          assert by_opcode[0x100] > 0
+          assert by_opcode[0x102] & required_flags == required_flags
+          assert by_opcode[0x103] == 1
+          assert by_opcode[0x104] == 0
+          summary = {
+              'status': int(Path('build/m6/proof/exit-status.txt').read_text()),
+              'guest_program': '/opt/hrt/m6-linux-window-guest',
+              'guest_architecture': 'Linux x86_64 PIE',
+              'host_architecture': 'x86_64 AppKit under Rosetta',
+              'host_calls': operations,
+              'window_number': by_opcode[0x100],
+              'window_flags': by_opcode[0x102],
+              'visible': bool(by_opcode[0x102] & 0x02),
+              'window_server_listed': bool(by_opcode[0x102] & 0x04),
+              'screen_available': bool(by_opcode[0x102] & 0x20),
+              'host_call_on_main_thread': bool(by_opcode[0x102] & 0x40),
+              'screenshot_created': Path(
+                  'build/m6/proof/guest-window.png').stat().st_size > 0,
+              'guest_pass_marker': 'HRT M6 GUEST PASS:' in stdout,
+              'integrated_with_hword': False,
+          }
+          Path('build/m6/proof/summary.json').write_text(
+              json.dumps(summary, indent=2) + '\n')
+          print(json.dumps(summary, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m6-linux-guest-window-proof
+          path: |
+            build/m6/host/hrt-m6-linux-window
+            build/m6/generated/syscall_bridge.c
+            build/m6/input/report
+            build/m6/input/rootfs/.hrt-closure-v1.json
+            build/m6/input/rootfs/.hrt-prepatched-v1
+            build/m6/proof
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
