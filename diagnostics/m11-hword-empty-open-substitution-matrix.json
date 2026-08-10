@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "results": [
+    {
+      "schema": 1,
+      "workflow_run": "31415789140",
+      "commit": "d43a3227f494ecdb9250ba6ac63fd0ea980a837e",
+      "mode": 0,
+      "classification": "BASELINE_VALIDATION_MODAL",
+      "empty_open_observation_count": 3,
+      "substitution_count": 0,
+      "remaining_empty_enoent_count": 3,
+      "modal_observed": true,
+      "canonical_frame_context_count": 17,
+      "editor_markers": [],
+      "document_interaction_credited": false,
+      "text_interaction_credited": false,
+      "empty_open_lines": [
+        "HRT M11 EMPTYOPEN: ordinal=1 mode=0 substituted=0 original-pointer=0xff727c0 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=2 mode=0 substituted=0 original-pointer=0xff727c0 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=3 mode=0 substituted=0 original-pointer=0xff748f0 replacement=(none)"
+      ],
+      "substituted_lines": []
+    },
+    {
+      "schema": 1,
+      "workflow_run": "31415789140",
+      "commit": "d43a3227f494ecdb9250ba6ac63fd0ea980a837e",
+      "mode": 1,
+      "classification": "SUBSTITUTED_BUT_VALIDATION_MODAL_REMAINS",
+      "empty_open_observation_count": 7,
+      "substitution_count": 1,
+      "remaining_empty_enoent_count": 6,
+      "modal_observed": true,
+      "canonical_frame_context_count": 23,
+      "editor_markers": [],
+      "document_interaction_credited": false,
+      "text_interaction_credited": false,
+      "empty_open_lines": [
+        "HRT M11 EMPTYOPEN: ordinal=1 mode=1 substituted=1 original-pointer=0xfff57c0 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt",
+        "HRT M11 EMPTYOPEN: ordinal=2 mode=1 substituted=0 original-pointer=0xfff4d58 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=3 mode=1 substituted=0 original-pointer=0xfff57c0 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=4 mode=1 substituted=0 original-pointer=0xfff57c0 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=5 mode=1 substituted=0 original-pointer=0xfff57c0 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=6 mode=1 substituted=0 original-pointer=0xfff57c0 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=7 mode=1 substituted=0 original-pointer=0xfff78f0 replacement=(none)"
+      ],
+      "substituted_lines": [
+        "HRT M11 EMPTYOPEN: ordinal=1 mode=1 substituted=1 original-pointer=0xfff57c0 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt"
+      ]
+    },
+    {
+      "schema": 1,
+      "workflow_run": "31415789140",
+      "commit": "d43a3227f494ecdb9250ba6ac63fd0ea980a837e",
+      "mode": 2,
+      "classification": "SUBSTITUTED_BUT_VALIDATION_MODAL_REMAINS",
+      "empty_open_observation_count": 7,
+      "substitution_count": 1,
+      "remaining_empty_enoent_count": 6,
+      "modal_observed": true,
+      "canonical_frame_context_count": 23,
+      "editor_markers": [],
+      "document_interaction_credited": false,
+      "text_interaction_credited": false,
+      "empty_open_lines": [
+        "HRT M11 EMPTYOPEN: ordinal=1 mode=2 substituted=0 original-pointer=0xdd1e7c0 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=2 mode=2 substituted=1 original-pointer=0xdd1e7c0 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt",
+        "HRT M11 EMPTYOPEN: ordinal=3 mode=2 substituted=0 original-pointer=0xdd1dd58 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=4 mode=2 substituted=0 original-pointer=0xdd1e7c0 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=5 mode=2 substituted=0 original-pointer=0xdd1e7c0 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=6 mode=2 substituted=0 original-pointer=0xdd1e7c0 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=7 mode=2 substituted=0 original-pointer=0xdd208f0 replacement=(none)"
+      ],
+      "substituted_lines": [
+        "HRT M11 EMPTYOPEN: ordinal=2 mode=2 substituted=1 original-pointer=0xdd1e7c0 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt"
+      ]
+    },
+    {
+      "schema": 1,
+      "workflow_run": "31415789140",
+      "commit": "d43a3227f494ecdb9250ba6ac63fd0ea980a837e",
+      "mode": 3,
+      "classification": "SUBSTITUTED_BUT_VALIDATION_MODAL_REMAINS",
+      "empty_open_observation_count": 7,
+      "substitution_count": 1,
+      "remaining_empty_enoent_count": 6,
+      "modal_observed": true,
+      "canonical_frame_context_count": 23,
+      "editor_markers": [],
+      "document_interaction_credited": false,
+      "text_interaction_credited": false,
+      "empty_open_lines": [
+        "HRT M11 EMPTYOPEN: ordinal=1 mode=3 substituted=0 original-pointer=0xf8887c0 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=2 mode=3 substituted=0 original-pointer=0xf8887c0 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=3 mode=3 substituted=1 original-pointer=0xf88a8f0 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt",
+        "HRT M11 EMPTYOPEN: ordinal=4 mode=3 substituted=0 original-pointer=0xf889ee8 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=5 mode=3 substituted=0 original-pointer=0xf88a8f0 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=6 mode=3 substituted=0 original-pointer=0xf88a8f0 replacement=(none)",
+        "HRT M11 EMPTYOPEN: ordinal=7 mode=3 substituted=0 original-pointer=0xf88a8f0 replacement=(none)"
+      ],
+      "substituted_lines": [
+        "HRT M11 EMPTYOPEN: ordinal=3 mode=3 substituted=1 original-pointer=0xf88a8f0 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt"
+      ]
+    },
+    {
+      "schema": 1,
+      "workflow_run": "31415789140",
+      "commit": "d43a3227f494ecdb9250ba6ac63fd0ea980a837e",
+      "mode": 99,
+      "classification": "VALIDATION_MODAL_SUPPRESSED",
+      "empty_open_observation_count": 5,
+      "substitution_count": 5,
+      "remaining_empty_enoent_count": 0,
+      "modal_observed": false,
+      "canonical_frame_context_count": 29,
+      "editor_markers": [],
+      "document_interaction_credited": false,
+      "text_interaction_credited": false,
+      "empty_open_lines": [
+        "HRT M11 EMPTYOPEN: ordinal=1 mode=99 substituted=1 original-pointer=0xf5767c0 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt",
+        "HRT M11 EMPTYOPEN: ordinal=2 mode=99 substituted=1 original-pointer=0xf575d58 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt",
+        "HRT M11 EMPTYOPEN: ordinal=3 mode=99 substituted=1 original-pointer=0xf5767c0 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt",
+        "HRT M11 EMPTYOPEN: ordinal=4 mode=99 substituted=1 original-pointer=0x8610e28 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt",
+        "HRT M11 EMPTYOPEN: ordinal=5 mode=99 substituted=1 original-pointer=0x6913770 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt"
+      ],
+      "substituted_lines": [
+        "HRT M11 EMPTYOPEN: ordinal=1 mode=99 substituted=1 original-pointer=0xf5767c0 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt",
+        "HRT M11 EMPTYOPEN: ordinal=2 mode=99 substituted=1 original-pointer=0xf575d58 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt",
+        "HRT M11 EMPTYOPEN: ordinal=3 mode=99 substituted=1 original-pointer=0xf5767c0 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt",
+        "HRT M11 EMPTYOPEN: ordinal=4 mode=99 substituted=1 original-pointer=0x8610e28 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt",
+        "HRT M11 EMPTYOPEN: ordinal=5 mode=99 substituted=1 original-pointer=0x6913770 replacement=/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt"
+      ]
+    }
+  ],
+  "baseline": {
+    "schema": 1,
+    "workflow_run": "31415789140",
+    "commit": "d43a3227f494ecdb9250ba6ac63fd0ea980a837e",
+    "mode": 0,
+    "classification": "BASELINE_VALIDATION_MODAL",
+    "empty_open_observation_count": 3,
+    "substitution_count": 0,
+    "remaining_empty_enoent_count": 3,
+    "modal_observed": true,
+    "canonical_frame_context_count": 17,
+    "editor_markers": [],
+    "document_interaction_credited": false,
+    "text_interaction_credited": false,
+    "empty_open_lines": [
+      "HRT M11 EMPTYOPEN: ordinal=1 mode=0 substituted=0 original-pointer=0xff727c0 replacement=(none)",
+      "HRT M11 EMPTYOPEN: ordinal=2 mode=0 substituted=0 original-pointer=0xff727c0 replacement=(none)",
+      "HRT M11 EMPTYOPEN: ordinal=3 mode=0 substituted=0 original-pointer=0xff748f0 replacement=(none)"
+    ],
+    "substituted_lines": []
+  },
+  "improvements": [
+    {
+      "mode": 99,
+      "reasons": [
+        "modal-suppressed",
+        "fewer-empty-enoent"
+      ]
+    }
+  ],
+  "best_modes": [
+    99
+  ]
+}
