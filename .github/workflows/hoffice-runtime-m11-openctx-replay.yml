@@ -10,6 +10,7 @@ on:
       - 'runtime/m11/augment_hword_document_io_trace_v4.py'
       - 'runtime/m11/augment_hword_document_io_trace_v5.py'
       - 'runtime/m11/augment_hword_document_io_trace_v6.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v7.py'
       - 'runtime/m11/run_korean_title_staged_replay.sh'
       - 'runtime/m11/augment_full_product_replay.py'
       - 'runtime/m11/augment_full_product_replay_v2.py'
@@ -25,8 +26,8 @@ concurrency:
 
 env:
   PREPARED_RUN_ID: '31235068358'
-  HOST_RUN_ID: '31398654109'
-  HOST_ARTIFACT_DIGEST: c5072f673429ff912af82e1011eb1841b249db68ad9e72fa5b5a24f165751613
+  HOST_RUN_ID: '31400826337'
+  HOST_ARTIFACT_DIGEST: 792f5f55678818eb96669b16433a8fd07b84b19b0ab1b1581aa564c95439154d
   QPA_RUN_ID: '31305695836'
   QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
   ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
@@ -57,7 +58,7 @@ jobs:
           test -s proofs/m10-clone-chdir.json
           grep -F '"status": "PASS"' proofs/m10-clone-chdir.json
 
-      - name: Replay the exact product closure with canonical frame tracing
+      - name: Replay the exact product closure with classifier-caller tracing
         env:
           GH_TOKEN: ${{ github.token }}
           HRT_M11_MODAL_CAPTURE_PATH: ${{ github.workspace }}/build/proof/hword-modal-dialog.png
@@ -66,11 +67,11 @@ jobs:
           mkdir -p build/generated
           python3 runtime/m11/augment_full_product_replay_v2.py \
             runtime/m11/run_korean_title_staged_replay.sh \
-            build/generated/run_korean_title_framectx.sh
-          test -x build/generated/run_korean_title_framectx.sh
-          build/generated/run_korean_title_framectx.sh
+            build/generated/run_korean_title_classifierctx.sh
+          test -x build/generated/run_korean_title_classifierctx.sh
+          build/generated/run_korean_title_classifierctx.sh
 
-      - name: Resolve empty-path opens through canonical saved-frame returns
+      - name: Resolve empty-path opens to the direct HWord classifier caller
         if: always()
         run: |
           set -euxo pipefail
@@ -79,14 +80,15 @@ jobs:
             >build/proof/open-context-lines.txt || true
           grep -F 'HRT M11 FRAMECTX:' build/proof/stderr.txt \
             >build/proof/frame-context-lines.txt || true
+          grep -F 'HRT M11 CLASSIFIERCTX:' build/proof/stderr.txt \
+            >build/proof/classifier-context-lines.txt || true
           python3 - <<'PY'
           import json
+          import os
           import re
           from pathlib import Path
 
-          stderr_path = Path('build/proof/stderr.txt')
-          stderr = stderr_path.read_text(errors='replace') \
-              if stderr_path.is_file() else ''
+          stderr = Path('build/proof/stderr.txt').read_text(errors='replace')
           lines = stderr.splitlines()
           open_lines = [line for line in lines
                         if line.startswith('HRT M11 DOCIO:') and ' op=open ' in line]
@@ -94,107 +96,87 @@ jobs:
                            if line.startswith('HRT M11 OPENCTX:')]
           frame_contexts = [line for line in lines
                             if line.startswith('HRT M11 FRAMECTX:')]
+          classifier_contexts = [line for line in lines
+                                 if line.startswith('HRT M11 CLASSIFIERCTX:')]
 
-          pairs = []
+          records = []
           pending = None
           for line in lines:
               if line.startswith('HRT M11 DOCIO:') and ' op=open ' in line:
+                  if pending is not None:
+                      records.append(pending)
                   pending = {'open': line}
                   continue
               if pending is None:
                   continue
               if line.startswith('HRT M11 OPENCTX:'):
                   pending['open_context'] = line
-                  continue
-              if not line.startswith('HRT M11 FRAMECTX:'):
-                  continue
-
-              pending['frame_context'] = line
-              rbps = dict(re.findall(
-                  r'frame(\d+)-rbp=(0x[0-9a-f]+)', line))
-              saved = dict(re.findall(
-                  r'frame(\d+)-saved=(0x[0-9a-f]+)', line))
-              returned = dict(re.findall(
-                  r'frame(\d+)-return=(0x[0-9a-f]+)', line))
-              objects = dict(re.findall(
-                  r'frame(\d+)-return-object=(\S+)', line))
-              offsets = dict(re.findall(
-                  r'frame(\d+)-return-file-offset=(0x[0-9a-f]+)', line))
-
-              indices = sorted(
-                  {int(value) for value in rbps} |
-                  {int(value) for value in returned})
-              frames = []
-              for index in indices:
-                  key = str(index)
-                  frames.append({
-                      'index': index,
-                      'rbp': rbps.get(key),
-                      'saved_rbp': saved.get(key),
-                      'return_address': returned.get(key),
-                      'object': objects.get(key, '(unmapped)'),
-                      'file_offset': offsets.get(key),
-                  })
-
-              non_runtime = [
-                  frame for frame in frames
-                  if frame['object'] not in {
-                      '(unmapped)',
-                      '/lib/x86_64-linux-gnu/libc.so.6',
-                      '/lib64/ld-linux-x86-64.so.2',
+              elif line.startswith('HRT M11 FRAMECTX:'):
+                  pending['frame_context'] = line
+              elif line.startswith('HRT M11 CLASSIFIERCTX:'):
+                  pending['classifier_context'] = line
+                  object_match = re.search(
+                      r'caller-return-object=(\S+)', line)
+                  offset_match = re.search(
+                      r'caller-return-file-offset=(0x[0-9a-f]+)', line)
+                  return_match = re.search(
+                      r'\bcaller-return=(0x[0-9a-f]+)', line)
+                  pending['direct_caller'] = {
+                      'return_address':
+                          return_match.group(1) if return_match else None,
+                      'object':
+                          object_match.group(1) if object_match else None,
+                      'file_offset':
+                          offset_match.group(1) if offset_match else None,
                   }
-              ]
-              hoffice = [
-                  frame for frame in frames
-                  if frame['object'].startswith('/opt/hnc/hoffice11/')
-              ]
-              pending.update({
-                  'canonical_frames': frames,
-                  'first_non_runtime_frame':
-                      non_runtime[0] if non_runtime else None,
-                  'first_hoffice_frame':
-                      hoffice[0] if hoffice else None,
-              })
-              pairs.append(pending)
-              pending = None
+          if pending is not None:
+              records.append(pending)
 
-          empty_pairs = [item for item in pairs
-                         if re.search(r' guest=(?:\s|$)', item['open'])]
+          empty_records = [
+              record for record in records
+              if re.search(r' guest=(?:\s|$)', record['open'])
+          ]
           payload = {
-              'schema': 3,
-              'host_run': '31398654109',
-              'host_artifact_digest':
-                  'c5072f673429ff912af82e1011eb1841b249db68ad9e72fa5b5a24f165751613',
-              'frame_limit_expected': 8,
+              'schema': 4,
+              'host_run': os.environ['HOST_RUN_ID'],
+              'host_artifact_digest': os.environ['HOST_ARTIFACT_DIGEST'],
+              'classifier_fopen_return_file_offset': '0xe15e32',
               'open_line_count': len(open_lines),
               'open_context_count': len(open_contexts),
               'frame_context_count': len(frame_contexts),
-              'paired_count': len(pairs),
-              'empty_path_pairs': empty_pairs,
-              'empty_path_first_hoffice_frames': [
-                  item['first_hoffice_frame'] for item in empty_pairs
+              'classifier_context_count': len(classifier_contexts),
+              'record_count': len(records),
+              'empty_path_records': empty_records,
+              'empty_path_direct_callers': [
+                  record.get('direct_caller') for record in empty_records
               ],
-              'all_empty_paths_have_canonical_frames': bool(empty_pairs) and all(
-                  item['canonical_frames'] for item in empty_pairs),
           }
-          Path('build/proof/frame-context-summary.json').write_text(
+          output = Path('build/proof/classifier-caller-summary.json')
+          output.write_text(
               json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
               encoding='utf-8')
+          Path('build/proof/frame-context-summary.json').write_text(
+              output.read_text(encoding='utf-8'), encoding='utf-8')
+          Path('build/proof/open-context-summary.json').write_text(
+              output.read_text(encoding='utf-8'), encoding='utf-8')
           print(json.dumps(payload, ensure_ascii=False, indent=2))
 
-          if empty_pairs:
-              assert all(item.get('frame_context') for item in empty_pairs), \
-                  'an empty-path open lacks canonical frame context'
-              assert all(item['canonical_frames'] for item in empty_pairs), \
-                  'canonical frame walk returned no frame'
+          if len(empty_records) != 3:
+              raise SystemExit(
+                  f'expected three empty-path opens, found {len(empty_records)}')
+          if not all(record.get('classifier_context') for record in empty_records):
+              raise SystemExit('an empty-path open lacks CLASSIFIERCTX')
+          if not all(record.get('direct_caller', {}).get('file_offset')
+                     for record in empty_records):
+              raise SystemExit('an empty-path classifier caller was not resolved')
           PY
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: hrt-m11-hword-frame-callsite-proof
+          name: hrt-m11-hword-classifier-caller-proof
           path: |
-            build/generated/run_korean_title_framectx.sh
+            build/generated/run_korean_title_classifierctx.sh
             build/host/hrt-m11-korean-staged
             build/proof
             diagnostics/m11-korean-title-staged-*.json
