@@ -18,7 +18,8 @@ Every substitution emits a fixed ``HRT M11 EMPTYFALLBACK`` marker.  Non-empty
 paths, later stages, writes, other directory descriptors and calls after the
 third substitution retain their original behavior.  No guest ELF is modified
 by this transform.  This revision rebuilds the experiment after the stable v2
-wrapper was corrected to preserve its generated Python escape sequences.
+wrapper was corrected to preserve its generated Python escape sequences and
+the F_GETPATH context audit was scoped for the preceding sendfile transform.
 """
 from __future__ import annotations
 
