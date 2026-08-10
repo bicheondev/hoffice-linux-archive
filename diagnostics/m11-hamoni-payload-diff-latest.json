@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "workflow_run": "31409377897",
+  "commit": "9f5565d5d69e32d2d916a98f4248515a8b945c0a",
+  "status": "PASS",
+  "classification": "HAMONI_AND_VANILLA_CRITICAL_HWORD_PAYLOAD_IDENTICAL",
+  "hamoni_asset": "hoffice_11.20.0.1520+h1_amd64.deb",
+  "hamoni_sha256": "23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46",
+  "vanilla_asset": "hoffice_11.20.0.1520_amd64.deb",
+  "vanilla_sha256": "1ecb2f82e915b49706d1f5f6d206f8bd4a9384fda2bd56798c94046865fe5730",
+  "hamoni_file_count": 20589,
+  "vanilla_file_count": 20588,
+  "identical_file_count": 20588,
+  "added_count": 1,
+  "removed_count": 0,
+  "changed_count": 0,
+  "hword_added_count": 0,
+  "hword_removed_count": 0,
+  "hword_changed_count": 0,
+  "critical_hword_files": {
+    "/opt/hnc/hoffice11/Bin/hword": {
+      "hamoni": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+      "vanilla": "55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb",
+      "identical": true
+    },
+    "/opt/hnc/hoffice11/Bin/libHwordApp.so": {
+      "hamoni": "e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50",
+      "vanilla": "e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50",
+      "identical": true
+    },
+    "/opt/hnc/hoffice11/Bin/HwordAction.so": {
+      "hamoni": "e6de430ac740865928cf3947d1a7a90bf7e5df37d609e85a86051d99d3949cbc",
+      "vanilla": "e6de430ac740865928cf3947d1a7a90bf7e5df37d609e85a86051d99d3949cbc",
+      "identical": true
+    },
+    "/opt/hnc/hoffice11/Shared/HwordTemplate/Docx/ko-KR/Document.hwdt": {
+      "hamoni": "764c0b7afc66d0613549c6a9c665160c1d341572844ee45712aaa462d9790775",
+      "vanilla": "764c0b7afc66d0613549c6a9c665160c1d341572844ee45712aaa462d9790775",
+      "identical": true
+    }
+  },
+  "hword_added": [],
+  "hword_removed": [],
+  "hword_changed": [],
+  "added": [
+    {
+      "path": "/opt/hnc/hoffice11/Bin/qt/plugins/platforminputcontexts/libqt5im-nimf.so",
+      "hamoni_sha256": "d246c02a20a1e4ea123f9c2275dfc4a2ea091a65032ddbbe8a59bfc71418f60c"
+    }
+  ],
+  "removed": [],
+  "changed": []
+}
