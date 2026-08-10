@@ -160,12 +160,14 @@ static FILE *hrt_dispatch(const char *symbol, const char *filename,
     return real_function(applied ? hrt_blank_template : filename, mode);
 }
 
+__attribute__((visibility("default")))
 FILE *fopen(const char *filename, const char *mode)
 {
     return hrt_dispatch("fopen", filename, mode,
                         __builtin_return_address(0));
 }
 
+__attribute__((visibility("default")))
 FILE *fopen64(const char *filename, const char *mode)
 {
     return hrt_dispatch("fopen64", filename, mode,
