@@ -1,0 +1,203 @@
+name: HOffice runtime M11 guest-interposer orchestrator
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'diagnostics/m11-fopen-preload-integrated-latest.json'
+      - 'diagnostics/m11-integrated-monitor-latest.json'
+      - 'diagnostics/m11-fopen-preload-v2-latest.json'
+      - 'diagnostics/m11-fopen-preload-v3-latest.json'
+      - 'diagnostics/m11-preload-v3-callers-latest.json'
+      - 'diagnostics/m11-empty-mask-matrix-latest.json'
+      - 'diagnostics/m11-empty-open-caller-ghidra-latest.json'
+      - '.github/workflows/hoffice-runtime-m11-orchestrator-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: hrt-m11-guest-interposer-orchestrator-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  route:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select the strongest guest-side compatibility frontier
+        id: classify
+        run: |
+          set -euxo pipefail
+          mkdir -p diagnostics
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          files={
+              'integrated':'diagnostics/m11-fopen-preload-integrated-latest.json',
+              'integrated_monitor':'diagnostics/m11-integrated-monitor-latest.json',
+              'preload_v2':'diagnostics/m11-fopen-preload-v2-latest.json',
+              'preload_v3':'diagnostics/m11-fopen-preload-v3-latest.json',
+              'preload_v3_callers':'diagnostics/m11-preload-v3-callers-latest.json',
+              'mask_matrix':'diagnostics/m11-empty-mask-matrix-latest.json',
+              'caller_ghidra':'diagnostics/m11-empty-open-caller-ghidra-latest.json',
+          }
+          evidence={}
+          for key,name in files.items():
+              path=Path(name)
+              if path.is_file():
+                  evidence[key]=json.loads(path.read_text(encoding='utf-8'))
+
+          def cls(item): return item.get('classification','') if item else ''
+          def pass_text(item):
+              return bool(item) and (item.get('status')=='PASS' or 'TEXT_ACCEPTED' in cls(item))
+          def editor(item):
+              return bool(item) and (
+                  item.get('editor_materialized') is True or
+                  'EDITOR_MATERIALIZED' in cls(item))
+          def no_modal(item):
+              return bool(item) and (
+                  item.get('modal') is False or 'NO_MODAL' in cls(item))
+          def applied(item):
+              return bool(item) and (
+                  int(item.get('applied_count',0))>0 or
+                  int(item.get('eligible_count',0))>0)
+
+          candidates=[evidence.get(key) for key in
+                      ('preload_v3','integrated','preload_v2')]
+          route='WAIT_FOR_GUEST_INTERPOSER'
+          reason='No durable guest-side fopen experiment is available.'
+          status='DIAGNOSTIC'; best=None
+          credited=[item for item in candidates if pass_text(item)]
+          materialized=[item for item in candidates if editor(item)]
+          cleared=[item for item in candidates if no_modal(item)]
+          exercised=[item for item in candidates if applied(item)]
+
+          if credited:
+              best=credited[0]; status='PASS'; route='M12_SAVE_OPEN_AND_IME'
+              reason='A credible HwordAppView accepted staged input through the guest interposer.'
+          elif materialized:
+              best=materialized[0]; status='PARTIAL_PASS'; route='M12_FOCUS_IME_AND_TEXT'
+              reason='The HWord editor materialized; credible focus, IME and persistence remain.'
+          elif cleared:
+              best=cleared[0]; route='M11_TRACE_EDITOR_CONSTRUCTION_AFTER_CLASSIFIER'
+              reason='The guest-side compatibility boundary removed the modal but no editor materialized.'
+          elif evidence.get('preload_v3'):
+              item=evidence['preload_v3']; best=item
+              if 'NOT_LOADED' in cls(item):
+                  route='M11_REPAIR_PRELOAD_LOADER'
+                  reason='The scoped interposer was not accepted by the guest dynamic loader.'
+              elif 'NO_ELIGIBLE_HOFFICE_CALL' in cls(item):
+                  route='M11_EXPAND_INTERPOSER_SYMBOL_SURFACE'
+                  reason='The scoped fopen symbols did not observe the document classifier call.'
+              elif applied(item) and 'MODAL_PERSISTS' in cls(item):
+                  route='M11_DECOMPILE_SCOPED_CALLER_AND_PATCH_LOGIC'
+                  reason='The exact HOffice fopen call was substituted but the validation modal persisted.'
+              elif item.get('fatal'):
+                  route='M11_REPAIR_SCOPED_INTERPOSER_FATAL'
+                  reason='The scoped interposer crossed a fatal guest or host boundary.'
+          elif evidence.get('integrated'):
+              item=evidence['integrated']; best=item
+              if 'NO_INTERCEPT' in cls(item):
+                  route='M11_RUN_SCOPED_INTERPOSER'
+                  reason='The unscoped interposer loaded but did not intercept a qualifying call.'
+              elif applied(item) and 'MODAL_PERSISTS' in cls(item):
+                  route='M11_RUN_SCOPED_INTERPOSER_AND_CALLER_ATTRIBUTION'
+                  reason='Unscoped substitution was exercised but did not clear the modal.'
+          elif evidence.get('integrated_monitor'):
+              monitor=evidence['integrated_monitor']
+              if monitor.get('target_conclusion')=='failure':
+                  route='M11_REPAIR_INTEGRATED_WORKFLOW_FAILURE'
+                  reason='The integrated host/shim/replay workflow failed before classification.'
+
+          if route=='M11_DECOMPILE_SCOPED_CALLER_AND_PATCH_LOGIC':
+              callers=evidence.get('preload_v3_callers')
+              ghidra=evidence.get('caller_ghidra')
+              if not callers:
+                  route='M11_ATTRIBUTE_SCOPED_FOPEN_CALLERS'
+                  reason+=' Exact ELF caller attribution is pending.'
+              elif not ghidra or not ghidra.get('decompilation_completed'):
+                  route='M11_DECOMPILE_ATTRIBUTED_SCOPED_CALLER'
+                  reason+=' Bounded decompilation is pending.'
+
+          payload={
+              'schema':3,'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],'status':status,
+              'route':route,'reason':reason,
+              'available_evidence':sorted(evidence),
+              'best_classification':cls(best),'best_result':best,
+              'evidence':evidence,
+          }
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          Path('diagnostics/m11-orchestrator-v3-latest.json').write_text(
+              encoded,encoding='utf-8')
+          Path(f"diagnostics/m11-orchestrator-v3-{os.environ['GITHUB_RUN_ID']}.json").write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-orchestrator-v3-latest.md').write_text(
+              '# HOffice M11 guest-interposer orchestrator\n\n'
+              f"- Status: `{status}`\n- Route: `{route}`\n"
+              f"- Reason: {reason}\n- Evidence: `{sorted(evidence)}`\n",
+              encoding='utf-8')
+          with Path(os.environ['GITHUB_OUTPUT']).open('a',encoding='utf-8') as output:
+              output.write(f'route={route}\n')
+          print(encoded)
+          PY
+      - name: Dispatch only the missing next experiment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ROUTE: ${{ steps.classify.outputs.route }}
+        run: |
+          set -euxo pipefail
+          dispatch() { gh workflow run "$1" --ref codex/hoffice-runtime-from-scratch || true; }
+          case "$ROUTE" in
+            WAIT_FOR_GUEST_INTERPOSER|M11_RUN_SCOPED_INTERPOSER)
+              dispatch hoffice-runtime-m11-build-sendfile-trace-host.yml
+              dispatch hoffice-runtime-m11-build-fopen-preload-v3.yml
+              dispatch hoffice-runtime-m11-fopen-preload-replay-v3.yml
+              ;;
+            M11_RUN_SCOPED_INTERPOSER_AND_CALLER_ATTRIBUTION)
+              dispatch hoffice-runtime-m11-build-fopen-preload-v3.yml
+              dispatch hoffice-runtime-m11-fopen-preload-replay-v3.yml
+              dispatch hoffice-runtime-m11-preload-v3-callers.yml
+              ;;
+            M11_ATTRIBUTE_SCOPED_FOPEN_CALLERS)
+              dispatch hoffice-runtime-m11-preload-v3-callers.yml
+              ;;
+            M11_DECOMPILE_ATTRIBUTED_SCOPED_CALLER)
+              dispatch hoffice-runtime-m11-empty-caller-ghidra.yml
+              ;;
+            M11_REPAIR_INTEGRATED_WORKFLOW_FAILURE)
+              dispatch hoffice-runtime-m11-fopen-preload-integrated.yml
+              dispatch hoffice-runtime-m11-integrated-monitor.yml
+              ;;
+            *) ;;
+          esac
+      - name: Commit the routed guest-side frontier
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-orchestrator-v3-*.json \
+                  diagnostics/m11-orchestrator-v3-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: route the HOffice guest-interposer frontier'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-guest-interposer-orchestrator
+          path: |
+            diagnostics/m11-orchestrator-v3-*.json
+            diagnostics/m11-orchestrator-v3-latest.md
+          if-no-files-found: warn
+          retention-days: 14
