@@ -8,6 +8,8 @@ on:
       - 'runtime/m11/augment_hword_document_io_trace_v2.py'
       - 'runtime/m11/augment_hword_document_io_trace_v3.py'
       - 'runtime/m11/augment_hword_document_io_trace_v4.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v5.py'
+      - 'runtime/m11/augment_hword_document_io_trace_v6.py'
       - 'runtime/m11/run_korean_title_staged_replay.sh'
       - 'runtime/m11/augment_full_product_replay.py'
       - 'runtime/m11/augment_full_product_replay_v2.py'
@@ -23,8 +25,8 @@ concurrency:
 
 env:
   PREPARED_RUN_ID: '31235068358'
-  HOST_RUN_ID: '31373360179'
-  HOST_ARTIFACT_DIGEST: 36b7c3f762eaed577425e73b7d97628d6796dbe18a041581f6d9e9dce3ff8899
+  HOST_RUN_ID: '31398654109'
+  HOST_ARTIFACT_DIGEST: c5072f673429ff912af82e1011eb1841b249db68ad9e72fa5b5a24f165751613
   QPA_RUN_ID: '31305695836'
   QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
   ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
@@ -55,7 +57,7 @@ jobs:
           test -s proofs/m10-clone-chdir.json
           grep -F '"status": "PASS"' proofs/m10-clone-chdir.json
 
-      - name: Replay the exact product closure with open-callsite tracing
+      - name: Replay the exact product closure with canonical frame tracing
         env:
           GH_TOKEN: ${{ github.token }}
           HRT_M11_MODAL_CAPTURE_PATH: ${{ github.workspace }}/build/proof/hword-modal-dialog.png
@@ -64,17 +66,19 @@ jobs:
           mkdir -p build/generated
           python3 runtime/m11/augment_full_product_replay_v2.py \
             runtime/m11/run_korean_title_staged_replay.sh \
-            build/generated/run_korean_title_openctx.sh
-          test -x build/generated/run_korean_title_openctx.sh
-          build/generated/run_korean_title_openctx.sh
+            build/generated/run_korean_title_framectx.sh
+          test -x build/generated/run_korean_title_framectx.sh
+          build/generated/run_korean_title_framectx.sh
 
-      - name: Resolve empty-path opens through the first HOffice return
+      - name: Resolve empty-path opens through canonical saved-frame returns
         if: always()
         run: |
           set -euxo pipefail
           test -f build/proof/stderr.txt
           grep -F 'HRT M11 OPENCTX:' build/proof/stderr.txt \
             >build/proof/open-context-lines.txt || true
+          grep -F 'HRT M11 FRAMECTX:' build/proof/stderr.txt \
+            >build/proof/frame-context-lines.txt || true
           python3 - <<'PY'
           import json
           import re
@@ -86,100 +90,111 @@ jobs:
           lines = stderr.splitlines()
           open_lines = [line for line in lines
                         if line.startswith('HRT M11 DOCIO:') and ' op=open ' in line]
-          contexts = [line for line in lines
-                      if line.startswith('HRT M11 OPENCTX:')]
+          open_contexts = [line for line in lines
+                           if line.startswith('HRT M11 OPENCTX:')]
+          frame_contexts = [line for line in lines
+                            if line.startswith('HRT M11 FRAMECTX:')]
+
           pairs = []
           pending = None
           for line in lines:
               if line.startswith('HRT M11 DOCIO:') and ' op=open ' in line:
-                  pending = line
+                  pending = {'open': line}
                   continue
-              if not line.startswith('HRT M11 OPENCTX:') or pending is None:
+              if pending is None:
+                  continue
+              if line.startswith('HRT M11 OPENCTX:'):
+                  pending['open_context'] = line
+                  continue
+              if not line.startswith('HRT M11 FRAMECTX:'):
                   continue
 
-              objects = {}
-              for label, value in re.findall(
-                      r'(rip|stack\d+)-object=(.*?)(?=\s+(?:rip|stack\d+)-'
-                      r'(?:object|file-offset)=|$)', line):
-                  objects[label] = value
+              pending['frame_context'] = line
+              rbps = dict(re.findall(
+                  r'frame(\d+)-rbp=(0x[0-9a-f]+)', line))
+              saved = dict(re.findall(
+                  r'frame(\d+)-saved=(0x[0-9a-f]+)', line))
+              returned = dict(re.findall(
+                  r'frame(\d+)-return=(0x[0-9a-f]+)', line))
+              objects = dict(re.findall(
+                  r'frame(\d+)-return-object=(\S+)', line))
               offsets = dict(re.findall(
-                  r'(rip|stack\d+)-file-offset=(0x[0-9a-f]+)', line))
-              values = {
-                  label: value
-                  for label, value in re.findall(
-                      r'\b(stack\d+)=(0x[0-9a-f]+)', line)
-              }
+                  r'frame(\d+)-return-file-offset=(0x[0-9a-f]+)', line))
 
-              chain = []
-              for label in sorted(
-                      (key for key in objects if key.startswith('stack')),
-                      key=lambda key: int(key[5:])):
-                  obj = objects[label]
-                  if obj == '(unmapped)':
-                      continue
-                  chain.append({
-                      'slot': int(label[5:]),
-                      'value': values.get(label),
-                      'object': obj,
-                      'file_offset': offsets.get(label),
+              indices = sorted(
+                  {int(value) for value in rbps} |
+                  {int(value) for value in returned})
+              frames = []
+              for index in indices:
+                  key = str(index)
+                  frames.append({
+                      'index': index,
+                      'rbp': rbps.get(key),
+                      'saved_rbp': saved.get(key),
+                      'return_address': returned.get(key),
+                      'object': objects.get(key, '(unmapped)'),
+                      'file_offset': offsets.get(key),
                   })
-              hoffice_chain = [
-                  item for item in chain
-                  if item['object'].startswith('/opt/hnc/hoffice11/')
-              ]
-              non_libc_chain = [
-                  item for item in chain
-                  if item['object'] not in {
+
+              non_runtime = [
+                  frame for frame in frames
+                  if frame['object'] not in {
+                      '(unmapped)',
                       '/lib/x86_64-linux-gnu/libc.so.6',
                       '/lib64/ld-linux-x86-64.so.2',
                   }
               ]
-              pairs.append({
-                  'open': pending,
-                  'context': line,
-                  'resolved_objects': objects,
-                  'resolved_offsets': offsets,
-                  'resolved_stack_chain': chain,
-                  'stack15_return': next(
-                      (item for item in chain if item['slot'] == 15), None),
-                  'stack21_return': next(
-                      (item for item in chain if item['slot'] == 21), None),
-                  'first_non_libc_return':
-                      non_libc_chain[0] if non_libc_chain else None,
-                  'first_hoffice_return':
-                      hoffice_chain[0] if hoffice_chain else None,
+              hoffice = [
+                  frame for frame in frames
+                  if frame['object'].startswith('/opt/hnc/hoffice11/')
+              ]
+              pending.update({
+                  'canonical_frames': frames,
+                  'first_non_runtime_frame':
+                      non_runtime[0] if non_runtime else None,
+                  'first_hoffice_frame':
+                      hoffice[0] if hoffice else None,
               })
+              pairs.append(pending)
               pending = None
 
           empty_pairs = [item for item in pairs
                          if re.search(r' guest=(?:\s|$)', item['open'])]
           payload = {
-              'schema': 2,
-              'host_run': '31373360179',
-              'stack_word_count_expected': 32,
+              'schema': 3,
+              'host_run': '31398654109',
+              'host_artifact_digest':
+                  'c5072f673429ff912af82e1011eb1841b249db68ad9e72fa5b5a24f165751613',
+              'frame_limit_expected': 8,
               'open_line_count': len(open_lines),
-              'open_context_count': len(contexts),
+              'open_context_count': len(open_contexts),
+              'frame_context_count': len(frame_contexts),
               'paired_count': len(pairs),
               'empty_path_pairs': empty_pairs,
-              'empty_path_first_hoffice_returns': [
-                  item['first_hoffice_return'] for item in empty_pairs
+              'empty_path_first_hoffice_frames': [
+                  item['first_hoffice_frame'] for item in empty_pairs
               ],
+              'all_empty_paths_have_canonical_frames': bool(empty_pairs) and all(
+                  item['canonical_frames'] for item in empty_pairs),
           }
-          Path('build/proof/open-context-summary.json').write_text(
+          Path('build/proof/frame-context-summary.json').write_text(
               json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
               encoding='utf-8')
           print(json.dumps(payload, ensure_ascii=False, indent=2))
+
           if empty_pairs:
-              assert all('stack31=' in item['context'] for item in empty_pairs), \
-                  'the replay did not use the 32-word host artifact'
+              assert all(item.get('frame_context') for item in empty_pairs), \
+                  'an empty-path open lacks canonical frame context'
+              assert all(item['canonical_frames'] for item in empty_pairs), \
+                  'canonical frame walk returned no frame'
           PY
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: hrt-m11-hword-open-callsite-proof
+          name: hrt-m11-hword-frame-callsite-proof
           path: |
-            build/generated/run_korean_title_openctx.sh
+            build/generated/run_korean_title_framectx.sh
             build/host/hrt-m11-korean-staged
             build/proof
             diagnostics/m11-korean-title-staged-*.json
