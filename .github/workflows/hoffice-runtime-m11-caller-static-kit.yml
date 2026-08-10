@@ -17,13 +17,21 @@ concurrency:
 
 env:
   PREPARED_RUN_ID: '31235068358'
+  HWORD_APP_EMPTY_PATH_FILE_OFFSET: '0x163ce51'
 
 jobs:
   extract-and-index:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install deterministic ELF analysis tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            --no-install-recommends zstd binutils file python3
 
       - name: Download the exact prepared HWord guest
         uses: actions/download-artifact@v4
@@ -34,14 +42,16 @@ jobs:
           run-id: ${{ env.PREPARED_RUN_ID }}
           github-token: ${{ github.token }}
 
-      - name: Extract the likely open-callsite objects
+      - name: Extract the exact likely caller objects from the zstd shadow root
         run: |
           set -euxo pipefail
           mkdir -p build/root build/objects build/reports
           archive=$(find build/input/prepared -type f \
-            \( -name '*.tar.gz' -o -name '*.tgz' \) -print -quit)
+            \( -name '*.tar.zst' -o -name '*.tzst' -o \
+               -name '*.tar.gz' -o -name '*.tgz' \) -print -quit)
           test -n "$archive"
           printf '%s\n' "$archive" >build/reports/rootfs-archive.txt
+          sha256sum "$archive" >build/reports/rootfs-archive.sha256.txt
 
           cat >build/reports/requested-paths.txt <<'EOF'
           ./lib/x86_64-linux-gnu/libc.so.6
@@ -53,11 +63,48 @@ jobs:
           ./opt/hnc/hoffice11/Bin/libHncBaseDraw.so
           ./opt/hnc/hoffice11/Bin/libHncOfficeCore.so
           EOF
-          while IFS= read -r path; do
-            if tar -tzf "$archive" "$path" >/dev/null 2>&1; then
-              tar -xzf "$archive" -C build/root "$path"
-            fi
-          done <build/reports/requested-paths.txt
+
+          case "$archive" in
+            *.tar.zst|*.tzst)
+              zstd -dc "$archive" | tar -tf - \
+                >build/reports/all-rootfs-paths.txt
+              ;;
+            *.tar.gz|*.tgz)
+              tar -tzf "$archive" >build/reports/all-rootfs-paths.txt
+              ;;
+            *)
+              echo "unsupported prepared archive: $archive" >&2
+              exit 1
+              ;;
+          esac
+
+          python3 - <<'PY'
+          from pathlib import Path
+          available = set(Path('build/reports/all-rootfs-paths.txt').read_text(
+              encoding='utf-8', errors='replace').splitlines())
+          requested = Path('build/reports/requested-paths.txt').read_text(
+              encoding='utf-8').splitlines()
+          present = [path for path in requested if path in available]
+          missing = [path for path in requested if path not in available]
+          Path('build/reports/present-paths.txt').write_text(
+              ''.join(path + '\n' for path in present), encoding='utf-8')
+          Path('build/reports/missing-paths.txt').write_text(
+              ''.join(path + '\n' for path in missing), encoding='utf-8')
+          if './opt/hnc/hoffice11/Bin/libHwordApp.so' not in present:
+              raise SystemExit('prepared guest does not contain libHwordApp.so')
+          print({'present': present, 'missing': missing})
+          PY
+
+          case "$archive" in
+            *.tar.zst|*.tzst)
+              zstd -dc "$archive" | tar -xf - -C build/root \
+                -T build/reports/present-paths.txt
+              ;;
+            *.tar.gz|*.tgz)
+              tar -xzf "$archive" -C build/root \
+                -T build/reports/present-paths.txt
+              ;;
+          esac
 
           find build/root -type f -print | LC_ALL=C sort \
             | tee build/reports/extracted-paths.txt
@@ -70,39 +117,183 @@ jobs:
             sha256sum "$object" >"build/reports/$flat.sha256.txt"
             readelf -hW "$object" >"build/reports/$flat.elf-header.txt"
             readelf -lW "$object" >"build/reports/$flat.program-headers.txt"
+            readelf -SW "$object" >"build/reports/$flat.sections.txt"
             readelf -dW "$object" >"build/reports/$flat.dynamic.txt"
             readelf -Ws "$object" >"build/reports/$flat.symbols.txt"
             readelf -rW "$object" >"build/reports/$flat.relocations.txt"
-            objdump -dC "$object" >"build/reports/$flat.disassembly.txt"
           done <build/reports/extracted-paths.txt
 
-      - name: Produce focused disassembly windows
+      - name: Convert runtime file offsets to ELF virtual addresses and symbols
         run: |
           set -euxo pipefail
           python3 - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
           from pathlib import Path
+          import re
+          import struct
           import subprocess
 
           requests = {
-              'lib_x86_64-linux-gnu_libc.so.6': [0x91b0f, 0x11b213, 0x11c8e2],
-              'opt_hnc_hoffice11_Bin_libhsp.so': [0xfe88e],
-              'opt_hnc_hoffice11_Bin_libHncFoundation.so': [0x1247bc],
+              'lib_x86_64-linux-gnu_libc.so.6': [
+                  0x91B0F, 0x91E52, 0x944D0, 0x11B213, 0x11C8E2,
+              ],
+              'opt_hnc_hoffice11_Bin_libHwordApp.so': [
+                  int(os.environ['HWORD_APP_EMPTY_PATH_FILE_OFFSET'], 0),
+              ],
+              'opt_hnc_hoffice11_Bin_libhsp.so': [0xFE88E],
+              'opt_hnc_hoffice11_Bin_libHncFoundation.so': [0x1247BC],
           }
-          for flat, addresses in requests.items():
-              object_path = Path('build/objects') / flat
-              if not object_path.is_file():
+
+          def parse_elf(path: Path):
+              blob = path.read_bytes()
+              header = struct.unpack_from('<16sHHIQQQIHHHHHH', blob, 0)
+              ident = header[0]
+              if ident[:4] != b'\x7fELF' or ident[4] != 2 or ident[5] != 1:
+                  raise RuntimeError(f'not little-endian ELF64: {path}')
+              phoff = header[5]
+              phentsize = header[9]
+              phnum = header[10]
+              if phentsize != 56:
+                  raise RuntimeError(f'unexpected program-header size: {path}')
+              segments = []
+              for index in range(phnum):
+                  values = struct.unpack_from(
+                      '<IIQQQQQQ', blob, phoff + index * phentsize)
+                  p_type, p_flags, p_offset, p_vaddr, p_paddr, \
+                      p_filesz, p_memsz, p_align = values
+                  if p_type == 1:
+                      segments.append({
+                          'index': index,
+                          'flags': p_flags,
+                          'file_offset': p_offset,
+                          'virtual_address': p_vaddr,
+                          'file_size': p_filesz,
+                          'memory_size': p_memsz,
+                          'alignment': p_align,
+                      })
+              return blob, segments
+
+          def read_symbols(path: Path):
+              output = subprocess.run(
+                  ['readelf', '-Ws', str(path)], check=True,
+                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                  text=True).stdout
+              pattern = re.compile(
+                  r'^\s*\d+:\s+([0-9a-fA-F]+)\s+(\d+)\s+(\S+)\s+'
+                  r'(\S+)\s+(\S+)\s+(\S+)\s+(.*)$')
+              symbols = []
+              for line in output.splitlines():
+                  match = pattern.match(line)
+                  if not match:
+                      continue
+                  value = int(match.group(1), 16)
+                  size = int(match.group(2))
+                  name = match.group(7).strip()
+                  if value == 0 or not name:
+                      continue
+                  symbols.append({
+                      'value': value,
+                      'size': size,
+                      'type': match.group(3),
+                      'binding': match.group(4),
+                      'visibility': match.group(5),
+                      'section': match.group(6),
+                      'name': name,
+                  })
+              return symbols
+
+          results = []
+          for flat, offsets in requests.items():
+              path = Path('build/objects') / flat
+              if not path.is_file():
                   continue
-              for address in addresses:
-                  start = max(0, address - 0x100)
-                  stop = address + 0x120
-                  output = Path('build/reports') / (
-                      f'{flat}.around-0x{address:x}.txt')
-                  result = subprocess.run(
-                      ['objdump', '-dC', f'--start-address={start}',
-                       f'--stop-address={stop}', str(object_path)],
-                      check=True, stdout=subprocess.PIPE,
-                      stderr=subprocess.STDOUT, text=True)
-                  output.write_text(result.stdout, encoding='utf-8')
+              blob, segments = parse_elf(path)
+              symbols = read_symbols(path)
+              for file_offset in offsets:
+                  segment = next((item for item in segments
+                      if item['file_offset'] <= file_offset <
+                         item['file_offset'] + item['file_size']), None)
+                  if segment is None:
+                      result = {
+                          'object': flat,
+                          'path': str(path),
+                          'file_offset': file_offset,
+                          'classification': 'OUTSIDE_PT_LOAD',
+                      }
+                      results.append(result)
+                      continue
+                  virtual = (segment['virtual_address'] + file_offset -
+                             segment['file_offset'])
+                  containing = [item for item in symbols
+                      if item['value'] <= virtual and item['size'] > 0 and
+                         virtual < item['value'] + item['size']]
+                  preceding = [item for item in symbols
+                      if item['value'] <= virtual]
+                  nearest = max(containing or preceding,
+                                key=lambda item: item['value'], default=None)
+                  result = {
+                      'object': flat,
+                      'path': str(path),
+                      'file_offset': file_offset,
+                      'virtual_address': virtual,
+                      'segment': segment,
+                      'segment_executable': bool(segment['flags'] & 1),
+                      'nearest_symbol': nearest,
+                      'offset_from_nearest_symbol':
+                          virtual - nearest['value'] if nearest else None,
+                      'bytes_before': blob[max(0, file_offset - 32):file_offset].hex(),
+                      'bytes_at_and_after': blob[
+                          file_offset:min(len(blob), file_offset + 64)].hex(),
+                  }
+                  results.append(result)
+
+                  prefix = Path('build/reports') / (
+                      f'{flat}.file-0x{file_offset:x}.vaddr-0x{virtual:x}')
+                  if segment['flags'] & 1:
+                      start = max(segment['virtual_address'], virtual - 0x180)
+                      stop = min(segment['virtual_address'] +
+                                 segment['memory_size'], virtual + 0x200)
+                      disassembly = subprocess.run(
+                          ['objdump', '-dC', f'--start-address={start}',
+                           f'--stop-address={stop}', str(path)],
+                          check=True, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, text=True).stdout
+                      prefix.with_suffix('.disassembly.txt').write_text(
+                          disassembly, encoding='utf-8')
+                  else:
+                      start = max(0, file_offset - 0x100)
+                      stop = min(len(blob), file_offset + 0x180)
+                      prefix.with_suffix('.hex.txt').write_text(
+                          '\n'.join(
+                              f'{offset:08x}: ' + blob[offset:offset+16].hex(' ')
+                              for offset in range(start, stop, 16)
+                          ) + '\n', encoding='utf-8')
+
+          payload = {'schema': 1, 'requests': results}
+          Path('build/reports/offset-attribution.json').write_text(
+              json.dumps(payload, indent=2) + '\n', encoding='utf-8')
+          Path('build/reports/offset-attribution.md').write_text(
+              '# Exact ELF offset attribution\n\n' + '\n'.join(
+                  f"- `{item['object']}` file `0x{item['file_offset']:x}`"
+                  + (f" → VA `0x{item['virtual_address']:x}`, "
+                     f"exec `{item['segment_executable']}`, nearest "
+                     f"`{item['nearest_symbol']['name'] if item['nearest_symbol'] else None}`"
+                     if 'virtual_address' in item else
+                     f" → `{item['classification']}`")
+                  for item in results) + '\n',
+              encoding='utf-8')
+          print(json.dumps(payload, indent=2))
+
+          target = next(item for item in results
+              if item['object'] ==
+                 'opt_hnc_hoffice11_Bin_libHwordApp.so' and
+                 item['file_offset'] ==
+                 int(os.environ['HWORD_APP_EMPTY_PATH_FILE_OFFSET'], 0))
+          if target.get('classification') == 'OUTSIDE_PT_LOAD':
+              raise SystemExit('repeated libHwordApp address is outside PT_LOAD')
           PY
 
       - uses: actions/upload-artifact@v4
