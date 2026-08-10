@@ -14,10 +14,11 @@ matching close.  Every v1 anchor and marker audit remains intact.
 The public v2 entry point then runs the reviewed open-callsite postprocessor
 through the v6 literal-safe bounded frame-chain wrapper.  v6 preserves v4's
 literal F_GETPATH fix and 32-word context, then credits callers only from
-canonical saved RBP/return pairs.  The nested v2 invocation made by v3 is
-identified both by an explicit environment guard and by v3's private temporary
-directory prefix, preventing recursion while preserving direct invocation of
-any entry point.
+canonical saved RBP/return pairs.  Its generated-source audit includes the
+fourth resolver introduced for canonical frame returns.  The nested v2
+invocation made by v3 is identified both by an explicit environment guard and
+by v3's private temporary-directory prefix, preventing recursion while
+preserving direct invocation of any entry point.
 """
 from __future__ import annotations
 
