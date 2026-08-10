@@ -1,0 +1,194 @@
+name: HOffice runtime M11 extended workflow health
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-health-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-workflow-health-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 115
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Wait for active experiments and capture exact failures
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p diagnostics build/health/logs
+          python3 - <<'PY'
+          from __future__ import annotations
+          import json,os,subprocess,time,urllib.parse
+          from pathlib import Path
+
+          repository=os.environ['GITHUB_REPOSITORY']
+          branch=os.environ['GITHUB_REF_NAME']
+          workflows=[
+              'hoffice-runtime-m11-fopen-preload-integrated.yml',
+              'hoffice-runtime-m11-integrated-monitor.yml',
+              'hoffice-runtime-m11-build-sendfile-trace-host.yml',
+              'hoffice-runtime-m11-build-fopen-preload-v2.yml',
+              'hoffice-runtime-m11-fopen-preload-replay-v2.yml',
+              'hoffice-runtime-m11-build-fopen-preload-v3.yml',
+              'hoffice-runtime-m11-fopen-preload-replay-v3.yml',
+              'hoffice-runtime-m11-build-empty-fallback-host.yml',
+              'hoffice-runtime-m11-empty-fallback-replay-v2.yml',
+              'hoffice-runtime-m11-build-sendfile-fallback-host.yml',
+              'hoffice-runtime-m11-sendfile-fallback-replay.yml',
+              'hoffice-runtime-m11-build-empty-mask-matrix.yml',
+              'hoffice-runtime-m11-empty-mask-matrix-replay.yml',
+              'hoffice-runtime-m11-build-empty-buffer-host.yml',
+              'hoffice-runtime-m11-empty-buffer-replay.yml',
+              'hoffice-runtime-m11-build-short-buffer-host-v2.yml',
+              'hoffice-runtime-m11-short-buffer-replay-v2.yml',
+              'hoffice-runtime-m11-empty-caller-static.yml',
+              'hoffice-runtime-m11-empty-caller-ghidra.yml',
+              'hoffice-runtime-m11-generator-selftest.yml',
+              'hoffice-runtime-m11-template-semantic-audit.yml',
+              'hoffice-runtime-m11-hamoni-payload-diff.yml',
+              'hoffice-runtime-m11-syscall-frontier.yml',
+              'hoffice-runtime-m11-orchestrator-v2.yml',
+          ]
+
+          def latest(workflow):
+              query=urllib.parse.urlencode({'branch':branch,'per_page':10})
+              try:
+                  result=subprocess.run([
+                      'gh','api','--method','GET',
+                      f'repos/{repository}/actions/workflows/{workflow}/runs?{query}',
+                  ],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+              except subprocess.CalledProcessError as error:
+                  return {'workflow':workflow,'lookup_error':error.stderr[-4000:]}
+              runs=json.loads(result.stdout).get('workflow_runs',[])
+              runs.sort(key=lambda item:item['created_at'],reverse=True)
+              return runs[0] if runs else {'workflow':workflow,'status':'NO_RUN'}
+
+          deadline=time.monotonic()+100*60
+          snapshots={}
+          while time.monotonic()<deadline:
+              snapshots={workflow:latest(workflow) for workflow in workflows}
+              active=[item for item in snapshots.values()
+                      if item.get('status') in ('queued','in_progress','waiting','pending')]
+              if not active:
+                  break
+              time.sleep(30)
+
+          entries=[]
+          for workflow in workflows:
+              run=snapshots[workflow]
+              if 'id' not in run:
+                  entries.append({'workflow':workflow,**run})
+                  continue
+              jobs=json.loads(subprocess.run([
+                  'gh','api','--method','GET',
+                  f'repos/{repository}/actions/runs/{run["id"]}/jobs?per_page=100',
+              ],check=True,stdout=subprocess.PIPE,text=True).stdout).get('jobs',[])
+              entry={
+                  'workflow':workflow,'run_id':str(run['id']),
+                  'status':run['status'],'conclusion':run.get('conclusion'),
+                  'head_sha':run['head_sha'],'display_title':run['display_title'],
+                  'created_at':run['created_at'],'updated_at':run['updated_at'],
+                  'html_url':run['html_url'],
+                  'jobs':[],
+              }
+              for job in jobs:
+                  compact={
+                      'id':str(job['id']),'name':job['name'],
+                      'status':job['status'],'conclusion':job.get('conclusion'),
+                      'steps':[{
+                          'number':step['number'],'name':step['name'],
+                          'status':step['status'],'conclusion':step.get('conclusion')}
+                          for step in job.get('steps',[])],
+                  }
+                  if job.get('conclusion')=='failure':
+                      try:
+                          raw=subprocess.run([
+                              'gh','api','--method','GET',
+                              f'repos/{repository}/actions/jobs/{job["id"]}/logs',
+                          ],check=True,stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT).stdout.decode('utf-8','replace')
+                      except Exception as error:
+                          raw=repr(error)
+                      log_path=Path('build/health/logs')/f"{run['id']}-{job['id']}.txt"
+                      log_path.write_text(raw,encoding='utf-8')
+                      lines=raw.splitlines()
+                      compact['log_tail']='\n'.join(lines[-400:])
+                      compact['error_lines']=[line for line in lines
+                          if ('##[error]' in line or 'error:' in line.lower() or
+                              'expected ' in line.lower() or 'Traceback' in line or
+                              'Process completed with exit code' in line)][-160:]
+                  entry['jobs'].append(compact)
+              entries.append(entry)
+
+          successful=[item for item in entries if item.get('conclusion')=='success']
+          failed=[item for item in entries if item.get('conclusion')=='failure']
+          active=[item for item in entries
+                  if item.get('status') in ('queued','in_progress','waiting','pending')]
+          absent=[item for item in entries if item.get('status')=='NO_RUN']
+          payload={
+              'schema':2,'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],'branch':branch,
+              'workflow_count':len(workflows),
+              'successful_count':len(successful),
+              'failure_count':len(failed),
+              'active_count':len(active),'no_run_count':len(absent),
+              'all_terminal':len(active)==0,'entries':entries,
+          }
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          Path('diagnostics/m11-workflow-health-v2-latest.json').write_text(
+              encoded,encoding='utf-8')
+          Path(f"diagnostics/m11-workflow-health-v2-{os.environ['GITHUB_RUN_ID']}.json").write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-workflow-health-v2-latest.md').write_text(
+              '# HOffice M11 extended workflow health\n\n'
+              f"- Successful: `{len(successful)}`\n"
+              f"- Failed: `{len(failed)}`\n"
+              f"- Active: `{len(active)}`\n"
+              f"- No run: `{len(absent)}`\n\n"+
+              '\n'.join(
+                  f"- `{item['workflow']}`: `{item.get('status')}` / "
+                  f"`{item.get('conclusion')}` (run `{item.get('run_id')}`)"
+                  for item in entries)+'\n',encoding='utf-8')
+          print(encoded)
+          PY
+      - name: Commit the durable health result
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -s diagnostics/m11-workflow-health-v2-latest.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-workflow-health-v2-*.json \
+                  diagnostics/m11-workflow-health-v2-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: persist the extended HOffice M11 workflow health'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-workflow-health-v2
+          path: |
+            diagnostics/m11-workflow-health-v2-*.json
+            diagnostics/m11-workflow-health-v2-latest.md
+            build/health/logs
+          if-no-files-found: warn
+          retention-days: 14
