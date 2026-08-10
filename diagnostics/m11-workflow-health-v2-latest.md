@@ -1,0 +1,31 @@
+# HOffice M11 extended workflow health
+
+- Successful: `9`
+- Failed: `15`
+- Active: `0`
+- No run: `0`
+
+- `hoffice-runtime-m11-fopen-preload-integrated.yml`: `completed` / `failure` (run `31412108687`)
+- `hoffice-runtime-m11-integrated-monitor.yml`: `completed` / `success` (run `31412006549`)
+- `hoffice-runtime-m11-build-sendfile-trace-host.yml`: `completed` / `success` (run `31411006933`)
+- `hoffice-runtime-m11-build-fopen-preload-v2.yml`: `completed` / `success` (run `31410319682`)
+- `hoffice-runtime-m11-fopen-preload-replay-v2.yml`: `completed` / `failure` (run `31412112158`)
+- `hoffice-runtime-m11-build-fopen-preload-v3.yml`: `completed` / `success` (run `31411600113`)
+- `hoffice-runtime-m11-fopen-preload-replay-v3.yml`: `completed` / `failure` (run `31412107718`)
+- `hoffice-runtime-m11-build-empty-fallback-host.yml`: `completed` / `failure` (run `31408445825`)
+- `hoffice-runtime-m11-empty-fallback-replay-v2.yml`: `completed` / `failure` (run `31408448028`)
+- `hoffice-runtime-m11-build-sendfile-fallback-host.yml`: `completed` / `failure` (run `31408449938`)
+- `hoffice-runtime-m11-sendfile-fallback-replay.yml`: `completed` / `failure` (run `31408451929`)
+- `hoffice-runtime-m11-build-empty-mask-matrix.yml`: `completed` / `failure` (run `31406061456`)
+- `hoffice-runtime-m11-empty-mask-matrix-replay.yml`: `completed` / `failure` (run `31405812798`)
+- `hoffice-runtime-m11-build-empty-buffer-host.yml`: `completed` / `failure` (run `31407674689`)
+- `hoffice-runtime-m11-empty-buffer-replay.yml`: `completed` / `failure` (run `31407809608`)
+- `hoffice-runtime-m11-build-short-buffer-host-v2.yml`: `completed` / `failure` (run `31408585777`)
+- `hoffice-runtime-m11-short-buffer-replay-v2.yml`: `completed` / `failure` (run `31408734240`)
+- `hoffice-runtime-m11-empty-caller-static.yml`: `completed` / `failure` (run `31405936602`)
+- `hoffice-runtime-m11-empty-caller-ghidra.yml`: `completed` / `success` (run `31406189077`)
+- `hoffice-runtime-m11-generator-selftest.yml`: `completed` / `success` (run `31409093281`)
+- `hoffice-runtime-m11-template-semantic-audit.yml`: `completed` / `success` (run `31409263580`)
+- `hoffice-runtime-m11-hamoni-payload-diff.yml`: `completed` / `success` (run `31409377897`)
+- `hoffice-runtime-m11-syscall-frontier.yml`: `completed` / `failure` (run `31409512975`)
+- `hoffice-runtime-m11-orchestrator-v2.yml`: `completed` / `success` (run `31408430500`)
