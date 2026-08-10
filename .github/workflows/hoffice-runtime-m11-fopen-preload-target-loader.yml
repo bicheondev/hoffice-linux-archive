@@ -79,6 +79,14 @@ jobs:
               env.write(f"SHIM_RUN_ID={selected['run']['id']}\n")
           print(json.dumps(selected,indent=2))
           PY
+          SHIM_RUN_ID=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          source=json.loads(Path('build/report/source-shim.json').read_text())
+          print(source['run']['id'])
+          PY
+          )
+          test -n "$SHIM_RUN_ID"
           gh run download "$SHIM_RUN_ID" --repo "$GITHUB_REPOSITORY" \
             --name "$SHIM_ARTIFACT_NAME" --dir build/input/shim
           test -s build/input/shim/libhrt_hword_fopen.so
