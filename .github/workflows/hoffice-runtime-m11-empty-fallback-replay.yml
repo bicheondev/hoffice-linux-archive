@@ -1,0 +1,336 @@
+name: HOffice runtime M11 empty-path HWDT fallback replay
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-empty-fallback-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-empty-fallback-replay-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREPARED_RUN_ID: '31235068358'
+  QPA_RUN_ID: '31305695836'
+  QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+  BUILD_WORKFLOW_FILE: hoffice-runtime-m11-build-empty-fallback-host.yml
+  HOST_ARTIFACT_NAME: hrt-m10-hword-main-window-input-proof
+
+jobs:
+  replay:
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the verified Korean HWord runtime frontier
+        run: |
+          set -euxo pipefail
+          test -s proofs/m10-hword-culture-resource-window.json
+          grep -F '"status": "PASS"' \
+            proofs/m10-hword-culture-resource-window.json
+          test -s proofs/m10-clone-chdir.json
+          grep -F '"status": "PASS"' proofs/m10-clone-chdir.json
+
+      - name: Wait for and lock the latest successful fallback host
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/host-meta build/proof diagnostics proofs
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import time
+
+          repository = os.environ['GITHUB_REPOSITORY']
+          workflow = os.environ['BUILD_WORKFLOW_FILE']
+          branch = os.environ['GITHUB_REF_NAME']
+          artifact_name = os.environ['HOST_ARTIFACT_NAME']
+          deadline = time.monotonic() + 45 * 60
+          selected = None
+          last = None
+
+          while time.monotonic() < deadline:
+              result = subprocess.run([
+                  'gh', 'api',
+                  f'repos/{repository}/actions/workflows/{workflow}/runs',
+                  '-f', f'branch={branch}', '-f', 'per_page=20',
+              ], check=True, stdout=subprocess.PIPE, text=True)
+              runs = json.loads(result.stdout).get('workflow_runs', [])
+              runs.sort(key=lambda item: item['created_at'], reverse=True)
+              if runs:
+                  last = runs[0]
+              successful = [item for item in runs
+                  if item.get('status') == 'completed' and
+                     item.get('conclusion') == 'success']
+              if successful:
+                  candidate = successful[0]
+                  artifacts_result = subprocess.run([
+                      'gh', 'api',
+                      f'repos/{repository}/actions/runs/{candidate["id"]}/artifacts',
+                      '-f', 'per_page=100',
+                  ], check=True, stdout=subprocess.PIPE, text=True)
+                  artifacts = json.loads(artifacts_result.stdout).get(
+                      'artifacts', [])
+                  matches = [item for item in artifacts
+                      if item.get('name') == artifact_name and
+                         not item.get('expired')]
+                  if len(matches) == 1:
+                      selected = {
+                          'run': candidate,
+                          'artifact': matches[0],
+                      }
+                      break
+              if last and last.get('status') == 'completed' and \
+                      last.get('conclusion') not in (None, 'success'):
+                  print(json.dumps(last, indent=2))
+              time.sleep(20)
+
+          if selected is None:
+              raise SystemExit(
+                  'no successful non-expired empty-fallback host artifact; '
+                  f'latest={json.dumps(last, default=str)}')
+
+          artifact = selected['artifact']
+          digest = artifact.get('digest') or ''
+          if not digest.startswith('sha256:'):
+              raise SystemExit(f'host artifact has no SHA-256 digest: {artifact}')
+          payload = {
+              'schema': 1,
+              'workflow_file': workflow,
+              'run_id': str(selected['run']['id']),
+              'head_sha': selected['run']['head_sha'],
+              'artifact_id': str(artifact['id']),
+              'artifact_name': artifact['name'],
+              'artifact_size': artifact['size_in_bytes'],
+              'artifact_digest': digest.removeprefix('sha256:'),
+              'created_at': artifact['created_at'],
+          }
+          Path('build/input/host-meta/selected-host.json').write_text(
+              json.dumps(payload, indent=2) + '\n', encoding='utf-8')
+          with Path(os.environ['GITHUB_ENV']).open('a', encoding='utf-8') as env:
+              env.write(f"HOST_RUN_ID={payload['run_id']}\n")
+              env.write(
+                  f"HOST_ARTIFACT_DIGEST={payload['artifact_digest']}\n")
+          print(json.dumps(payload, indent=2))
+          PY
+
+      - name: Replay the exact product closure with bounded empty-path fallback
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HRT_M11_MODAL_CAPTURE_PATH: ${{ github.workspace }}/build/proof/hword-modal-dialog.png
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated
+          python3 runtime/m11/augment_full_product_replay_v2.py \
+            runtime/m11/run_korean_title_staged_replay.sh \
+            build/generated/run_korean_title_empty_fallback.sh
+          test -x build/generated/run_korean_title_empty_fallback.sh
+          build/generated/run_korean_title_empty_fallback.sh
+
+      - name: Classify the empty-path compatibility experiment
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -f build/proof/stderr.txt
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import re
+
+          stderr_path = Path('build/proof/stderr.txt')
+          stderr = stderr_path.read_text(errors='replace')
+          lines = stderr.splitlines()
+          summary_path = Path('build/proof/summary.json')
+          base = json.loads(summary_path.read_text(encoding='utf-8')) \
+              if summary_path.is_file() else {}
+          host = json.loads(Path(
+              'build/input/host-meta/selected-host.json'
+          ).read_text(encoding='utf-8'))
+
+          fallback = [line for line in lines
+                      if line.startswith('HRT M11 EMPTYFALLBACK:')]
+          empty_opens = [line for line in lines
+              if line.startswith('HRT M11 DOCIO:') and
+                 ' op=open ' in line and re.search(r' guest=(?:\s|$)', line)]
+          frame_contexts = [line for line in lines
+                            if line.startswith('HRT M11 FRAMECTX:')]
+          classifier_callers = [line for line in lines
+              if line.startswith('HRT M11 CLASSIFIERCALLER:')]
+          windows = [line for line in lines
+                     if 'HRT M6 QPA: CREATE ' in line]
+          inventory = [line for line in lines
+                       if line.startswith('HRT M11 INVENTORY:')]
+          editor_markers = sorted({name for name in (
+              'hword::HwordAppView',
+              'hanul::DocumentTabImpl',
+              'HwordAppView',
+              'DocumentTabImpl',
+          ) if name in stderr})
+          modal_icon = 'dlg_data_validate_stop.png' in stderr
+          modal_capture = Path('build/proof/hword-modal-dialog.png')
+          modal_created = any(
+              'CREATE type=3 geometry=400x130 title=한워드' in line
+              for line in lines)
+          text_stage = 'staged text input after focus' in stderr
+          pre_capture = 'HRT M10 APPKIT: pre-input capture result=1' in stderr
+          post_capture = 'HRT M10 APPKIT: post-input capture result=1' in stderr
+          accepted_key = any(
+              ('key delivered' in line or 'key event delivered' in line) and
+              ('accepted=1' in line or 'widget-accepted=1' in line)
+              for line in lines)
+          fatal = ('HRT M10 FATAL:' in stderr or
+                   'fatal signal' in stderr.lower())
+
+          fallback_indices = []
+          for line in fallback:
+              match = re.search(r'index=(\d+)', line)
+              if match:
+                  fallback_indices.append(int(match.group(1)))
+
+          if fatal:
+              classification = 'HWORD_EMPTY_FALLBACK_FATAL'
+              status = 'FAIL'
+          elif fallback_indices != [1, 2, 3]:
+              classification = 'HWORD_EMPTY_FALLBACK_NOT_EXERCISED_EXACTLY'
+              status = 'DIAGNOSTIC'
+          elif modal_created or modal_icon or modal_capture.is_file():
+              classification = 'HWORD_EMPTY_FALLBACK_MODAL_PERSISTS'
+              status = 'DIAGNOSTIC'
+          elif any('HwordAppView' in name for name in editor_markers):
+              classification = 'HWORD_EMPTY_FALLBACK_EDITOR_MATERIALIZED'
+              status = 'PARTIAL_PASS'
+          else:
+              classification = 'HWORD_EMPTY_FALLBACK_REMOVED_MODAL_NO_EDITOR'
+              status = 'DIAGNOSTIC'
+
+          if (any('HwordAppView' in name for name in editor_markers) and
+                  text_stage and accepted_key and post_capture):
+              classification = 'HWORD_EMPTY_FALLBACK_TEXT_ACCEPTED'
+              status = 'PASS'
+
+          captures = {}
+          for name in (
+              'hword-main-window.png',
+              'hword-before-input.png',
+              'hword-after-input.png',
+              'hword-modal-dialog.png',
+          ):
+              path = Path('build/proof') / name
+              if path.is_file():
+                  captures[name] = {
+                      'size': path.stat().st_size,
+                      'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+                  }
+
+          payload = {
+              'schema': 1,
+              'milestone': 'M11-empty-path-HWDT-fallback',
+              'status': status,
+              'classification': classification,
+              'workflow_run': os.environ['GITHUB_RUN_ID'],
+              'commit': os.environ['GITHUB_SHA'],
+              'host': host,
+              'prepared_run': os.environ['PREPARED_RUN_ID'],
+              'qpa_run': os.environ['QPA_RUN_ID'],
+              'fallback_marker_count': len(fallback),
+              'fallback_indices': fallback_indices,
+              'remaining_empty_open_count': len(empty_opens),
+              'modal_created': modal_created,
+              'modal_icon_requested': modal_icon,
+              'modal_capture_present': modal_capture.is_file(),
+              'editor_markers': editor_markers,
+              'text_stage_reached': text_stage,
+              'pre_capture_completed': pre_capture,
+              'post_capture_completed': post_capture,
+              'accepted_key_observed': accepted_key,
+              'frame_context_count': len(frame_contexts),
+              'classifier_caller_count': len(classifier_callers),
+              'window_create_lines': windows,
+              'inventory_line_count': len(inventory),
+              'fatal_observed': fatal,
+              'captures': captures,
+              'base_replay_summary': base,
+              'representative_fallback': fallback,
+              'representative_empty_opens': empty_opens[:10],
+              'representative_classifier_callers': classifier_callers[:10],
+              'stderr_tail': '\n'.join(lines[-500:]),
+          }
+          encoded = json.dumps(payload, ensure_ascii=False, indent=2) + '\n'
+          run_id = os.environ['GITHUB_RUN_ID']
+          Path(f'diagnostics/m11-empty-fallback-{run_id}.json').write_text(
+              encoded, encoding='utf-8')
+          Path('diagnostics/m11-empty-fallback-latest.json').write_text(
+              encoded, encoding='utf-8')
+          Path('build/proof/empty-fallback-summary.json').write_text(
+              encoded, encoding='utf-8')
+          Path('diagnostics/m11-empty-fallback-latest.md').write_text(
+              '# HWord empty-path HWDT fallback\n\n'
+              f"- Status: `{status}`\n"
+              f"- Classification: `{classification}`\n"
+              f"- Host run: `{host['run_id']}`\n"
+              f"- Fallback indices: `{fallback_indices}`\n"
+              f"- Modal created: `{modal_created}`\n"
+              f"- Editor markers: `{editor_markers}`\n"
+              f"- Text stage: `{text_stage}`\n"
+              f"- Accepted key: `{accepted_key}`\n",
+              encoding='utf-8')
+          print(encoded)
+          PY
+
+      - name: Commit the durable fallback classification
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -s diagnostics/m11-empty-fallback-latest.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-empty-fallback-*.json \
+                  diagnostics/m11-empty-fallback-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: classify the HWord empty-path HWDT fallback'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-hword-empty-fallback-proof
+          path: |
+            build/generated/run_korean_title_empty_fallback.sh
+            build/host/hrt-m11-korean-staged
+            build/input/host-meta
+            build/proof
+            diagnostics/m11-empty-fallback-*.json
+            diagnostics/m11-empty-fallback-latest.md
+          if-no-files-found: warn
+          retention-days: 14
