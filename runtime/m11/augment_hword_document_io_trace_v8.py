@@ -17,8 +17,8 @@ the exact copied template:
 Every substitution emits a fixed ``HRT M11 EMPTYFALLBACK`` marker.  Non-empty
 paths, later stages, writes, other directory descriptors and calls after the
 third substitution retain their original behavior.  No guest ELF is modified
-by this transform.  Marker audits use the complete stage-and-dirfd condition,
-not the common dirfd fragment that also appears in earlier bridge code.
+by this transform.  Marker audits use the complete stage/dirfd and null-path
+condition fragments, not common expressions inherited from earlier tracers.
 """
 from __future__ import annotations
 
@@ -112,7 +112,7 @@ def main() -> None:
         "m11_blank_template": 2,
         "Document[0].hwdt": 4,
         "g_m11_docio_stage == 1 && directory_fd == LINUX_AT_FDCWD &&": 1,
-        "guest_path[0] == '\\0'": 1,
+        "guest_path != NULL && guest_path[0] == '\\0' &&": 1,
         "m11_empty_fallback_count < 3u": 1,
         "guest_path = m11_blank_template;": 1,
         "HRT M11 CLASSIFIERCALLER:": 1,
