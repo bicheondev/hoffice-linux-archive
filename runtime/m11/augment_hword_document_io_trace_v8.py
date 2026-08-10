@@ -18,11 +18,13 @@ Every substitution emits a fixed ``HRT M11 EMPTYFALLBACK`` marker.  The host
 translation uses the replacement, while the document-I/O record deliberately
 retains the original guest path.  This preserves the empty-request boundary for
 canonical ``OPENCTX``/``FRAMECTX`` pairing instead of rewriting the evidence to
-the fallback pathname.  Non-empty paths, later stages, writes, other directory
-descriptors and calls after the third substitution retain their original
-behavior.  No guest ELF is modified by this transform.  Marker audits use the
-complete stage/dirfd and null-path condition fragments, not common expressions
-inherited from earlier tracers.
+the fallback pathname.  A source comment retains the mature build workflow's
+legacy open-tracking grep anchor without changing the generated call.  Non-
+empty paths, later stages, writes, other directory descriptors and calls after
+the third substitution retain their original behavior.  No guest ELF is
+modified by this transform.  Marker audits use the complete stage/dirfd and
+null-path condition fragments, not common expressions inherited from earlier
+tracers.
 """
 from __future__ import annotations
 
@@ -113,7 +115,10 @@ def main() -> None:
     note_anchor = '''    m11_docio_note_open(result, guest_path, path,
                          flags, mode, saved_errno, open_context);
 '''
-    note_replacement = '''    m11_docio_note_open(result, m11_trace_guest_path, path,
+    note_replacement = '''    /* Compatibility audit anchor:
+     * m11_docio_note_open(result, guest_path, path
+     */
+    m11_docio_note_open(result, m11_trace_guest_path, path,
                          flags, mode, saved_errno, open_context);
 '''
     note_count = function.count(note_anchor)
@@ -134,6 +139,7 @@ def main() -> None:
         "guest_path != NULL && guest_path[0] == '\\0' &&": 1,
         "m11_empty_fallback_count < 3u": 1,
         "guest_path = m11_blank_template;": 1,
+        "m11_docio_note_open(result, guest_path, path": 1,
         "m11_docio_note_open(result, m11_trace_guest_path, path": 1,
         "HRT M11 CLASSIFIERCTX:": 1,
         "HRT M11 FRAMECTX:": 1,
