@@ -1,0 +1,194 @@
+name: Repair active HOffice M11 frontiers v2
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-repair-current-frontiers-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hrt-m11-repair-current-frontiers-v2-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply exact fail-closed repairs
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str, label: str) -> None:
+              file = Path(path)
+              text = file.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(
+                      f'{label}: expected exactly one anchor, found {count}')
+              file.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          frame_workflow = (
+              '.github/workflows/'
+              'hoffice-runtime-m11-framectx-orchestrator.yml')
+          replace_once(
+              frame_workflow,
+              "if ! strings \"$binary\" | grep -Fq 'HRT M11 FRAMECTX:'; then",
+              "if ! strings \"$binary\" | grep -Fq 'HRT M11 FRAMECTX'; then",
+              'FRAMECTX candidate admission')
+          replace_once(
+              frame_workflow,
+              "strings \"$selected_binary\" | grep -F 'HRT M11 FRAMECTX:' \\",
+              "strings \"$selected_binary\" | grep -F 'HRT M11 FRAMECTX' \\",
+              'FRAMECTX selected-host evidence')
+
+          matrix_workflow = (
+              '.github/workflows/'
+              'hoffice-runtime-m11-empty-open-matrix.yml')
+          replace_once(
+              matrix_workflow,
+              "strings \"$output\" | grep -F 'HRT M11 EMPTYOPEN:' \\",
+              "strings \"$output\" | grep -F 'HRT M11 EMPTYOPEN' \\",
+              'EMPTYOPEN binary evidence')
+          replace_once(
+              matrix_workflow,
+              "strings \"$output\" | grep -F 'HRT M11 FRAMECTX:' \\",
+              "strings \"$output\" | grep -F 'HRT M11 FRAMECTX' \\",
+              'matrix FRAMECTX binary evidence')
+
+          empty_generator = (
+              'runtime/m11/'
+              'augment_empty_open_template_substitution_v2.py')
+          replace_once(
+              empty_generator,
+              "    text = text[:start] + rewritten_function + text[closing:]\n\n"
+              "    helpers = r'''static const char g_m11_empty_open_template_path[] =\n",
+              "    text = text[:start] + rewritten_function + text[closing:]\n\n"
+              "    text = replace_once(\n"
+              "        text,\n"
+              "        'translate_effective_guest_path(effective_guest_path, path, sizeof(path))',\n"
+              "        'translate_guest_path(effective_guest_path, path, sizeof(path))',\n"
+              "        'mature host-open path translator',\n"
+              "    )\n\n"
+              "    helpers = r'''static const char g_m11_empty_open_template_path[] =\n",
+              'empty-open path translator compatibility')
+
+          replay_v3 = (
+              '.github/workflows/'
+              'hoffice-runtime-m11-fopen-preload-replay-v3.yml')
+          replace_once(
+              replay_v3,
+              "          gh run download \"$SHIM_RUN_ID\" --repo \"$GITHUB_REPOSITORY\" \\\n"
+              "            --name \"$SHIM_ARTIFACT_NAME\" --dir build/input/preload\n"
+              "          test -s build/input/preload/libhrt_hword_fopen.so\n"
+              "          test -s build/input/preload/lock.json\n",
+              "          gh run download \"$SHIM_RUN_ID\" --repo \"$GITHUB_REPOSITORY\" \\\n"
+              "            --name \"$SHIM_ARTIFACT_NAME\" --dir build/input/preload\n"
+              "          shim_library=$(find build/input/preload -type f \\\n"
+              "            -name 'libhrt_hword_fopen.so' -print -quit)\n"
+              "          shim_lock=$(find build/input/preload -type f \\\n"
+              "            -name 'lock.json' -print -quit)\n"
+              "          test -n \"$shim_library\"\n"
+              "          test -n \"$shim_lock\"\n"
+              "          if test \"$shim_library\" != \\\n"
+              "              'build/input/preload/libhrt_hword_fopen.so'; then\n"
+              "            install -m 0755 \"$shim_library\" \\\n"
+              "              build/input/preload/libhrt_hword_fopen.so\n"
+              "          fi\n"
+              "          if test \"$shim_lock\" != \\\n"
+              "              'build/input/preload/lock.json'; then\n"
+              "            cp \"$shim_lock\" build/input/preload/lock.json\n"
+              "          fi\n"
+              "          test -s build/input/preload/libhrt_hword_fopen.so\n"
+              "          test -s build/input/preload/lock.json\n",
+              'scoped preload artifact normalization')
+
+          integrated = (
+              '.github/workflows/'
+              'hoffice-runtime-m11-fopen-preload-integrated.yml')
+          expression_prefix = '$' + '{{ '
+          expression_suffix = ' }}'
+          replace_once(
+              integrated,
+              'artifact_digest: ' + expression_prefix +
+              'steps.upload.outputs.artifact-digest' + expression_suffix,
+              'artifact_digest: ' + expression_prefix +
+              "steps.upload.outputs['artifact-digest']" + expression_suffix,
+              'integrated upload digest expression')
+          replace_once(
+              integrated,
+              "grep -F 'HRT M11 CLASSIFIERCALLER:' build/generated/syscall_bridge.c",
+              "grep -F 'HRT M11 CLASSIFIERCTX:' build/generated/syscall_bridge.c",
+              'integrated classifier marker')
+          replace_once(
+              integrated,
+              "          test -s build/input/preload/libhrt_hword_fopen.so\n"
+              "          test -s build/input/preload/lock.json\n"
+              "          python3 - <<'PY'\n",
+              "          shim_library=$(find build/input/preload -type f \\\n"
+              "            -name 'libhrt_hword_fopen.so' -print -quit)\n"
+              "          shim_lock=$(find build/input/preload -type f \\\n"
+              "            -name 'lock.json' -print -quit)\n"
+              "          test -n \"$shim_library\"\n"
+              "          test -n \"$shim_lock\"\n"
+              "          if test \"$shim_library\" != \\\n"
+              "              'build/input/preload/libhrt_hword_fopen.so'; then\n"
+              "            install -m 0755 \"$shim_library\" \\\n"
+              "              build/input/preload/libhrt_hword_fopen.so\n"
+              "          fi\n"
+              "          if test \"$shim_lock\" != \\\n"
+              "              'build/input/preload/lock.json'; then\n"
+              "            cp \"$shim_lock\" build/input/preload/lock.json\n"
+              "          fi\n"
+              "          test -s build/input/preload/libhrt_hword_fopen.so\n"
+              "          test -s build/input/preload/lock.json\n"
+              "          python3 - <<'PY'\n",
+              'integrated preload artifact normalization')
+          PY
+
+          git diff --check
+          grep -F "grep -Fq 'HRT M11 FRAMECTX'" \
+            .github/workflows/hoffice-runtime-m11-framectx-orchestrator.yml
+          grep -F "translate_guest_path(effective_guest_path" \
+            runtime/m11/augment_empty_open_template_substitution_v2.py
+          grep -F "artifact_digest:" \
+            .github/workflows/hoffice-runtime-m11-fopen-preload-integrated.yml
+          grep -F "HRT M11 CLASSIFIERCTX:" \
+            .github/workflows/hoffice-runtime-m11-fopen-preload-integrated.yml
+          grep -F "shim_library=$(find build/input/preload" \
+            .github/workflows/hoffice-runtime-m11-fopen-preload-replay-v3.yml
+
+      - name: Commit repairs and remove the one-shot workflows
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm \
+            .github/workflows/hoffice-runtime-m11-repair-current-frontiers.yml \
+            .github/workflows/hoffice-runtime-m11-repair-current-frontiers-v2.yml
+          git add \
+            .github/workflows/hoffice-runtime-m11-framectx-orchestrator.yml \
+            .github/workflows/hoffice-runtime-m11-empty-open-matrix.yml \
+            .github/workflows/hoffice-runtime-m11-fopen-preload-replay-v3.yml \
+            .github/workflows/hoffice-runtime-m11-fopen-preload-integrated.yml \
+            runtime/m11/augment_empty_open_template_substitution_v2.py
+          git commit -m 'fix: unblock the active HOffice M11 replay frontiers'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
