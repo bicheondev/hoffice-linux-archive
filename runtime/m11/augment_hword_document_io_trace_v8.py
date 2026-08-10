@@ -108,14 +108,14 @@ def main() -> None:
 
     required = {
         "HRT M11 EMPTYFALLBACK:": 3,
-        "m11_empty_fallback_count": 6,
+        "m11_empty_fallback_count": 5,
         "m11_blank_template": 2,
         "Document[0].hwdt": 4,
         "g_m11_docio_stage == 1 && directory_fd == LINUX_AT_FDCWD &&": 1,
         "guest_path != NULL && guest_path[0] == '\\0' &&": 1,
         "m11_empty_fallback_count < 3u": 1,
         "guest_path = m11_blank_template;": 1,
-        "HRT M11 CLASSIFIERCALLER:": 1,
+        "HRT M11 CLASSIFIERCTX:": 1,
         "HRT M11 FRAMECTX:": 1,
     }
     for marker, expected in required.items():
