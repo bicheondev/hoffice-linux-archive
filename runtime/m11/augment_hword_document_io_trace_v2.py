@@ -12,13 +12,12 @@ finds the first brace after a multiline signature, and then scans to the
 matching close.  Every v1 anchor and marker audit remains intact.
 
 The public v2 entry point then runs the reviewed open-callsite postprocessor
-through the v7 classifier-caller wrapper.  v7 preserves v6's literal-safe
-canonical frame chain and derives the direct caller of the exact
-``libHwordApp.so+0xe15e32`` empty-path ``fopen`` from the statically verified
-classifier frame layout.  The nested v2 invocation made by v3 is identified
-both by an explicit environment guard and by v3's private temporary-directory
-prefix, preventing recursion while preserving direct invocation of any entry
-point.
+through the v8 empty-path template experiment.  v8 preserves v7's classifier-
+caller diagnostics and, only during stage 1, substitutes the exact copied blank
+HWDT path for at most three read-only ``openat(AT_FDCWD, "", ...)`` boundaries.
+The nested v2 invocation made by v3 is identified both by an explicit
+environment guard and by v3's private temporary-directory prefix, preventing
+recursion while preserving direct invocation of any entry point.
 """
 from __future__ import annotations
 
@@ -39,7 +38,7 @@ def run_brace_scoped_v2() -> None:
     if start < 0 or end < 0:
         raise SystemExit("v1 function-range helper was not found")
 
-    replacement = r'''def replace_in_function(
+    replacement = '''def replace_in_function(
     text: str,
     function_start: str,
     next_function_start: str,
@@ -116,11 +115,11 @@ def should_run_open_context() -> bool:
 
 def run_open_context() -> None:
     generator = Path(__file__).with_name(
-        "augment_hword_document_io_trace_v7.py"
+        "augment_hword_document_io_trace_v8.py"
     )
     if not generator.is_file():
         raise SystemExit(
-            f"open-callsite classifier-caller wrapper not found: {generator}")
+            f"open-callsite empty-path experiment not found: {generator}")
     environment = os.environ.copy()
     environment["HRT_M11_DOCIO_V3_INNER"] = "1"
     subprocess.run(
