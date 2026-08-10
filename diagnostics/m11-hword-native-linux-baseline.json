@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "native_linux_baseline": true,
+  "package_sha256": "23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46",
+  "strace_file_count": 0,
+  "main_window_observed": false,
+  "modal_like_window_observed": false,
+  "empty_path_open_count": 0,
+  "empty_path_open_lines": [],
+  "template_trace_count": 0,
+  "template_trace_lines": [],
+  "sendfile_count": 0,
+  "sendfile_lines": [],
+  "images": {
+    "native-before.png": {
+      "exists": true,
+      "size": 294,
+      "sha256": "aea9fa4302f596159a516f8bec6bb01756d63702c5a4405584adab7c23a44567"
+    },
+    "native-after-new.png": {
+      "exists": false,
+      "size": 0,
+      "sha256": null
+    },
+    "native-after-text.png": {
+      "exists": false,
+      "size": 0,
+      "sha256": null
+    }
+  },
+  "visual_change_after_new": null,
+  "stderr_tail": "strace: Can't stat '/opt/hnc/hoffice11/Bin/hword': No such file or directory\n"
+}
