@@ -23,7 +23,7 @@ concurrency:
 
 env:
   PREPARED_RUN_ID: '31235068358'
-  HOST_RUN_ID: '31370188996'
+  HOST_RUN_ID: '31371415589'
   QPA_RUN_ID: '31305695836'
   QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
   ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
@@ -93,7 +93,21 @@ jobs:
               if line.startswith('HRT M11 DOCIO:') and ' op=open ' in line:
                   pending = line
               elif line.startswith('HRT M11 OPENCTX:') and pending is not None:
-                  pairs.append({'open': pending, 'context': line})
+                  objects = {}
+                  for label, value in re.findall(
+                          r'(rip|stack\d+)-object=(.*?)(?=\s+(?:rip|stack\d+)-'
+                          r'(?:object|file-offset)=|$)', line):
+                      objects[label] = value
+                  offsets = dict(re.findall(
+                      r'(rip|stack\d+)-file-offset=(0x[0-9a-f]+)', line))
+                  pairs.append({
+                      'open': pending,
+                      'context': line,
+                      'resolved_objects': objects,
+                      'resolved_offsets': offsets,
+                      'saved_return_object': objects.get('stack15'),
+                      'saved_return_file_offset': offsets.get('stack15'),
+                  })
                   pending = None
           empty_pairs = [item for item in pairs
                          if re.search(r' guest=(?:\s|$)', item['open'])]
