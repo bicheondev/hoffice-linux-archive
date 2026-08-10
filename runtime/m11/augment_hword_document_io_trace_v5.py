@@ -13,6 +13,12 @@ RSP.  At most eight ``[rbp]`` / ``[rbp+8]`` pairs are read.  Return addresses
 are resolved through the existing executable-map table and emitted on a
 separate bounded ``HRT M11 FRAMECTX`` line.
 
+A writable, used byte array also preserves the exact artifact-selection marker
+``HRT M11 FRAMECTX:`` in the linked Mach-O.  The runtime diagnostic literal may
+otherwise be tail-merged with adjacent strings by the compiler, even though its
+emitted log remains correct.  The array is never read by guest code and changes
+no runtime behavior.
+
 No arbitrary stack scan is credited as a caller, and all generated-source edits
 remain exact and fail closed.
 """
@@ -60,8 +66,16 @@ def main() -> None:
         "#define M11_DOCIO_STACK_WORD_COUNT 32u\n",
         "#define M11_DOCIO_STACK_WORD_COUNT 32u\n"
         "#define M11_DOCIO_FRAME_COUNT 8u\n"
-        "#define M11_DOCIO_FRAME_STACK_WINDOW UINT64_C(0x10000)\n",
-        "frame-chain constants",
+        "#define M11_DOCIO_FRAME_STACK_WINDOW UINT64_C(0x10000)\n"
+        "#if defined(__clang__)\n"
+        "__attribute__((used))\n"
+        "#endif\n"
+        "static volatile unsigned char m11_framectx_artifact_marker[] = {\n"
+        "    0x48, 0x52, 0x54, 0x20, 0x4d, 0x31, 0x31, 0x20,\n"
+        "    0x46, 0x52, 0x41, 0x4d, 0x45, 0x43, 0x54, 0x58,\n"
+        "    0x3a, 0x00,\n"
+        "};\n",
+        "frame-chain constants and artifact marker",
     )
 
     text = replace_once(
@@ -217,6 +231,7 @@ static void m11_docio_note_open(int fd, const char *guest_path,
         "HRT M11 FRAMECTX:": 1,
         "M11_DOCIO_FRAME_COUNT 8u": 1,
         "M11_DOCIO_FRAME_STACK_WINDOW UINT64_C(0x10000)": 1,
+        "m11_framectx_artifact_marker": 1,
         "frame_return_address[M11_DOCIO_FRAME_COUNT]": 1,
         "context.frame_count++": 1,
         "m11_docio_emit_frame_context(": 2,
