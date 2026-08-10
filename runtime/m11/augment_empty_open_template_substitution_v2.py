@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -84,13 +85,17 @@ def main() -> None:
     function = text[start:closing]
     body_start = function.index("{") + 1
     original_body = function[body_start:]
-    guest_path_count = original_body.count("guest_path")
+    guest_path_count = len(re.findall(r"\bguest_path\b", original_body))
     if guest_path_count < 2:
         raise SystemExit(
             f"host-open body: expected at least two guest_path uses, "
             f"found {guest_path_count}")
-    rewritten_body = original_body.replace(
-        "guest_path", "effective_guest_path")
+    rewritten_body, replacement_count = re.subn(
+        r"\bguest_path\b", "effective_guest_path", original_body)
+    if replacement_count != guest_path_count:
+        raise SystemExit(
+            f"host-open body: expected {guest_path_count} identifier rewrites, "
+            f"performed {replacement_count}")
     rewritten_body = '''
     unsigned int empty_open_ordinal = 0u;
     int empty_open_substituted = 0;
