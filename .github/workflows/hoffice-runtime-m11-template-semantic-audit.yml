@@ -1,0 +1,215 @@
+name: HOffice runtime M11 blank HWDT semantic audit
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-template-semantic-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hrt-m11-template-semantic-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download and verify the exact package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input build/template build/report diagnostics
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" --dir build/input
+          printf '%s  %s\n' "$PACKAGE_SHA256" "build/input/$ASSET_NAME" \
+            | sha256sum --check -
+      - name: Extract every packaged blank-document template candidate
+        run: |
+          set -euxo pipefail
+          deb="build/input/$ASSET_NAME"
+          data_member=$(ar t "$deb" | awk '/^data\.tar/{print; exit}')
+          test -n "$data_member"
+          ar p "$deb" "$data_member" >"build/input/$data_member"
+          tar -tf "build/input/$data_member" \
+            | LC_ALL=C grep -Ei 'HwordTemplate/.*/Document.*\.(hwdt|hwpx|hwp)$' \
+            | LC_ALL=C sort -u >build/report/template-paths.txt
+          test -s build/report/template-paths.txt
+          tar -xf "build/input/$data_member" -C build/template \
+            -T build/report/template-paths.txt
+          find build/template -type f -print | LC_ALL=C sort \
+            | tee build/report/extracted-template-files.txt
+          test -s build/report/extracted-template-files.txt
+      - name: Verify ZIP structure, XML and every path-like semantic
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from __future__ import annotations
+          import binascii,hashlib,json,os,re,struct,zipfile
+          from pathlib import Path, PurePosixPath
+          import xml.etree.ElementTree as ET
+
+          candidates=sorted(Path('build/template').rglob('*'))
+          candidates=[path for path in candidates if path.is_file()]
+          pathish_tokens=('target','href','src','path','file','uri','url','ref','idref')
+          records=[]
+          global_empty=[]
+          for path in candidates:
+              blob=path.read_bytes()
+              record={
+                  'path':str(path.relative_to('build/template')),
+                  'size':len(blob),
+                  'sha256':hashlib.sha256(blob).hexdigest(),
+                  'magic_hex':blob[:16].hex(),
+                  'is_zip':zipfile.is_zipfile(path),
+                  'entries':[],
+                  'xml_documents':[],
+                  'empty_path_like_attributes':[],
+                  'external_or_absolute_targets':[],
+                  'duplicate_entry_names':[],
+                  'zip_test_error':None,
+              }
+              if not record['is_zip']:
+                  records.append(record); continue
+              with zipfile.ZipFile(path) as archive:
+                  names=archive.namelist()
+                  seen=set(); duplicates=[]
+                  for name in names:
+                      if name in seen: duplicates.append(name)
+                      seen.add(name)
+                  record['duplicate_entry_names']=duplicates
+                  bad=archive.testzip()
+                  if bad is not None: record['zip_test_error']=bad
+                  for info in archive.infolist():
+                      payload=archive.read(info)
+                      entry={
+                          'name':info.filename,'size':info.file_size,
+                          'compressed_size':info.compress_size,
+                          'compression':info.compress_type,
+                          'crc32':f'{info.CRC:08x}',
+                          'crc32_verified':f'{binascii.crc32(payload)&0xffffffff:08x}'==f'{info.CRC:08x}',
+                          'sha256':hashlib.sha256(payload).hexdigest(),
+                          'is_directory':info.is_dir(),
+                      }
+                      record['entries'].append(entry)
+                      lower=info.filename.lower()
+                      xml_candidate=(lower.endswith(('.xml','.rels','.hpf','.opf')) or
+                                     payload.lstrip().startswith(b'<?xml') or
+                                     payload.lstrip().startswith(b'<'))
+                      if not xml_candidate or info.is_dir(): continue
+                      xml_record={'entry':info.filename,'parse_error':None,
+                                  'root_tag':None,'element_count':0,
+                                  'attributes':[],'empty_path_like_attributes':[],
+                                  'external_or_absolute_targets':[]}
+                      try:
+                          root=ET.fromstring(payload)
+                          xml_record['root_tag']=root.tag
+                          for element in root.iter():
+                              xml_record['element_count']+=1
+                              for key,value in element.attrib.items():
+                                  local=key.rsplit('}',1)[-1]
+                                  item={'element':element.tag,'attribute':key,
+                                        'local_name':local,'value':value}
+                                  xml_record['attributes'].append(item)
+                                  is_pathish=any(token in local.lower() for token in pathish_tokens)
+                                  if is_pathish and value.strip()=='':
+                                      xml_record['empty_path_like_attributes'].append(item)
+                                      combined={'template':record['path'],
+                                                'entry':info.filename,**item}
+                                      record['empty_path_like_attributes'].append(combined)
+                                      global_empty.append(combined)
+                                  normalized=value.strip().lower()
+                                  if is_pathish and (normalized.startswith(('http:','https:','file:','ftp:')) or
+                                                     value.startswith('/') or value.startswith('\\\\')):
+                                      xml_record['external_or_absolute_targets'].append(item)
+                                      record['external_or_absolute_targets'].append(
+                                          {'template':record['path'],'entry':info.filename,**item})
+                      except Exception as error:
+                          xml_record['parse_error']=repr(error)
+                      record['xml_documents'].append(xml_record)
+              records.append(record)
+
+          preferred=[item for item in records
+                     if item['path'].endswith('HwordTemplate/Docx/ko-KR/Document.hwdt')]
+          payload={
+              'schema':1,
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'package':os.environ['ASSET_NAME'],
+              'package_sha256':os.environ['PACKAGE_SHA256'],
+              'candidate_count':len(records),
+              'preferred_count':len(preferred),
+              'all_zip_tests_passed':all(item['zip_test_error'] is None for item in records if item['is_zip']),
+              'total_empty_path_like_attribute_count':len(global_empty),
+              'empty_path_like_attributes':global_empty,
+              'templates':records,
+          }
+          if len(preferred)!=1:
+              payload['status']='FAIL'
+              payload['classification']='OFFICIAL_KOREAN_BLANK_HWDT_NOT_UNIQUE'
+          elif preferred[0]['zip_test_error'] is not None:
+              payload['status']='FAIL'
+              payload['classification']='OFFICIAL_KOREAN_BLANK_HWDT_ZIP_INVALID'
+          elif preferred[0]['empty_path_like_attributes']:
+              payload['status']='DIAGNOSTIC'
+              payload['classification']='OFFICIAL_KOREAN_BLANK_HWDT_CONTAINS_EMPTY_PATH_SEMANTICS'
+          else:
+              payload['status']='PASS'
+              payload['classification']='OFFICIAL_KOREAN_BLANK_HWDT_SEMANTICALLY_CLOSED'
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          Path('diagnostics/m11-template-semantic-audit-latest.json').write_text(
+              encoded,encoding='utf-8')
+          Path(f"diagnostics/m11-template-semantic-audit-{os.environ['GITHUB_RUN_ID']}.json").write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-template-semantic-audit-latest.md').write_text(
+              '# Official Korean blank HWDT semantic audit\n\n'
+              f"- Status: `{payload['status']}`\n"
+              f"- Classification: `{payload['classification']}`\n"
+              f"- Candidates: `{len(records)}`\n"
+              f"- Korean Docx template matches: `{len(preferred)}`\n"
+              f"- Empty path-like XML attributes: `{len(global_empty)}`\n"
+              f"- ZIP tests passed: `{payload['all_zip_tests_passed']}`\n",
+              encoding='utf-8')
+          Path('build/report/template-semantic-audit.json').write_text(
+              encoded,encoding='utf-8')
+          print(encoded)
+          PY
+      - name: Commit the durable semantic audit
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-template-semantic-audit-*.json \
+                  diagnostics/m11-template-semantic-audit-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: audit the official Korean blank HWDT semantics'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-template-semantic-audit
+          path: |
+            build/report
+            diagnostics/m11-template-semantic-audit-*.json
+            diagnostics/m11-template-semantic-audit-latest.md
+          if-no-files-found: warn
+          retention-days: 14
