@@ -12,10 +12,10 @@ finds the first brace after a multiline signature, and then scans to the
 matching close.  Every v1 anchor and marker audit remains intact.
 
 The public v2 entry point then runs the reviewed open-callsite postprocessor
-through the v4 literal-escape wrapper.  The nested v2 invocation made by v3 is
-identified both by an explicit environment guard and by v3's private temporary
-directory prefix, preventing recursion while preserving direct invocation of
-any entry point.
+through the v4 literal-escape and saved-return-slot wrapper.  The nested v2
+invocation made by v3 is identified both by an explicit environment guard and
+by v3's private temporary-directory prefix, preventing recursion while
+preserving direct invocation of any entry point.
 """
 from __future__ import annotations
 
