@@ -1,0 +1,228 @@
+name: HOffice runtime M11 extended diagnostic orchestrator
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'diagnostics/m11-empty-fallback-latest.json'
+      - 'diagnostics/m11-sendfile-fallback-latest.json'
+      - 'diagnostics/m11-empty-mask-matrix-latest.json'
+      - 'diagnostics/m11-empty-buffer-latest.json'
+      - 'diagnostics/m11-short-buffer-latest.json'
+      - 'diagnostics/m11-empty-open-caller-static-latest.json'
+      - 'diagnostics/m11-empty-open-caller-ghidra-latest.json'
+      - '.github/workflows/hoffice-runtime-m11-orchestrator-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: hrt-m11-extended-orchestrator-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  route:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Choose the strongest verified frontier
+        id: classify
+        run: |
+          set -euxo pipefail
+          mkdir -p diagnostics
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          files={
+              'host_fallback':'diagnostics/m11-empty-fallback-latest.json',
+              'sendfile_fallback':'diagnostics/m11-sendfile-fallback-latest.json',
+              'mask_matrix':'diagnostics/m11-empty-mask-matrix-latest.json',
+              'full_buffer':'diagnostics/m11-empty-buffer-latest.json',
+              'short_buffer':'diagnostics/m11-short-buffer-latest.json',
+              'caller_static':'diagnostics/m11-empty-open-caller-static-latest.json',
+              'caller_ghidra':'diagnostics/m11-empty-open-caller-ghidra-latest.json',
+          }
+          evidence={}
+          for key,name in files.items():
+              path=Path(name)
+              if path.is_file():
+                  evidence[key]=json.loads(path.read_text(encoding='utf-8'))
+
+          def classification(item):
+              return item.get('classification','') if item else ''
+          def text_credited(item):
+              return bool(item) and (
+                  item.get('status')=='PASS' or 'TEXT_ACCEPTED' in classification(item))
+          def editor(item):
+              return bool(item) and (
+                  'EDITOR_MATERIALIZED' in classification(item) or
+                  item.get('editor_materialized') is True or
+                  any('HwordAppView' in value for value in item.get('editor_markers',[])) or
+                  item.get('best_result',{}).get('editor_materialized') is True)
+          def no_modal(item):
+              return bool(item) and (
+                  item.get('modal') is False or
+                  (item.get('modal_created') is False and
+                   item.get('modal_icon_requested') is False and
+                   item.get('modal_capture_present') is False) or
+                  'NO_MODAL' in classification(item) or
+                  'REMOVED_MODAL' in classification(item))
+          def fatal(item):
+              return bool(item) and (
+                  item.get('fatal') is True or item.get('fatal_observed') is True or
+                  item.get('status')=='FAIL' and 'FATAL' in classification(item))
+
+          experiments=[evidence.get(key) for key in
+              ('short_buffer','full_buffer','mask_matrix','sendfile_fallback','host_fallback')]
+          route='WAIT_FOR_DOCUMENT_EXPERIMENTS'
+          reason='No durable document-construction experiment is available yet.'
+          status='DIAGNOSTIC'
+          best=None
+
+          credited=[item for item in experiments if text_credited(item)]
+          materialized=[item for item in experiments if editor(item)]
+          cleared=[item for item in experiments if no_modal(item)]
+          fatals=[item for item in experiments if fatal(item)]
+
+          if credited:
+              best=credited[0]
+              route='M12_CREDIT_EDITOR_TEXT_AND_SAVE'
+              reason='A credible HwordAppView accepted staged text without the validation modal.'
+              status='PASS'
+          elif materialized:
+              best=materialized[0]
+              route='M12_REPAIR_EDITOR_FOCUS_IME_AND_SAVE'
+              reason='HwordAppView materialized; the next frontier is credible focus, IME and save/open.'
+              status='PARTIAL_PASS'
+          elif cleared:
+              best=cleared[0]
+              route='M11_TRACE_POST_CLASSIFIER_EDITOR_DEPENDENCIES'
+              reason='A bounded compatibility experiment removed the modal but no HwordAppView appeared.'
+          elif evidence.get('mask_matrix'):
+              matrix=evidence['mask_matrix']
+              results=matrix.get('results',[])
+              if results and all(item.get('modal') for item in results):
+                  route='M11_PATCH_DECOMPILED_CLASSIFIER_CALLER'
+                  reason='Every independent empty-open mask retained the modal; patch the exact caller logic.'
+              else:
+                  route='M11_REVIEW_MIXED_MASK_MATRIX'
+                  reason='The empty-open mask matrix produced mixed results requiring exact comparison.'
+          elif evidence.get('sendfile_fallback'):
+              item=evidence['sendfile_fallback']
+              if 'MODAL_PERSISTS' in classification(item):
+                  route='M11_WAIT_FOR_MASK_AND_GUEST_BUFFER_RESULTS'
+                  reason='sendfile is implemented and the host fallback persists; wait for independent and guest-buffer experiments.'
+              elif item.get('unsupported_syscall_40'):
+                  route='M11_REPAIR_SENDFILE_BOUNDARY'
+                  reason='The combined host still reports syscall 40 as unsupported.'
+          elif evidence.get('host_fallback'):
+              item=evidence['host_fallback']
+              if 'MODAL_PERSISTS' in classification(item):
+                  route='M11_WAIT_FOR_SENDFILE_AND_BUFFER_RESULTS'
+                  reason='The all-three host fallback retained the validation modal.'
+          elif fatals:
+              best=fatals[0]
+              route='M11_REPAIR_EXPERIMENT_FATAL'
+              reason='The strongest available document experiment crossed a fatal host boundary.'
+
+          if route=='M11_PATCH_DECOMPILED_CLASSIFIER_CALLER':
+              ghidra=evidence.get('caller_ghidra')
+              static=evidence.get('caller_static')
+              if not ghidra or not ghidra.get('decompilation_completed'):
+                  route='M11_DECOMPILE_EXACT_CLASSIFIER_CALLER'
+                  reason+=' Bounded Ghidra decompilation is still required.'
+              elif not static:
+                  route='M11_REBUILD_STATIC_CALLER_ATTRIBUTION'
+                  reason+=' Static file-offset attribution is missing.'
+
+          payload={
+              'schema':2,
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'status':status,
+              'route':route,
+              'reason':reason,
+              'available_evidence':sorted(evidence),
+              'best_classification':classification(best),
+              'best_result':best,
+              'evidence':evidence,
+          }
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          Path('diagnostics/m11-orchestrator-v2-latest.json').write_text(
+              encoded,encoding='utf-8')
+          Path(f"diagnostics/m11-orchestrator-v2-{os.environ['GITHUB_RUN_ID']}.json").write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-orchestrator-v2-latest.md').write_text(
+              '# HOffice M11 extended orchestrator\n\n'
+              f"- Status: `{status}`\n"
+              f"- Route: `{route}`\n"
+              f"- Reason: {reason}\n"
+              f"- Evidence: `{sorted(evidence)}`\n",
+              encoding='utf-8')
+          with Path(os.environ['GITHUB_OUTPUT']).open('a',encoding='utf-8') as output:
+              output.write(f'route={route}\n')
+          print(encoded)
+          PY
+
+      - name: Dispatch only the missing deterministic frontier
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ROUTE: ${{ steps.classify.outputs.route }}
+        run: |
+          set -euxo pipefail
+          dispatch() {
+            gh workflow run "$1" --ref codex/hoffice-runtime-from-scratch || true
+          }
+          case "$ROUTE" in
+            WAIT_FOR_DOCUMENT_EXPERIMENTS|M11_WAIT_FOR_SENDFILE_AND_BUFFER_RESULTS)
+              dispatch hoffice-runtime-m11-build-empty-fallback-host.yml
+              dispatch hoffice-runtime-m11-empty-fallback-replay-v2.yml
+              dispatch hoffice-runtime-m11-build-sendfile-fallback-host.yml
+              dispatch hoffice-runtime-m11-sendfile-fallback-replay.yml
+              dispatch hoffice-runtime-m11-build-short-buffer-host.yml
+              dispatch hoffice-runtime-m11-short-buffer-replay.yml
+              ;;
+            M11_WAIT_FOR_MASK_AND_GUEST_BUFFER_RESULTS)
+              dispatch hoffice-runtime-m11-build-empty-mask-matrix.yml
+              dispatch hoffice-runtime-m11-empty-mask-matrix-replay.yml
+              dispatch hoffice-runtime-m11-build-empty-buffer-host.yml
+              dispatch hoffice-runtime-m11-empty-buffer-replay.yml
+              dispatch hoffice-runtime-m11-build-short-buffer-host.yml
+              dispatch hoffice-runtime-m11-short-buffer-replay.yml
+              ;;
+            M11_DECOMPILE_EXACT_CLASSIFIER_CALLER|M11_REBUILD_STATIC_CALLER_ATTRIBUTION)
+              dispatch hoffice-runtime-m11-empty-caller-static.yml
+              dispatch hoffice-runtime-m11-empty-caller-ghidra.yml
+              ;;
+            *) ;;
+          esac
+
+      - name: Commit the extended routed frontier
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-orchestrator-v2-*.json \
+                  diagnostics/m11-orchestrator-v2-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: route the extended HOffice M11 frontier'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m11-extended-orchestrator-frontier
+          path: |
+            diagnostics/m11-orchestrator-v2-*.json
+            diagnostics/m11-orchestrator-v2-latest.md
+          if-no-files-found: error
+          retention-days: 14
