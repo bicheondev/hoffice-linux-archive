@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "workflow_run": "31406473005",
+  "commit": "efd612bfdedaa86486c9af958a5552f54b79b385",
+  "status": "DIAGNOSTIC",
+  "route": "WAIT_FOR_EMPTY_FALLBACK_RESULT",
+  "reason": "No durable empty-fallback classification is present.",
+  "available_evidence": [],
+  "evidence": {}
+}
