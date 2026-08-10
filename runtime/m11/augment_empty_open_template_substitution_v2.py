@@ -12,6 +12,11 @@ a selected empty-path ordinal with the already materialized
 ``1`` through ``3`` replace one ordinal, and ``99`` or ``all`` replace every
 stage-1 empty open.  The environment is read only after restoring the Darwin
 pthread/TSD context.  Non-empty paths and all other stages are unchanged.
+
+A writable, used byte array preserves the exact artifact-selection marker
+``HRT M11 EMPTYOPEN:`` in the linked Mach-O.  The compiler may otherwise
+merge the runtime literal with adjacent strings even though emitted logging is
+correct.  The array is never read by guest code and changes no runtime behavior.
 """
 from __future__ import annotations
 
@@ -105,7 +110,15 @@ def main() -> None:
     rewritten_function = function[:body_start] + rewritten_body
     text = text[:start] + rewritten_function + text[closing:]
 
-    helpers = r'''static const char g_m11_empty_open_template_path[] =
+    helpers = r'''#if defined(__clang__)
+__attribute__((used))
+#endif
+static volatile unsigned char m11_emptyopen_artifact_marker[] = {
+    0x48, 0x52, 0x54, 0x20, 0x4d, 0x31, 0x31, 0x20,
+    0x45, 0x4d, 0x50, 0x54, 0x59, 0x4f, 0x50, 0x45,
+    0x4e, 0x3a, 0x00,
+};
+static const char g_m11_empty_open_template_path[] =
     "/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt";
 static volatile sig_atomic_t g_m11_empty_open_mode = -2;
 static volatile sig_atomic_t g_m11_empty_open_ordinal;
@@ -204,6 +217,7 @@ static int64_t host_open_bridge(int directory_fd, const char *guest_path,
         "HRT M11 EMPTYOPEN:": 1,
         "HRT_M11_EMPTY_OPEN_SUBSTITUTE": 1,
         "M11_EMPTY_OPEN_TRACE_LIMIT 16u": 1,
+        "m11_emptyopen_artifact_marker": 1,
         "m11_empty_open_effective_path(": 2,
         "g_m11_empty_open_template_path": 3,
         "__sync_add_and_fetch(": 1,
