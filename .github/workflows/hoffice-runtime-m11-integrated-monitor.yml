@@ -1,0 +1,223 @@
+name: HOffice runtime M11 integrated interposer monitor
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-integrated-monitor.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-integrated-monitor-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TARGET_WORKFLOW: hoffice-runtime-m11-fopen-preload-integrated.yml
+  TARGET_ARTIFACT: hrt-m11-integrated-fopen-preload-proof
+
+jobs:
+  monitor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Wait for the latest integrated interposer run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/monitor/artifact build/monitor/logs diagnostics
+          python3 - <<'PY'
+          import json,os,subprocess,time,urllib.parse
+          from pathlib import Path
+
+          repository=os.environ['GITHUB_REPOSITORY']
+          branch=os.environ['GITHUB_REF_NAME']
+          workflow=os.environ['TARGET_WORKFLOW']
+          deadline=time.monotonic()+100*60
+          selected=None
+          while time.monotonic()<deadline:
+              query=urllib.parse.urlencode({'branch':branch,'per_page':20})
+              result=subprocess.run([
+                  'gh','api','--method','GET',
+                  f'repos/{repository}/actions/workflows/{workflow}/runs?{query}',
+              ],check=True,stdout=subprocess.PIPE,text=True)
+              runs=json.loads(result.stdout).get('workflow_runs',[])
+              runs.sort(key=lambda item:item['created_at'],reverse=True)
+              candidates=[run for run in runs
+                  if run.get('event') in ('push','workflow_dispatch')]
+              if candidates:
+                  selected=candidates[0]
+                  if selected.get('status')=='completed':
+                      break
+              time.sleep(20)
+          if selected is None or selected.get('status')!='completed':
+              raise SystemExit(f'integrated workflow did not complete: {selected}')
+          Path('build/monitor/run.json').write_text(
+              json.dumps(selected,indent=2)+'\n',encoding='utf-8')
+          with Path(os.environ['GITHUB_ENV']).open('a',encoding='utf-8') as env:
+              env.write(f"TARGET_RUN_ID={selected['id']}\n")
+              env.write(f"TARGET_CONCLUSION={selected.get('conclusion')}\n")
+          print(json.dumps(selected,indent=2))
+          PY
+      - name: Collect jobs, logs, and any proof artifact
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          test -n "${TARGET_RUN_ID:-}"
+          gh api --method GET \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$TARGET_RUN_ID/jobs?per_page=100" \
+            >build/monitor/jobs.json
+          python3 - <<'PY'
+          import json,os,subprocess
+          from pathlib import Path
+          repository=os.environ['GITHUB_REPOSITORY']
+          jobs=json.loads(Path('build/monitor/jobs.json').read_text()).get('jobs',[])
+          for job in jobs:
+              if job.get('conclusion')!='failure':
+                  continue
+              try:
+                  output=subprocess.run([
+                      'gh','api','--method','GET',
+                      f'repos/{repository}/actions/jobs/{job["id"]}/logs',
+                  ],check=True,stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT).stdout.decode('utf-8','replace')
+              except Exception as error:
+                  output=repr(error)
+              Path('build/monitor/logs').joinpath(
+                  f"{job['id']}.txt").write_text(output,encoding='utf-8')
+          PY
+          gh api --method GET \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$TARGET_RUN_ID/artifacts?per_page=100" \
+            >build/monitor/artifacts.json
+          python3 - <<'PY'
+          import json,os,subprocess,zipfile
+          from pathlib import Path
+          repository=os.environ['GITHUB_REPOSITORY']
+          name=os.environ['TARGET_ARTIFACT']
+          artifacts=json.loads(Path('build/monitor/artifacts.json').read_text()).get('artifacts',[])
+          matches=[item for item in artifacts if item.get('name')==name and not item.get('expired')]
+          if len(matches)!=1:
+              print(f'proof artifact count: {len(matches)}')
+              raise SystemExit(0)
+          artifact=matches[0]
+          archive=Path('build/monitor/artifact.zip')
+          with archive.open('wb') as output:
+              subprocess.run(['gh','api','--method','GET',
+                  f'repos/{repository}/actions/artifacts/{artifact["id"]}/zip'],
+                  check=True,stdout=output)
+          with zipfile.ZipFile(archive) as zipped:
+              zipped.extractall('build/monitor/artifact')
+          Path('build/monitor/selected-artifact.json').write_text(
+              json.dumps(artifact,indent=2)+'\n',encoding='utf-8')
+          PY
+      - name: Produce one durable monitor classification
+        if: always()
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json,os,re
+          from pathlib import Path
+
+          run=json.loads(Path('build/monitor/run.json').read_text())
+          jobs=json.loads(Path('build/monitor/jobs.json').read_text()).get('jobs',[])
+          diagnostics=list(Path('build/monitor/artifact').rglob(
+              'm11-fopen-preload-integrated-latest.json'))
+          result=None
+          if len(diagnostics)==1:
+              result=json.loads(diagnostics[0].read_text(encoding='utf-8'))
+          failures=[]
+          for job in jobs:
+              if job.get('conclusion')!='failure':
+                  continue
+              log_path=Path('build/monitor/logs')/f"{job['id']}.txt"
+              log=log_path.read_text(errors='replace') if log_path.is_file() else ''
+              error_lines=[line for line in log.splitlines()
+                  if ('##[error]' in line or 'error:' in line.lower() or
+                      'expected ' in line.lower() or 'Traceback' in line or
+                      'Process completed with exit code' in line)]
+              failures.append({
+                  'job_id':str(job['id']),
+                  'name':job['name'],
+                  'failed_steps':[step for step in job.get('steps',[])
+                                  if step.get('conclusion')=='failure'],
+                  'error_lines':error_lines[-120:],
+                  'log_tail':'\n'.join(log.splitlines()[-300:]),
+              })
+          if result is not None:
+              status=result.get('status','DIAGNOSTIC')
+              classification=result.get('classification',
+                  'INTEGRATED_RESULT_WITHOUT_CLASSIFICATION')
+          elif run.get('conclusion')=='success':
+              status='DIAGNOSTIC'
+              classification='INTEGRATED_WORKFLOW_SUCCESS_WITHOUT_RESULT_JSON'
+          else:
+              status='FAIL'
+              classification='INTEGRATED_WORKFLOW_FAILED'
+          payload={
+              'schema':1,
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'target_run_id':str(run['id']),
+              'target_head_sha':run['head_sha'],
+              'target_status':run['status'],
+              'target_conclusion':run.get('conclusion'),
+              'status':status,
+              'classification':classification,
+              'result':result,
+              'failures':failures,
+              'jobs':[{k:job.get(k) for k in
+                       ('id','name','status','conclusion','started_at','completed_at')}
+                      for job in jobs],
+          }
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          Path('diagnostics/m11-integrated-monitor-latest.json').write_text(
+              encoded,encoding='utf-8')
+          Path(f"diagnostics/m11-integrated-monitor-{os.environ['GITHUB_RUN_ID']}.json").write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-integrated-monitor-latest.md').write_text(
+              '# Integrated HWord fopen interposer monitor\n\n'
+              f"- Target run: `{run['id']}`\n"
+              f"- Target conclusion: `{run.get('conclusion')}`\n"
+              f"- Status: `{status}`\n"
+              f"- Classification: `{classification}`\n"
+              f"- Failed jobs: `{len(failures)}`\n",
+              encoding='utf-8')
+          print(encoded)
+          PY
+      - name: Commit the monitored result
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -s diagnostics/m11-integrated-monitor-latest.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-integrated-monitor-*.json \
+                  diagnostics/m11-integrated-monitor-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: persist the integrated HWord interposer result'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-integrated-monitor
+          path: |
+            build/monitor
+            diagnostics/m11-integrated-monitor-*.json
+            diagnostics/m11-integrated-monitor-latest.md
+          if-no-files-found: warn
+          retention-days: 14
