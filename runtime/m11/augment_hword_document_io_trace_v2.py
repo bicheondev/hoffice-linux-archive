@@ -12,13 +12,13 @@ finds the first brace after a multiline signature, and then scans to the
 matching close.  Every v1 anchor and marker audit remains intact.
 
 The public v2 entry point then runs the reviewed open-callsite postprocessor
-through the v6 literal-safe bounded frame-chain wrapper.  v6 preserves v4's
-literal F_GETPATH fix and 32-word context, then credits callers only from
-canonical saved RBP/return pairs.  Its generated-source audit includes the
-fourth resolver introduced for canonical frame returns.  The nested v2
-invocation made by v3 is identified both by an explicit environment guard and
-by v3's private temporary-directory prefix, preventing recursion while
-preserving direct invocation of any entry point.
+through the v7 classifier-caller wrapper.  v7 preserves v6's literal-safe
+canonical frame chain and derives the direct caller of the exact
+``libHwordApp.so+0xe15e32`` empty-path ``fopen`` from the statically verified
+classifier frame layout.  The nested v2 invocation made by v3 is identified
+both by an explicit environment guard and by v3's private temporary-directory
+prefix, preventing recursion while preserving direct invocation of any entry
+point.
 """
 from __future__ import annotations
 
@@ -77,7 +77,7 @@ def run_brace_scoped_v2() -> None:
     function = text[start:closing]
     count = function.count(needle)
     if count != 1:
-        tail = function[-2400:].replace("\\n", "\\\\n")
+        tail = function[-2400:].replace("\n", "\\n")
         raise SystemExit(
             f"{label}: expected one in-function anchor, found {count}; "
             f"function-tail={tail}")
@@ -116,11 +116,11 @@ def should_run_open_context() -> bool:
 
 def run_open_context() -> None:
     generator = Path(__file__).with_name(
-        "augment_hword_document_io_trace_v6.py"
+        "augment_hword_document_io_trace_v7.py"
     )
     if not generator.is_file():
         raise SystemExit(
-            f"open-callsite literal-safe frame-chain wrapper not found: {generator}")
+            f"open-callsite classifier-caller wrapper not found: {generator}")
     environment = os.environ.copy()
     environment["HRT_M11_DOCIO_V3_INNER"] = "1"
     subprocess.run(
