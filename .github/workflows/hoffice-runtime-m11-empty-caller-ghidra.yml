@@ -1,0 +1,336 @@
+name: HOffice runtime M11 exact empty-open caller Ghidra analysis
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-empty-caller-ghidra.yml'
+      - 'diagnostics/m11-empty-open-caller-static-latest.json'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-empty-caller-ghidra-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREPARED_RUN_ID: '31235068358'
+  TARGET_ADDRESS: '0xe15e32'
+
+jobs:
+  decompile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install deterministic analysis dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            --no-install-recommends openjdk-21-jdk-headless zstd unzip file python3
+          java -version
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m9-bootstrap-prepared-guest
+          path: build/input/prepared
+          repository: ${{ github.repository }}
+          run-id: ${{ env.PREPARED_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download the latest official Ghidra release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input/ghidra build/analysis build/report diagnostics
+          gh api --method GET repos/NationalSecurityAgency/ghidra/releases/latest \
+            >build/report/ghidra-release.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          release=json.loads(Path('build/report/ghidra-release.json').read_text())
+          assets=[asset for asset in release.get('assets',[])
+                  if asset['name'].endswith('.zip') and
+                     'PUBLIC' in asset['name'].upper()]
+          if len(assets)!=1:
+              assets=[asset for asset in release.get('assets',[])
+                      if asset['name'].endswith('.zip')]
+          if len(assets)!=1:
+              raise SystemExit(f'expected one Ghidra zip asset, found {len(assets)}')
+          asset=assets[0]
+          Path('build/report/ghidra-asset.json').write_text(
+              json.dumps(asset,indent=2)+'\n')
+          Path('build/report/ghidra-asset-url.txt').write_text(
+              asset['browser_download_url']+'\n')
+          print(json.dumps(asset,indent=2))
+          PY
+          curl --fail --location --retry 5 --retry-delay 3 \
+            "$(cat build/report/ghidra-asset-url.txt)" \
+            -o build/input/ghidra/ghidra.zip
+          sha256sum build/input/ghidra/ghidra.zip \
+            | tee build/report/ghidra-zip.sha256.txt
+          unzip -q build/input/ghidra/ghidra.zip -d build/input/ghidra
+          ghidra_root=$(find build/input/ghidra -mindepth 1 -maxdepth 1 \
+            -type d -name 'ghidra_*' -print -quit)
+          test -n "$ghidra_root"
+          test -x "$ghidra_root/support/analyzeHeadless"
+          printf '%s\n' "$ghidra_root" >build/report/ghidra-root.txt
+
+      - name: Extract the exact prepatched HWord application library
+        run: |
+          set -euxo pipefail
+          mkdir -p build/object
+          archive=$(find build/input/prepared -type f -name '*.tar.zst' -print -quit)
+          test -n "$archive"
+          zstd -dc "$archive" | tar -xf - -C build/object \
+            ./opt/hnc/hoffice11/Bin/libHwordApp.so
+          object=build/object/opt/hnc/hoffice11/Bin/libHwordApp.so
+          test -s "$object"
+          file "$object" | tee build/report/object-file.txt
+          sha256sum "$object" | tee build/report/object-sha256.txt
+          printf '%s\n' "$object" >build/report/object-path.txt
+
+      - name: Create the bounded function-analysis script
+        run: |
+          set -euxo pipefail
+          mkdir -p build/ghidra-scripts
+          cat >build/ghidra-scripts/DecompileAt.java <<'JAVA'
+          import ghidra.app.decompiler.DecompInterface;
+          import ghidra.app.decompiler.DecompileResults;
+          import ghidra.app.script.GhidraScript;
+          import ghidra.program.model.address.Address;
+          import ghidra.program.model.listing.Function;
+          import ghidra.program.model.listing.Instruction;
+          import ghidra.program.model.listing.InstructionIterator;
+          import ghidra.program.model.symbol.Reference;
+          import ghidra.program.model.symbol.ReferenceIterator;
+          import java.io.PrintWriter;
+          import java.nio.charset.StandardCharsets;
+          import java.nio.file.Files;
+          import java.nio.file.Path;
+          import java.nio.file.Paths;
+
+          public class DecompileAt extends GhidraScript {
+              private static String json(String value) {
+                  if (value == null) return "null";
+                  String escaped = value.replace("\\", "\\\\")
+                      .replace("\"", "\\\"")
+                      .replace("\n", "\\n")
+                      .replace("\r", "\\r")
+                      .replace("\t", "\\t");
+                  return "\"" + escaped + "\"";
+              }
+
+              @Override
+              protected void run() throws Exception {
+                  String[] args = getScriptArgs();
+                  if (args.length != 2) {
+                      throw new IllegalArgumentException(
+                          "usage: DecompileAt <address> <output-json>");
+                  }
+                  Address target = toAddr(args[0]);
+                  Function function = getFunctionContaining(target);
+                  if (function == null) {
+                      disassemble(target);
+                      function = createFunction(target, null);
+                  }
+                  if (function == null) {
+                      throw new IllegalStateException(
+                          "no function contains target " + target);
+                  }
+
+                  DecompInterface decompiler = new DecompInterface();
+                  decompiler.toggleCCode(true);
+                  decompiler.toggleSyntaxTree(true);
+                  if (!decompiler.openProgram(currentProgram)) {
+                      throw new IllegalStateException(
+                          "decompiler open failed: " + decompiler.getLastMessage());
+                  }
+                  DecompileResults results = decompiler.decompileFunction(
+                      function, 300, monitor);
+                  String c = results.decompileCompleted() &&
+                      results.getDecompiledFunction() != null
+                      ? results.getDecompiledFunction().getC()
+                      : "DECOMPILATION_FAILED: " + results.getErrorMessage();
+                  if (c.length() > 20000) {
+                      c = c.substring(0, 20000) +
+                          "\n/* bounded at 20,000 characters */\n";
+                  }
+
+                  StringBuilder calls = new StringBuilder();
+                  calls.append("[");
+                  boolean firstCall = true;
+                  InstructionIterator instructions = currentProgram
+                      .getListing().getInstructions(function.getBody(), true);
+                  int instructionCount = 0;
+                  while (instructions.hasNext()) {
+                      Instruction instruction = instructions.next();
+                      instructionCount++;
+                      if (!instruction.getFlowType().isCall()) continue;
+                      for (Address destination : instruction.getFlows()) {
+                          Function callee = getFunctionAt(destination);
+                          if (!firstCall) calls.append(',');
+                          firstCall = false;
+                          calls.append("{\"site\":")
+                              .append(json(instruction.getAddress().toString()))
+                              .append(",\"destination\":")
+                              .append(json(destination.toString()))
+                              .append(",\"name\":")
+                              .append(json(callee != null ? callee.getName(true) : null))
+                              .append('}');
+                      }
+                  }
+                  calls.append("]");
+
+                  StringBuilder callers = new StringBuilder();
+                  callers.append("[");
+                  boolean firstCaller = true;
+                  ReferenceIterator references = currentProgram
+                      .getReferenceManager().getReferencesTo(function.getEntryPoint());
+                  int callerCount = 0;
+                  while (references.hasNext() && callerCount < 200) {
+                      Reference reference = references.next();
+                      if (!reference.getReferenceType().isCall()) continue;
+                      Function caller = getFunctionContaining(reference.getFromAddress());
+                      if (!firstCaller) callers.append(',');
+                      firstCaller = false;
+                      callerCount++;
+                      callers.append("{\"site\":")
+                          .append(json(reference.getFromAddress().toString()))
+                          .append(",\"function\":")
+                          .append(json(caller != null ? caller.getName(true) : null))
+                          .append('}');
+                  }
+                  callers.append("]");
+
+                  String output = "{\n" +
+                      "  \"schema\": 1,\n" +
+                      "  \"target\": " + json(target.toString()) + ",\n" +
+                      "  \"function_name\": " + json(function.getName(true)) + ",\n" +
+                      "  \"function_entry\": " + json(function.getEntryPoint().toString()) + ",\n" +
+                      "  \"function_body_min\": " + json(function.getBody().getMinAddress().toString()) + ",\n" +
+                      "  \"function_body_max\": " + json(function.getBody().getMaxAddress().toString()) + ",\n" +
+                      "  \"function_size\": " + function.getBody().getNumAddresses() + ",\n" +
+                      "  \"instruction_count\": " + instructionCount + ",\n" +
+                      "  \"signature\": " + json(function.getSignature().toString()) + ",\n" +
+                      "  \"calls\": " + calls + ",\n" +
+                      "  \"callers\": " + callers + ",\n" +
+                      "  \"decompiled_c\": " + json(c) + "\n" +
+                      "}\n";
+                  Path outputPath = Paths.get(args[1]);
+                  Files.writeString(outputPath, output, StandardCharsets.UTF_8);
+                  println(output);
+                  decompiler.dispose();
+              }
+          }
+          JAVA
+
+      - name: Analyze and decompile the exact caller function
+        run: |
+          set -euxo pipefail
+          ghidra_root=$(cat build/report/ghidra-root.txt)
+          object=$(cat build/report/object-path.txt)
+          project="$RUNNER_TEMP/hrt-m11-ghidra-project"
+          rm -rf "$project"
+          mkdir -p "$project"
+          "$ghidra_root/support/analyzeHeadless" \
+            "$project" HWordCaller \
+            -import "$object" \
+            -overwrite \
+            -analysisTimeoutPerFile 2400 \
+            -scriptPath build/ghidra-scripts \
+            -postScript DecompileAt.java "$TARGET_ADDRESS" \
+              "$GITHUB_WORKSPACE/build/report/ghidra-function.json" \
+            -deleteProject \
+            | tee build/report/ghidra-headless.log
+          test -s build/report/ghidra-function.json
+
+      - name: Produce a compact fail-closed caller diagnosis
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          result=json.loads(Path(
+              'build/report/ghidra-function.json').read_text(encoding='utf-8'))
+          c=result.get('decompiled_c','')
+          strings=sorted(set(re.findall(r'"([^"\\]{2,160})"',c)))[:200]
+          interesting_calls=[item for item in result.get('calls',[])
+              if item.get('name') and any(token in item['name'].lower()
+                  for token in ('open','fopen','file','path','string','document',
+                                'template','format','type','classif'))]
+          payload={
+              'schema':1,
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'target_address':os.environ['TARGET_ADDRESS'],
+              'object_sha256':Path(
+                  'build/report/object-sha256.txt').read_text().split()[0],
+              'function_name':result.get('function_name'),
+              'function_entry':result.get('function_entry'),
+              'function_body_min':result.get('function_body_min'),
+              'function_body_max':result.get('function_body_max'),
+              'function_size':result.get('function_size'),
+              'instruction_count':result.get('instruction_count'),
+              'signature':result.get('signature'),
+              'call_count':len(result.get('calls',[])),
+              'caller_count':len(result.get('callers',[])),
+              'interesting_calls':interesting_calls,
+              'string_literals':strings,
+              'decompilation_completed':not c.startswith('DECOMPILATION_FAILED'),
+              'decompiled_character_count':len(c),
+              'decompiled_c_sha256':__import__('hashlib').sha256(
+                  c.encode()).hexdigest(),
+          }
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          Path('diagnostics/m11-empty-open-caller-ghidra-latest.json').write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-empty-open-caller-ghidra-latest.md').write_text(
+              '# Ghidra attribution of the HWord empty-open caller\n\n'
+              f"- Function: `{payload['function_name']}`\n"
+              f"- Entry: `{payload['function_entry']}`\n"
+              f"- Target: `{payload['target_address']}`\n"
+              f"- Size: `{payload['function_size']}` bytes\n"
+              f"- Instructions: `{payload['instruction_count']}`\n"
+              f"- Calls: `{payload['call_count']}`\n"
+              f"- Decompiled: `{payload['decompilation_completed']}`\n",
+              encoding='utf-8')
+          Path('build/report/compact-diagnosis.json').write_text(
+              encoded,encoding='utf-8')
+          print(encoded)
+          PY
+
+      - name: Commit only the compact caller diagnosis
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-empty-open-caller-ghidra-latest.json \
+                  diagnostics/m11-empty-open-caller-ghidra-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: decompile the HWord empty-open caller boundary'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m11-empty-open-caller-ghidra
+          path: |
+            build/report
+            diagnostics/m11-empty-open-caller-ghidra-latest.json
+            diagnostics/m11-empty-open-caller-ghidra-latest.md
+          if-no-files-found: error
+          retention-days: 7
