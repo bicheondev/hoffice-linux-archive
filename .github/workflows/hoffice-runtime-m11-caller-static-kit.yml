@@ -1,0 +1,115 @@
+name: HOffice runtime M11 caller static kit
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-caller-static-kit.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: hrt-m11-caller-static-kit-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREPARED_RUN_ID: '31235068358'
+
+jobs:
+  extract-and-index:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the exact prepared HWord guest
+        uses: actions/download-artifact@v4
+        with:
+          name: hrt-m9-bootstrap-prepared-guest
+          path: build/input/prepared
+          repository: ${{ github.repository }}
+          run-id: ${{ env.PREPARED_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Extract the likely open-callsite objects
+        run: |
+          set -euxo pipefail
+          mkdir -p build/root build/objects build/reports
+          archive=$(find build/input/prepared -type f \
+            \( -name '*.tar.gz' -o -name '*.tgz' \) -print -quit)
+          test -n "$archive"
+          printf '%s\n' "$archive" >build/reports/rootfs-archive.txt
+
+          cat >build/reports/requested-paths.txt <<'EOF'
+          ./lib/x86_64-linux-gnu/libc.so.6
+          ./opt/hnc/hoffice11/Bin/libhsp.so
+          ./opt/hnc/hoffice11/Bin/libHncFoundation.so
+          ./opt/hnc/hoffice11/Bin/HwordAction.so
+          ./opt/hnc/hoffice11/Bin/libHwordApp.so
+          ./opt/hnc/hoffice11/Bin/Hword.so
+          ./opt/hnc/hoffice11/Bin/libHncBaseDraw.so
+          ./opt/hnc/hoffice11/Bin/libHncOfficeCore.so
+          EOF
+          while IFS= read -r path; do
+            if tar -tzf "$archive" "$path" >/dev/null 2>&1; then
+              tar -xzf "$archive" -C build/root "$path"
+            fi
+          done <build/reports/requested-paths.txt
+
+          find build/root -type f -print | LC_ALL=C sort \
+            | tee build/reports/extracted-paths.txt
+          test -s build/reports/extracted-paths.txt
+          while IFS= read -r object; do
+            relative=${object#build/root/}
+            flat=$(printf '%s' "$relative" | tr '/' '_')
+            cp "$object" "build/objects/$flat"
+            file "$object" >"build/reports/$flat.file.txt"
+            sha256sum "$object" >"build/reports/$flat.sha256.txt"
+            readelf -hW "$object" >"build/reports/$flat.elf-header.txt"
+            readelf -lW "$object" >"build/reports/$flat.program-headers.txt"
+            readelf -dW "$object" >"build/reports/$flat.dynamic.txt"
+            readelf -Ws "$object" >"build/reports/$flat.symbols.txt"
+            readelf -rW "$object" >"build/reports/$flat.relocations.txt"
+            objdump -dC "$object" >"build/reports/$flat.disassembly.txt"
+          done <build/reports/extracted-paths.txt
+
+      - name: Produce focused disassembly windows
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          requests = {
+              'lib_x86_64-linux-gnu_libc.so.6': [0x91b0f, 0x11b213, 0x11c8e2],
+              'opt_hnc_hoffice11_Bin_libhsp.so': [0xfe88e],
+              'opt_hnc_hoffice11_Bin_libHncFoundation.so': [0x1247bc],
+          }
+          for flat, addresses in requests.items():
+              object_path = Path('build/objects') / flat
+              if not object_path.is_file():
+                  continue
+              for address in addresses:
+                  start = max(0, address - 0x100)
+                  stop = address + 0x120
+                  output = Path('build/reports') / (
+                      f'{flat}.around-0x{address:x}.txt')
+                  result = subprocess.run(
+                      ['objdump', '-dC', f'--start-address={start}',
+                       f'--stop-address={stop}', str(object_path)],
+                      check=True, stdout=subprocess.PIPE,
+                      stderr=subprocess.STDOUT, text=True)
+                  output.write_text(result.stdout, encoding='utf-8')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m11-caller-static-kit
+          path: |
+            build/objects
+            build/reports
+          if-no-files-found: error
+          retention-days: 14
