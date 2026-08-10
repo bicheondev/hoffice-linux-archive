@@ -1,0 +1,425 @@
+name: HOffice runtime M11 sendfile plus empty-open A-B
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-sendfile-empty-open-ab.yml'
+      - 'runtime/m11/augment_sendfile_compat_v1.py'
+      - 'runtime/m11/augment_sendfile_compat_v2.py'
+      - 'runtime/m11/augment_empty_open_template_substitution_v2.py'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-sendfile-empty-open-ab-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREPARED_RUN_ID: '31235068358'
+  QPA_RUN_ID: '31305695836'
+  QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  build-host:
+    runs-on: macos-14
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate the sendfile and selectable empty-open runtime
+        run: |
+          set -euxo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true; then
+            sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+          fi
+          mkdir -p build/generated build/objects build/output
+          /usr/bin/arch -x86_64 /usr/bin/getconf PAGESIZE \
+            | tee build/output/x86-page-size.txt
+          sw_vers | tee build/output/sw-vers.txt
+
+          python3 runtime/m8/augment_appkit_adapter_input.py \
+            runtime/m6/appkit_adapter.m \
+            build/generated/appkit_adapter_m8.m
+          python3 runtime/m11/augment_appkit_korean_input_capture.py \
+            build/generated/appkit_adapter_m8.m \
+            build/generated/appkit_adapter_m11.m
+          grep -F 'isEqualToString:@"한워드"' runtime/m8/appkit_input.m
+          grep -F 'hrt_m11_docio_mark_stage(1u);' runtime/m8/appkit_input.m
+
+          python3 runtime/m6/augment_stack_hrtappkit.py \
+            runtime/m3/stack.c build/generated/stack-m6.c
+          python3 runtime/m9/augment_stack_locale.py \
+            build/generated/stack-m6.c build/generated/stack.c
+
+          python3 runtime/m3/augment_syscalls.py \
+            runtime/m3/syscall_bridge.c build/generated/stage1.c
+          python3 runtime/m3/augment_directory_syscalls.py \
+            build/generated/stage1.c build/generated/stage2.c
+          python3 runtime/m3/augment_directory_stream.py \
+            build/generated/stage2.c build/generated/stage3.c
+          python3 runtime/m3/augment_pipe2.py \
+            build/generated/stage3.c build/generated/stage4.c
+          python3 runtime/m3/augment_eventfd2.py \
+            build/generated/stage4.c build/generated/stage5.c
+          python3 runtime/m3/augment_crash_signals.py \
+            build/generated/stage5.c build/generated/stage6.c
+          python3 runtime/m3/augment_poll.py \
+            build/generated/stage6.c build/generated/stage7.c
+          python3 runtime/m3/augment_posix_basics.py \
+            build/generated/stage7.c build/generated/stage8.c
+          python3 runtime/m11/augment_clock_nanosleep.py \
+            build/generated/stage8.c build/generated/stage9.c
+          python3 runtime/m11/augment_sendfile_compat_v2.py \
+            build/generated/stage9.c build/generated/stage10.c
+          python3 runtime/m10/augment_fs_compat.py \
+            build/generated/stage10.c build/generated/stage11.c
+          python3 runtime/m3/augment_connect.py \
+            build/generated/stage11.c build/generated/stage12.c
+          python3 runtime/m6/augment_appkit_hostcall_deferred.py \
+            build/generated/stage12.c build/generated/stage13.c
+          python3 runtime/m3/augment_darwin_syscall_abi.py \
+            build/generated/stage13.c build/generated/stage14.c
+          python3 runtime/m10/augment_clone_compat_v4.py \
+            build/generated/stage14.c build/generated/stage15.c
+          python3 runtime/m11/augment_empty_open_template_substitution_v2.py \
+            build/generated/stage15.c build/generated/syscall_bridge.c
+
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('build/generated/syscall_bridge.c')
+          text = path.read_text(encoding='utf-8')
+          anchor = '#define M3_TRACE_LIMIT 256u'
+          if text.count(anchor) != 1:
+              raise SystemExit(
+                  f'trace-limit anchor: expected one, found {text.count(anchor)}')
+          path.write_text(
+              text.replace(anchor, '#define M3_TRACE_LIMIT 24000u'),
+              encoding='utf-8')
+          PY
+
+          grep -F 'case LINUX_SYS_SENDFILE:' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 SENDFILE: out=' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 FRAMECTX:' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 EMPTYOPEN: ordinal=' build/generated/syscall_bridge.c
+          grep -F 'case LINUX_SYS_CLONE:' build/generated/syscall_bridge.c
+          grep -F 'case LINUX_SYS_CLOCK_NANOSLEEP:' \
+            build/generated/syscall_bridge.c
+          shasum -a 256 build/generated/syscall_bridge.c \
+            >build/output/generated-bridge.sha256
+
+      - name: Compile, sign and lock the A-B host
+        run: |
+          set -euxo pipefail
+          common=(-arch x86_64 -std=c17 -O2 -g \
+            -fno-stack-protector -fno-omit-frame-pointer -mfsgsbase \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Wno-unused-function -Wno-unused-variable \
+            -Iruntime/m10 -Iruntime/m8 -Iruntime/m6 \
+            -Iruntime/m3 -Iruntime/m1)
+          index=0
+          for source in \
+            runtime/m6/main.c \
+            runtime/m6/hostcall_trampoline.c \
+            runtime/m1/common.c \
+            runtime/m3/elf_map.c \
+            build/generated/stack.c \
+            runtime/m3/patch.c \
+            build/generated/syscall_bridge.c; do
+            clang "${common[@]}" -c "$source" \
+              -o "build/objects/c-${index}.o"
+            index=$((index + 1))
+          done
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Iruntime/m8 -Iruntime/m6 \
+            -c build/generated/appkit_adapter_m11.m \
+            -o build/objects/appkit-adapter.o
+          clang -arch x86_64 -std=c17 -O2 -g -fobjc-arc \
+            -Wall -Wextra -Werror -Wpedantic \
+            -Iruntime/m8 -Iruntime/m6 \
+            -c runtime/m8/appkit_input.m \
+            -o build/objects/appkit-input.o
+          clang -arch x86_64 -g -c runtime/m1/enter_guest.S \
+            -o build/objects/enter-guest.o
+          clang -arch x86_64 -g -Iruntime/m10 \
+            -c runtime/m10/clone_trampoline.S \
+            -o build/objects/clone-trampoline.o
+          clang -arch x86_64 -g -c runtime/m6/hostcall_trampoline.S \
+            -o build/objects/hostcall-trampoline.o
+
+          output=build/output/hrt-m10-hword-main-input
+          clang -arch x86_64 build/objects/*.o \
+            -Wl,-pagezero_size,0x1000 \
+            -framework AppKit -framework CoreGraphics -framework ImageIO \
+            -o "$output"
+          chmod 0755 "$output"
+          codesign --force --sign - --timestamp=none "$output"
+          codesign --verify --strict "$output"
+          file "$output" | tee build/output/host-file.txt
+          lipo -info "$output" | tee build/output/host-arch.txt
+          shasum -a 256 "$output" | tee build/output/host-sha256.txt
+          strings "$output" | grep -F 'HRT M11 SENDFILE:' \
+            >build/output/sendfile-marker.txt
+          strings "$output" | grep -F 'HRT M11 EMPTYOPEN:' \
+            >build/output/empty-open-marker.txt
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          binary = Path('build/output/hrt-m10-hword-main-input')
+          lock = {
+              'schema': 1,
+              'workflow_run': os.environ['GITHUB_RUN_ID'],
+              'commit': os.environ['GITHUB_SHA'],
+              'binary_sha256': hashlib.sha256(binary.read_bytes()).hexdigest(),
+              'linux_sendfile': True,
+              'empty_open_modes': [0, 99],
+              'canonical_frame_context': True,
+          }
+          Path('build/output/sendfile-empty-open-host-lock.json').write_text(
+              json.dumps(lock, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(lock, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m10-hword-main-window-input-proof
+          path: build/output
+          if-no-files-found: error
+          retention-days: 14
+
+  replay:
+    needs: build-host
+    runs-on: macos-14
+    timeout-minutes: 80
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [0, 99]
+    env:
+      HOST_RUN_ID: ${{ github.run_id }}
+      HRT_M11_EMPTY_OPEN_SUBSTITUTE: ${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve the current-run host artifact digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/proof
+          digest=''
+          for attempt in $(seq 1 30); do
+            digest=$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+              --jq '.artifacts[] | select(.name == "hrt-m10-hword-main-window-input-proof") | .digest' \
+              | head -n1 | sed 's/^sha256://' || true)
+            test -n "$digest" && break
+            sleep 5
+          done
+          test -n "$digest"
+          echo "HOST_ARTIFACT_DIGEST=$digest" >>"$GITHUB_ENV"
+
+      - name: Replay exact HWord in A-B mode
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HRT_M11_MODAL_CAPTURE_PATH: ${{ github.workspace }}/build/proof/hword-modal-dialog-mode-${{ matrix.mode }}.png
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated
+          python3 runtime/m11/augment_full_product_replay_v2.py \
+            runtime/m11/run_korean_title_staged_replay.sh \
+            build/generated/run_korean_title_ab_${{ matrix.mode }}.sh
+          build/generated/run_korean_title_ab_${{ matrix.mode }}.sh
+
+      - name: Classify sendfile and empty-open outcome
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -f build/proof/stderr.txt
+          mkdir -p build/result
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          mode = int(os.environ['HRT_M11_EMPTY_OPEN_SUBSTITUTE'])
+          stderr = Path('build/proof/stderr.txt').read_text(errors='replace')
+          summary_path = Path('diagnostics/m11-korean-title-staged-latest.json')
+          summary = json.loads(summary_path.read_text()) \
+              if summary_path.is_file() else {}
+          sendfile_lines = [line for line in stderr.splitlines()
+                            if line.startswith('HRT M11 SENDFILE:')]
+          empty_lines = [line for line in stderr.splitlines()
+                         if line.startswith('HRT M11 EMPTYOPEN:')]
+          substitutions = [line for line in empty_lines
+                           if ' substituted=1 ' in line]
+          unsupported_40 = len(re.findall(
+              r'Linux syscall ENOSYS 40(?:\D|$)', stderr))
+          empty_failures = [line for line in stderr.splitlines()
+              if line.startswith('HRT M11 DOCIO:') and
+                 ' op=open ' in line and ' result=-2 ' in line and
+                 re.search(r' guest=(?:\s|$)', line)]
+          modal = 'HRT M11 APPKIT: modal first-frame capture result=1' in stderr
+          editor_markers = sorted(set(re.findall(
+              r'class=([^ ]*(?:HwordAppView|Editor|Edit|Canvas|DocumentView)[^ ]*)',
+              stderr)))
+          text_credit = bool(summary.get('text_interaction_credited'))
+          if text_credit:
+              classification = 'TEXT_INTERACTION_CREDITED'
+          elif editor_markers:
+              classification = 'EDITOR_MATERIALIZED'
+          elif not modal:
+              classification = 'VALIDATION_MODAL_SUPPRESSED'
+          elif mode == 99:
+              classification = 'SENDFILE_PLUS_SUBSTITUTION_MODAL_REMAINS'
+          else:
+              classification = 'SENDFILE_ONLY_MODAL_REMAINS'
+          result = {
+              'schema': 1,
+              'workflow_run': os.environ['GITHUB_RUN_ID'],
+              'mode': mode,
+              'classification': classification,
+              'sendfile_trace_count': len(sendfile_lines),
+              'sendfile_enosys_count': unsupported_40,
+              'sendfile_lines': sendfile_lines,
+              'empty_open_observation_count': len(empty_lines),
+              'substitution_count': len(substitutions),
+              'remaining_empty_enoent_count': len(empty_failures),
+              'modal_observed': modal,
+              'editor_markers': editor_markers,
+              'text_interaction_credited': text_credit,
+          }
+          Path(f'build/result/sendfile-empty-mode-{mode}.json').write_text(
+              json.dumps(result, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8')
+          print(json.dumps(result, ensure_ascii=False, indent=2))
+          if not sendfile_lines:
+              raise SystemExit('sendfile-enabled host emitted no SENDFILE trace')
+          if unsupported_40:
+              raise SystemExit('syscall 40 remains ENOSYS')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-sendfile-empty-open-result-${{ matrix.mode }}
+          path: |
+            build/result
+            build/proof/hword-modal-dialog-mode-${{ matrix.mode }}.png
+            build/proof/stderr.txt
+            build/proof/summary.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  aggregate:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: hrt-m11-sendfile-empty-open-result-*
+          path: build/results
+          merge-multiple: true
+
+      - name: Commit the sendfile A-B result
+        run: |
+          set -euxo pipefail
+          mkdir -p diagnostics
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          files = sorted(Path('build/results').rglob(
+              'sendfile-empty-mode-*.json'))
+          if not files:
+              raise SystemExit('no A-B result was downloaded')
+          results = [json.loads(path.read_text()) for path in files]
+          results.sort(key=lambda item: item['mode'])
+          baseline = next((item for item in results if item['mode'] == 0), None)
+          substituted = next((item for item in results if item['mode'] == 99), None)
+          inference = []
+          if baseline:
+              if baseline['sendfile_trace_count'] and not baseline['modal_observed']:
+                  inference.append('sendfile-alone-suppressed-modal')
+              elif baseline['sendfile_trace_count']:
+                  inference.append('sendfile-executed-modal-remained')
+          if baseline and substituted:
+              if baseline['modal_observed'] and not substituted['modal_observed']:
+                  inference.append('empty-open-substitution-suppressed-modal')
+              if substituted['editor_markers'] and not baseline['editor_markers']:
+                  inference.append('substitution-materialized-editor')
+              if substituted['text_interaction_credited']:
+                  inference.append('substitution-credited-text')
+          payload = {
+              'schema': 1,
+              'results': results,
+              'baseline': baseline,
+              'all_empty_substituted': substituted,
+              'inference': inference,
+          }
+          text = json.dumps(payload, ensure_ascii=False, indent=2) + '\n'
+          Path('diagnostics/m11-hword-sendfile-empty-open-ab.json').write_text(
+              text, encoding='utf-8')
+          lines = [
+              '# HWord sendfile plus empty-open A/B', '',
+              '| mode | classification | sendfile | ENOSYS 40 | substitutions | empty ENOENT | modal | editor | text |',
+              '|---:|---|---:|---:|---:|---:|:---:|:---:|:---:|',
+          ]
+          for item in results:
+              lines.append(
+                  f"| {item['mode']} | {item['classification']} | "
+                  f"{item['sendfile_trace_count']} | "
+                  f"{item['sendfile_enosys_count']} | "
+                  f"{item['substitution_count']} | "
+                  f"{item['remaining_empty_enoent_count']} | "
+                  f"{item['modal_observed']} | "
+                  f"{bool(item['editor_markers'])} | "
+                  f"{item['text_interaction_credited']} |")
+          lines.extend(['', f"Inference: `{inference}`", ''])
+          Path('diagnostics/m11-hword-sendfile-empty-open-ab.md').write_text(
+              '\n'.join(lines), encoding='utf-8')
+          print(text)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-hword-sendfile-empty-open-ab.json \
+                  diagnostics/m11-hword-sendfile-empty-open-ab.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: classify HWord sendfile and empty-open A-B'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-sendfile-empty-open-ab
+          path: |
+            diagnostics/m11-hword-sendfile-empty-open-ab.json
+            diagnostics/m11-hword-sendfile-empty-open-ab.md
+          if-no-files-found: error
+          retention-days: 14
