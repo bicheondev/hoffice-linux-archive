@@ -131,7 +131,12 @@ static hrt_fopen_type hrt_resolve(const char *symbol)
     dlerror();
     void *address = dlsym(RTLD_NEXT, symbol);
     hrt_resolving = 0;
-    return (hrt_fopen_type)address;
+
+    hrt_fopen_type function = NULL;
+    _Static_assert(sizeof(function) == sizeof(address),
+                   "dlsym and function pointers must have equal size");
+    memcpy(&function, &address, sizeof(function));
+    return function;
 }
 
 static FILE *hrt_dispatch(const char *symbol, const char *filename,
