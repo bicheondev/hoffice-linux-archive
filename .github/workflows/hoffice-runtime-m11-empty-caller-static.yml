@@ -1,0 +1,225 @@
+name: HOffice runtime M11 exact empty-open caller static analysis
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-empty-caller-static.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-empty-caller-static-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREPARED_RUN_ID: '31235068358'
+  TARGET_FILE_OFFSET: '0xe15e32'
+
+jobs:
+  analyze:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install deterministic ELF analysis tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            --no-install-recommends zstd binutils file python3
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m9-bootstrap-prepared-guest
+          path: build/input/prepared
+          repository: ${{ github.repository }}
+          run-id: ${{ env.PREPARED_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Extract the exact prepatched libHwordApp object
+        run: |
+          set -euxo pipefail
+          mkdir -p build/root build/object build/report diagnostics
+          archive=$(find build/input/prepared -type f -name '*.tar.zst' -print -quit)
+          test -n "$archive"
+          zstd -dc "$archive" | tar -xf - -C build/root \
+            ./opt/hnc/hoffice11/Bin/libHwordApp.so
+          object=build/root/opt/hnc/hoffice11/Bin/libHwordApp.so
+          test -s "$object"
+          cp "$object" build/object/libHwordApp.so
+          file "$object" | tee build/report/file.txt
+          sha256sum "$object" | tee build/report/sha256.txt
+          readelf -hW "$object" >build/report/elf-header.txt
+          readelf -lW "$object" >build/report/program-headers.txt
+          readelf -SW "$object" >build/report/sections.txt
+          readelf -Ws "$object" >build/report/symbols.txt
+          readelf -rW "$object" >build/report/relocations.txt
+          nm -D -C --defined-only "$object" >build/report/dynamic-symbols-demangled.txt || true
+
+      - name: Attribute and disassemble the exact runtime caller
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from __future__ import annotations
+          import json, os, re, struct, subprocess
+          from pathlib import Path
+
+          path = Path('build/object/libHwordApp.so')
+          blob = path.read_bytes()
+          target_file = int(os.environ['TARGET_FILE_OFFSET'], 0)
+          header = struct.unpack_from('<16sHHIQQQIHHHHHH', blob, 0)
+          phoff, phentsize, phnum = header[5], header[9], header[10]
+          segments=[]
+          for index in range(phnum):
+              values=struct.unpack_from('<IIQQQQQQ', blob,
+                                        phoff+index*phentsize)
+              p_type,p_flags,p_offset,p_vaddr,p_paddr,p_filesz,p_memsz,p_align=values
+              if p_type==1:
+                  segments.append({
+                      'index':index,'flags':p_flags,'file_offset':p_offset,
+                      'virtual_address':p_vaddr,'file_size':p_filesz,
+                      'memory_size':p_memsz,'alignment':p_align,
+                  })
+          segment=next((item for item in segments
+              if item['file_offset'] <= target_file <
+                 item['file_offset']+item['file_size']),None)
+          if segment is None:
+              raise SystemExit('target file offset is outside PT_LOAD')
+          target_va=segment['virtual_address']+target_file-segment['file_offset']
+          if not segment['flags'] & 1:
+              raise SystemExit('target address is not executable')
+
+          symbols_text=subprocess.run(
+              ['readelf','-Ws',str(path)],check=True,
+              stdout=subprocess.PIPE,text=True).stdout
+          symbol_pattern=re.compile(
+              r'^\s*\d+:\s+([0-9a-fA-F]+)\s+(\d+)\s+(\S+)\s+'
+              r'(\S+)\s+(\S+)\s+(\S+)\s+(.*)$')
+          symbols=[]
+          for line in symbols_text.splitlines():
+              match=symbol_pattern.match(line)
+              if not match: continue
+              value=int(match.group(1),16); size=int(match.group(2))
+              name=match.group(7).strip()
+              if value and name:
+                  symbols.append({'value':value,'size':size,
+                                  'type':match.group(3),
+                                  'binding':match.group(4),
+                                  'visibility':match.group(5),
+                                  'section':match.group(6),'name':name})
+          containing=[item for item in symbols
+              if item['value'] <= target_va and item['size'] > 0 and
+                 target_va < item['value']+item['size']]
+          preceding=[item for item in symbols if item['value'] <= target_va]
+          nearest=max(containing or preceding,
+                      key=lambda item:item['value'],default=None)
+
+          start=max(segment['virtual_address'],target_va-0x1200)
+          stop=min(segment['virtual_address']+segment['memory_size'],
+                   target_va+0x1200)
+          disassembly=subprocess.run([
+              'objdump','-drwC','-Mintel',f'--start-address={start}',
+              f'--stop-address={stop}',str(path)],check=True,
+              stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True).stdout
+          Path('build/report/target-window.txt').write_text(
+              disassembly,encoding='utf-8')
+
+          lines=disassembly.splitlines()
+          address_pattern=re.compile(r'^\s*([0-9a-fA-F]+):')
+          indexed=[]
+          for index,line in enumerate(lines):
+              match=address_pattern.match(line)
+              if match:
+                  indexed.append((int(match.group(1),16),index,line))
+          nearest_line=min(indexed,key=lambda item:abs(item[0]-target_va))
+          center=nearest_line[1]
+          focused='\n'.join(lines[max(0,center-90):min(len(lines),center+91)])+'\n'
+          Path('build/report/target-focused.txt').write_text(
+              focused,encoding='utf-8')
+
+          prior_calls=[]
+          for address,index,line in indexed:
+              if target_va-0x500 <= address <= target_va and 'call' in line:
+                  prior_calls.append({'address':address,'line':line.strip()})
+          later_branches=[]
+          for address,index,line in indexed:
+              if target_va <= address <= target_va+0x300 and
+                      re.search(r'\b(j[a-z]+|ret)\b',line):
+                  later_branches.append({'address':address,'line':line.strip()})
+
+          ascii_window=blob[max(0,target_file-256):target_file+256]
+          strings=[]
+          for match in re.finditer(rb'[ -~]{4,}',ascii_window):
+              strings.append({
+                  'file_offset':max(0,target_file-256)+match.start(),
+                  'text':match.group().decode('ascii','replace'),
+              })
+
+          payload={
+              'schema':1,
+              'object':'/opt/hnc/hoffice11/Bin/libHwordApp.so',
+              'sha256':Path('build/report/sha256.txt').read_text().split()[0],
+              'target_file_offset':target_file,
+              'target_virtual_address':target_va,
+              'segment':segment,
+              'nearest_symbol':nearest,
+              'offset_from_nearest_symbol':
+                  target_va-nearest['value'] if nearest else None,
+              'nearest_disassembly_line':nearest_line[2].strip(),
+              'prior_calls':prior_calls[-30:],
+              'later_branches':later_branches[:30],
+              'nearby_ascii':strings,
+              'bytes_before':blob[target_file-64:target_file].hex(),
+              'bytes_at_and_after':blob[target_file:target_file+128].hex(),
+          }
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          Path('build/report/target-attribution.json').write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-empty-open-caller-static-latest.json').write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-empty-open-caller-static-latest.md').write_text(
+              '# Exact HWord empty-open caller\n\n'
+              f"- File offset: `0x{target_file:x}`\n"
+              f"- Virtual address: `0x{target_va:x}`\n"
+              f"- Executable: `{bool(segment['flags'] & 1)}`\n"
+              f"- Nearest symbol: `{nearest['name'] if nearest else None}`\n"
+              f"- Offset from symbol: `{payload['offset_from_nearest_symbol']}`\n"
+              f"- Instruction: `{payload['nearest_disassembly_line']}`\n",
+              encoding='utf-8')
+          print(encoded)
+          PY
+
+      - name: Commit the exact caller attribution
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-empty-open-caller-static-latest.json \
+                  diagnostics/m11-empty-open-caller-static-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: attribute the exact HWord empty-open caller'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m11-empty-open-caller-static
+          path: |
+            build/object/libHwordApp.so
+            build/report
+            diagnostics/m11-empty-open-caller-static-latest.json
+            diagnostics/m11-empty-open-caller-static-latest.md
+          if-no-files-found: error
+          retention-days: 14
