@@ -84,7 +84,7 @@ jobs:
           PY
           grep -F 'case LINUX_SYS_SENDFILE:' build/generated/syscall_bridge.c
           grep -F 'HRT M11 SENDFILE: out=' build/generated/syscall_bridge.c
-          grep -F 'HRT M11 CLASSIFIERCALLER:' build/generated/syscall_bridge.c
+          grep -F 'HRT M11 CLASSIFIERCTX:' build/generated/syscall_bridge.c
           grep -F 'HRT M11 FRAMECTX:' build/generated/syscall_bridge.c
           ! grep -F 'HRT M11 EMPTYFALLBACK:' build/generated/syscall_bridge.c
           ! grep -F 'HRT M11 EMPTYBUFFER:' build/generated/syscall_bridge.c
@@ -132,7 +132,7 @@ jobs:
           payload={'schema':1,'workflow_run':os.environ['GITHUB_RUN_ID'],
                    'commit':os.environ['GITHUB_SHA'],
                    'binary_sha256':hashlib.sha256(binary.read_bytes()).hexdigest(),
-                   'features':['linux-sendfile','classifier-caller-trace'],
+                   'features':['linux-sendfile','classifier-context-trace'],
                    'empty_path_substitution':False}
           Path('build/output/sendfile-trace-host-lock.json').write_text(
               json.dumps(payload,indent=2)+'\n',encoding='utf-8')
