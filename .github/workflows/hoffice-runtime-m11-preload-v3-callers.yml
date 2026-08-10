@@ -1,0 +1,270 @@
+name: HOffice runtime M11 scoped fopen caller attribution
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-preload-v3-callers.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-preload-v3-callers-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREPARED_RUN_ID: '31235068358'
+  SOURCE_WORKFLOW: hoffice-runtime-m11-fopen-preload-replay-v3.yml
+  SOURCE_ARTIFACT: hrt-m11-hword-fopen-preload-v3-proof
+
+jobs:
+  attribute:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 105
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install deterministic ELF analysis tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            --no-install-recommends zstd binutils file python3 unzip
+      - name: Wait for and download the latest scoped preload replay
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/source build/report diagnostics
+          python3 - <<'PY'
+          import json,os,pathlib,subprocess,time,urllib.parse,zipfile
+          repository=os.environ['GITHUB_REPOSITORY']; branch=os.environ['GITHUB_REF_NAME']
+          workflow=os.environ['SOURCE_WORKFLOW']; name=os.environ['SOURCE_ARTIFACT']
+          deadline=time.monotonic()+90*60; selected=None; latest=None
+          while time.monotonic()<deadline:
+              query=urllib.parse.urlencode({'branch':branch,'per_page':20})
+              try:
+                  runs=json.loads(subprocess.run(['gh','api','--method','GET',
+                      f'repos/{repository}/actions/workflows/{workflow}/runs?{query}'],
+                      check=True,stdout=subprocess.PIPE,text=True).stdout).get('workflow_runs',[])
+              except subprocess.CalledProcessError:
+                  time.sleep(20); continue
+              runs.sort(key=lambda item:item['created_at'],reverse=True)
+              if runs: latest=runs[0]
+              for run in runs:
+                  if run.get('status')!='completed' or run.get('conclusion')!='success': continue
+                  artifacts=json.loads(subprocess.run(['gh','api','--method','GET',
+                      f'repos/{repository}/actions/runs/{run["id"]}/artifacts?per_page=100'],
+                      check=True,stdout=subprocess.PIPE,text=True).stdout).get('artifacts',[])
+                  matches=[item for item in artifacts if item.get('name')==name and not item.get('expired')]
+                  if len(matches)==1: selected={'run':run,'artifact':matches[0]}; break
+              if selected: break
+              time.sleep(30)
+          if selected is None:
+              raise SystemExit(f'no successful scoped replay artifact; latest={json.dumps(latest)}')
+          archive=pathlib.Path('build/source/artifact.zip')
+          with archive.open('wb') as output:
+              subprocess.run(['gh','api','--method','GET',
+                  f'repos/{repository}/actions/artifacts/{selected["artifact"]["id"]}/zip'],
+                  check=True,stdout=output)
+          with zipfile.ZipFile(archive) as zipped:
+              zipped.extractall('build/source/expanded')
+          results=list(pathlib.Path('build/source/expanded').rglob(
+              'm11-fopen-preload-v3-latest.json'))
+          if len(results)!=1:
+              raise SystemExit(f'expected one scoped replay JSON, found {len(results)}')
+          pathlib.Path('build/source/replay.json').write_bytes(results[0].read_bytes())
+          pathlib.Path('build/report/source.json').write_text(
+              json.dumps(selected,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(selected,indent=2))
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m9-bootstrap-prepared-guest
+          path: build/input/prepared
+          repository: ${{ github.repository }}
+          run-id: ${{ env.PREPARED_RUN_ID }}
+          github-token: ${{ github.token }}
+      - name: Extract every eligible HOffice caller object
+        run: |
+          set -euxo pipefail
+          mkdir -p build/root build/objects build/report/callers
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          replay=json.loads(Path('build/source/replay.json').read_text())
+          callers=[]
+          for event in replay.get('events',[]):
+              if not event.get('eligible') and not event.get('applied'): continue
+              path=event.get('caller_object')
+              offset=event.get('caller_offset')
+              if not isinstance(path,str) or not path.startswith('/opt/hnc/hoffice11/'):
+                  continue
+              try: value=int(offset,0)
+              except Exception: continue
+              item={'path':path,'file_offset':value,'symbol':event.get('symbol'),
+                    'observation':event.get('observation'),'index':event.get('index'),
+                    'applied':event.get('applied')}
+              if item not in callers: callers.append(item)
+          if not callers:
+              raise SystemExit('scoped replay has no eligible HOffice caller')
+          Path('build/report/caller-requests.json').write_text(
+              json.dumps(callers,indent=2)+'\n',encoding='utf-8')
+          Path('build/report/caller-paths.txt').write_text(
+              ''.join('./'+item['path'].lstrip('/')+'\n' for item in callers),
+              encoding='utf-8')
+          print(json.dumps(callers,indent=2))
+          PY
+          archive=$(find build/input/prepared -type f -name '*.tar.zst' -print -quit)
+          test -n "$archive"
+          zstd -dc "$archive" | tar -xf - -C build/root \
+            -T build/report/caller-paths.txt
+          find build/root -type f -print | LC_ALL=C sort \
+            | tee build/report/extracted-callers.txt
+          test -s build/report/extracted-callers.txt
+      - name: Map and disassemble each exact caller address
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from __future__ import annotations
+          import hashlib,json,re,struct,subprocess
+          from pathlib import Path
+
+          requests=json.loads(Path('build/report/caller-requests.json').read_text())
+          grouped={}
+          for item in requests: grouped.setdefault(item['path'],[]).append(item)
+          results=[]
+          symbol_pattern=re.compile(
+              r'^\s*\d+:\s+([0-9a-fA-F]+)\s+(\d+)\s+(\S+)\s+'
+              r'(\S+)\s+(\S+)\s+(\S+)\s+(.*)$')
+          for guest_path,items in grouped.items():
+              object_path=Path('build/root')/guest_path.lstrip('/')
+              blob=object_path.read_bytes()
+              header=struct.unpack_from('<16sHHIQQQIHHHHHH',blob,0)
+              phoff,phentsize,phnum=header[5],header[9],header[10]
+              segments=[]
+              for index in range(phnum):
+                  values=struct.unpack_from('<IIQQQQQQ',blob,phoff+index*phentsize)
+                  p_type,p_flags,p_offset,p_vaddr,p_paddr,p_filesz,p_memsz,p_align=values
+                  if p_type==1:
+                      segments.append({'index':index,'flags':p_flags,
+                          'file_offset':p_offset,'virtual_address':p_vaddr,
+                          'file_size':p_filesz,'memory_size':p_memsz,'alignment':p_align})
+              symbols_text=subprocess.run(['readelf','-Ws',str(object_path)],check=True,
+                  stdout=subprocess.PIPE,text=True).stdout
+              symbols=[]
+              for line in symbols_text.splitlines():
+                  match=symbol_pattern.match(line)
+                  if not match: continue
+                  value=int(match.group(1),16); size=int(match.group(2)); name=match.group(7).strip()
+                  if value and name:
+                      symbols.append({'value':value,'size':size,'type':match.group(3),
+                          'binding':match.group(4),'visibility':match.group(5),
+                          'section':match.group(6),'name':name})
+              flat=guest_path.strip('/').replace('/','_')
+              copied=Path('build/objects')/flat
+              copied.write_bytes(blob)
+              for item in items:
+                  file_offset=item['file_offset']
+                  segment=next((seg for seg in segments
+                      if seg['file_offset']<=file_offset<seg['file_offset']+seg['file_size']),None)
+                  record={**item,'sha256':hashlib.sha256(blob).hexdigest(),
+                          'object_size':len(blob),'segment':segment}
+                  if segment is None:
+                      record['classification']='OUTSIDE_PT_LOAD'; results.append(record); continue
+                  virtual=segment['virtual_address']+file_offset-segment['file_offset']
+                  containing=[sym for sym in symbols if sym['value']<=virtual and sym['size']>0
+                              and virtual<sym['value']+sym['size']]
+                  preceding=[sym for sym in symbols if sym['value']<=virtual]
+                  nearest=max(containing or preceding,key=lambda sym:sym['value'],default=None)
+                  record.update({'virtual_address':virtual,
+                      'segment_executable':bool(segment['flags']&1),
+                      'nearest_symbol':nearest,
+                      'offset_from_nearest_symbol':virtual-nearest['value'] if nearest else None,
+                      'bytes_before':blob[max(0,file_offset-64):file_offset].hex(),
+                      'bytes_at_and_after':blob[file_offset:file_offset+128].hex()})
+                  if segment['flags']&1:
+                      start=max(segment['virtual_address'],virtual-0x1000)
+                      stop=min(segment['virtual_address']+segment['memory_size'],virtual+0x1000)
+                      disassembly=subprocess.run(['objdump','-drwC','-Mintel',
+                          f'--start-address={start}',f'--stop-address={stop}',str(object_path)],
+                          check=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True).stdout
+                      report=Path('build/report/callers')/f'{flat}-0x{file_offset:x}.txt'
+                      report.write_text(disassembly,encoding='utf-8')
+                      lines=disassembly.splitlines(); addr_pattern=re.compile(r'^\s*([0-9a-fA-F]+):')
+                      indexed=[(int(m.group(1),16),idx,line) for idx,line in enumerate(lines)
+                               if (m:=addr_pattern.match(line))]
+                      if indexed:
+                          center=min(indexed,key=lambda row:abs(row[0]-virtual))[1]
+                          record['focused_disassembly']='\n'.join(
+                              lines[max(0,center-80):min(len(lines),center+81)])
+                  results.append(record)
+          payload={'schema':1,'caller_count':len(results),'callers':results}
+          Path('build/report/caller-attribution.json').write_text(
+              json.dumps(payload,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(payload,ensure_ascii=False,indent=2))
+          PY
+      - name: Commit the compact scoped caller frontier
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          source=json.loads(Path('build/report/source.json').read_text())
+          replay=json.loads(Path('build/source/replay.json').read_text())
+          attribution=json.loads(Path('build/report/caller-attribution.json').read_text())
+          callers=[]
+          for item in attribution['callers']:
+              callers.append({key:item.get(key) for key in (
+                  'path','file_offset','virtual_address','segment_executable',
+                  'nearest_symbol','offset_from_nearest_symbol','symbol',
+                  'observation','index','applied','bytes_before','bytes_at_and_after')})
+          status='PASS' if callers and all(item.get('segment_executable') for item in callers) else 'DIAGNOSTIC'
+          classification='SCOPED_FOPEN_CALLERS_ATTRIBUTED' if callers else 'NO_SCOPED_FOPEN_CALLER'
+          payload={'schema':1,'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],'status':status,
+              'classification':classification,'source':source,
+              'replay_classification':replay.get('classification'),
+              'caller_count':len(callers),'callers':callers}
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          Path('diagnostics/m11-preload-v3-callers-latest.json').write_text(
+              encoded,encoding='utf-8')
+          Path(f"diagnostics/m11-preload-v3-callers-{os.environ['GITHUB_RUN_ID']}.json").write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-preload-v3-callers-latest.md').write_text(
+              '# Scoped HWord fopen caller attribution\n\n'
+              f"- Status: `{status}`\n- Classification: `{classification}`\n"
+              f"- Replay: `{replay.get('classification')}`\n"
+              f"- Callers: `{len(callers)}`\n\n"+
+              '\n'.join(f"- `{item['path']}` file `0x{item['file_offset']:x}` → "
+                  f"`{item.get('nearest_symbol',{}).get('name') if item.get('nearest_symbol') else None}`"
+                  for item in callers)+'\n',encoding='utf-8')
+          print(encoded)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-preload-v3-callers-*.json \
+                  diagnostics/m11-preload-v3-callers-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: attribute the scoped HWord fopen callers'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-preload-v3-callers
+          path: |
+            build/report
+            diagnostics/m11-preload-v3-callers-*.json
+            diagnostics/m11-preload-v3-callers-latest.md
+          if-no-files-found: warn
+          retention-days: 14
