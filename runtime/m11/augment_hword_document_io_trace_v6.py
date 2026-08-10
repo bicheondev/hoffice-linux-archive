@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-"""Run the v5 frame-chain transform with a literal C newline anchor.
+"""Run the v5 frame-chain transform with literal C source anchors.
 
 The frame emitter's reviewed replacement is already a raw Python string, but
 its source anchor was ordinary triple-quoted text.  Python therefore converted
 ``'\\n'`` into a literal newline inside the character constant and the exact
 generated-C anchor could not match.  Patch only that prefix to a raw string in
-memory, then execute the unchanged v5 entry point with all audits active.
+memory.
+
+The v3 bridge already contains three ``m11_docio_append_resolution``
+occurrences: the helper definition, syscall RIP resolution and arbitrary stack
+resolution.  v5 adds one canonical frame-return resolution, making four.  Patch
+only that generated-source audit count as well, then execute the unchanged v5
+entry point with every other bound and marker check active.
 """
 from __future__ import annotations
 
@@ -29,6 +35,12 @@ def main() -> None:
         "    emitter_anchor = '''    if (cursor < sizeof(buffer))",
         "    emitter_anchor = r'''    if (cursor < sizeof(buffer))",
         "raw frame-emitter anchor",
+    )
+    source = replace_once(
+        source,
+        '        "m11_docio_append_resolution(": 3,',
+        '        "m11_docio_append_resolution(": 4,',
+        "frame-return resolver audit",
     )
 
     namespace = {
