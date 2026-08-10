@@ -1,0 +1,134 @@
+name: Build HWord scoped guest fopen compatibility shim
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - 'runtime/m11/preload/hword_fopen_preload_v3.c'
+      - 'runtime/m11/preload/hword_fopen_preload.map'
+      - '.github/workflows/hoffice-runtime-m11-build-fopen-preload-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hrt-m11-build-fopen-preload-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build and test at the manylinux2014 glibc floor
+        run: |
+          set -euxo pipefail
+          mkdir -p build/preload build/report
+          docker pull quay.io/pypa/manylinux2014_x86_64:latest
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work \
+            quay.io/pypa/manylinux2014_x86_64:latest /bin/bash -lc '
+              set -euxo pipefail
+              gcc -std=c11 -O2 -g -fPIC -fvisibility=hidden \
+                -Wall -Wextra -Werror -Wpedantic \
+                -Wl,-z,relro,-z,now,-z,noexecstack \
+                -Wl,--version-script=runtime/m11/preload/hword_fopen_preload.map \
+                -shared runtime/m11/preload/hword_fopen_preload_v3.c \
+                -ldl -o build/preload/libhrt_hword_fopen.so
+              strip --strip-unneeded build/preload/libhrt_hword_fopen.so
+              chmod 0755 build/preload/libhrt_hword_fopen.so
+
+              cat >build/preload/probe.c <<"EOF"
+              #define _GNU_SOURCE 1
+              #include <stdio.h>
+              #include <string.h>
+              int main(void) {
+                  FILE *stream = fopen("", "rb");
+                  if (stream == NULL) return 20;
+                  char buffer[16] = {0};
+                  size_t size = fread(buffer, 1, sizeof(buffer) - 1, stream);
+                  fclose(stream);
+                  return (size == 5 && memcmp(buffer, "probe", 5) == 0) ? 0 : 30;
+              }
+              EOF
+              gcc -std=c11 -O2 -Wall -Wextra -Werror -Wpedantic \
+                build/preload/probe.c -o build/preload/probe
+              mkdir -p /opt/hnc/hoffice11 \
+                       /tmp/hrt-home/.hnc/User/Hword/Template/ko-KR
+              cp build/preload/probe /opt/hnc/hoffice11/probe
+              printf probe \
+                >/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document\[0\].hwdt
+              LD_PRELOAD=/work/build/preload/libhrt_hword_fopen.so \
+                /opt/hnc/hoffice11/probe \
+                >/work/build/report/probe.stdout.txt \
+                2>/work/build/report/probe.stderr.txt
+            '
+          file build/preload/libhrt_hword_fopen.so | tee build/report/file.txt
+          sha256sum build/preload/libhrt_hword_fopen.so | tee build/report/sha256.txt
+          readelf -dW build/preload/libhrt_hword_fopen.so >build/report/dynamic.txt
+          readelf -Ws build/preload/libhrt_hword_fopen.so >build/report/symbols.txt
+          readelf --version-info -W build/preload/libhrt_hword_fopen.so \
+            >build/report/version-info.txt
+          grep -E 'fopen(@@|@)GLIBC_2\.2\.5' build/report/symbols.txt
+          grep -E 'fopen64(@@|@)GLIBC_2\.2\.5' build/report/symbols.txt
+          ! grep -E 'GLIBC_2\.(1[89]|[2-9][0-9])|GLIBC_[3-9]' \
+            build/report/version-info.txt
+          grep -F 'HRT M11 PRELOAD_FOPEN_V3: loaded=1' \
+            build/report/probe.stderr.txt
+          grep -F 'eligible=1 applied=1 template-ready=1' \
+            build/report/probe.stderr.txt
+          grep -F 'caller-object=/opt/hnc/hoffice11/probe' \
+            build/report/probe.stderr.txt
+      - name: Lock the scoped shim ABI and proof
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,re
+          from pathlib import Path
+          library=Path('build/preload/libhrt_hword_fopen.so')
+          symbols=Path('build/report/symbols.txt').read_text()
+          versions=Path('build/report/version-info.txt').read_text()
+          probe=Path('build/report/probe.stderr.txt').read_text()
+          payload={
+              'schema':3,
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],
+              'source':'runtime/m11/preload/hword_fopen_preload_v3.c',
+              'sha256':hashlib.sha256(library.read_bytes()).hexdigest(),
+              'size':library.stat().st_size,
+              'architecture':'x86_64',
+              'required_glibc_versions':sorted(set(
+                  re.findall(r'GLIBC_\d+(?:\.\d+)+',versions))),
+              'exports':{
+                  'fopen':bool(re.search(r'fopen(?:@@|@)GLIBC_2\.2\.5',symbols)),
+                  'fopen64':bool(re.search(r'fopen64(?:@@|@)GLIBC_2\.2\.5',symbols)),
+              },
+              'scope':{
+                  'caller_prefix':'/opt/hnc/hoffice11/',
+                  'requires_template_ready':True,
+                  'read_only_modes_only':True,
+                  'maximum_substitutions':3,
+              },
+              'replacement':'/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt',
+              'native_probe_passed':(
+                  'eligible=1 applied=1 template-ready=1' in probe and
+                  'caller-object=/opt/hnc/hoffice11/probe' in probe),
+          }
+          assert all(payload['exports'].values())
+          assert payload['native_probe_passed']
+          Path('build/preload/lock.json').write_text(
+              json.dumps(payload,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(payload,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hrt-m11-hword-fopen-preload-v3
+          path: |
+            build/preload/libhrt_hword_fopen.so
+            build/preload/lock.json
+            build/report
+          if-no-files-found: error
+          retention-days: 14
