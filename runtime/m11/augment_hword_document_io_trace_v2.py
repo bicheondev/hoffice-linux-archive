@@ -16,10 +16,12 @@ through the v8 empty-path template experiment.  v8 preserves v7's classifier-
 caller diagnostics and, only during stage 1, substitutes the exact copied blank
 HWDT path for at most three read-only ``openat(AT_FDCWD, "", ...)`` boundaries.
 Its fail-closed audit validates the five concrete fallback-counter references
-and the exact ``HRT M11 CLASSIFIERCTX`` marker emitted by v7.  The nested v2
-invocation made by v3 is identified both by an explicit environment guard and
-by v3's private temporary-directory prefix, preventing recursion while
-preserving direct invocation of any entry point.
+and the exact ``HRT M11 CLASSIFIERCTX`` marker emitted by v7.  The canonical
+frame generator also retains an exact, non-tail-merged ``HRT M11 FRAMECTX:``
+artifact marker so host selection can verify the linked diagnostic boundary.
+The nested v2 invocation made by v3 is identified both by an explicit
+environment guard and by v3's private temporary-directory prefix, preventing
+recursion while preserving direct invocation of any entry point.
 """
 from __future__ import annotations
 
