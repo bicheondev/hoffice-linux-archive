@@ -253,7 +253,7 @@ static int64_t bridge_clock_nanosleep(
         "m11_rewind_sendfile_input(": 2,
         "case LINUX_SYS_SENDFILE:": 1,
         "*guest_offset = logical_offset;": 2,
-        "pread(fd, buffer, size": 1,
+        "? pread(fd, buffer, size, (off_t)offset)": 1,
     }
     for marker, expected in required.items():
         actual = text.count(marker)
