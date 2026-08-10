@@ -14,11 +14,15 @@ the exact copied template:
 
 ``/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt``
 
-Every substitution emits a fixed ``HRT M11 EMPTYFALLBACK`` marker.  Non-empty
-paths, later stages, writes, other directory descriptors and calls after the
-third substitution retain their original behavior.  No guest ELF is modified
-by this transform.  Marker audits use the complete stage/dirfd and null-path
-condition fragments, not common expressions inherited from earlier tracers.
+Every substitution emits a fixed ``HRT M11 EMPTYFALLBACK`` marker.  The host
+translation uses the replacement, while the document-I/O record deliberately
+retains the original guest path.  This preserves the empty-request boundary for
+canonical ``OPENCTX``/``FRAMECTX`` pairing instead of rewriting the evidence to
+the fallback pathname.  Non-empty paths, later stages, writes, other directory
+descriptors and calls after the third substitution retain their original
+behavior.  No guest ELF is modified by this transform.  Marker audits use the
+complete stage/dirfd and null-path condition fragments, not common expressions
+inherited from earlier tracers.
 """
 from __future__ import annotations
 
@@ -81,6 +85,7 @@ def main() -> None:
     static unsigned int m11_empty_fallback_count;
     static const char m11_blank_template[] =
         "/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document[0].hwdt";
+    const char *const m11_trace_guest_path = guest_path;
     if (g_m11_docio_stage == 1 && directory_fd == LINUX_AT_FDCWD &&
         guest_path != NULL && guest_path[0] == '\0' &&
         (flags & UINT64_C(3)) == 0u &&
@@ -104,17 +109,32 @@ def main() -> None:
 '''
     function = function[: function.index("{") + 1] + insertion + function[
         function.index("{") + 1 :]
+
+    note_anchor = '''    m11_docio_note_open(result, guest_path, path,
+                         flags, mode, saved_errno, open_context);
+'''
+    note_replacement = '''    m11_docio_note_open(result, m11_trace_guest_path, path,
+                         flags, mode, saved_errno, open_context);
+'''
+    note_count = function.count(note_anchor)
+    if note_count != 1:
+        raise SystemExit(
+            "original-path document trace: expected one note-open anchor, "
+            f"found {note_count}")
+    function = function.replace(note_anchor, note_replacement, 1)
     text = text[:start] + function + text[closing:]
 
     required = {
         "HRT M11 EMPTYFALLBACK:": 3,
         "m11_empty_fallback_count": 5,
         "m11_blank_template": 2,
+        "m11_trace_guest_path": 2,
         "Document[0].hwdt": 4,
         "g_m11_docio_stage == 1 && directory_fd == LINUX_AT_FDCWD &&": 1,
         "guest_path != NULL && guest_path[0] == '\\0' &&": 1,
         "m11_empty_fallback_count < 3u": 1,
         "guest_path = m11_blank_template;": 1,
+        "m11_docio_note_open(result, m11_trace_guest_path, path": 1,
         "HRT M11 CLASSIFIERCTX:": 1,
         "HRT M11 FRAMECTX:": 1,
     }
