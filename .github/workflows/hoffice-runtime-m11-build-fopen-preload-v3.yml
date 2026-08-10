@@ -131,12 +131,23 @@ jobs:
           print(json.dumps(payload,indent=2))
           PY
 
+      - name: Stage a stable flat artifact layout
+        run: |
+          set -euxo pipefail
+          rm -rf build/artifact
+          mkdir -p build/artifact/report
+          install -m 0755 build/preload/libhrt_hword_fopen.so \
+            build/artifact/libhrt_hword_fopen.so
+          install -m 0644 build/preload/lock.json build/artifact/lock.json
+          cp -R build/report/. build/artifact/report/
+          test -s build/artifact/libhrt_hword_fopen.so
+          test -s build/artifact/lock.json
+          find build/artifact -type f -print | LC_ALL=C sort \
+            | tee build/report/artifact-layout.txt
+
       - uses: actions/upload-artifact@v4
         with:
           name: hrt-m11-hword-fopen-preload-v3
-          path: |
-            build/preload/libhrt_hword_fopen.so
-            build/preload/lock.json
-            build/report
+          path: build/artifact
           if-no-files-found: error
           retention-days: 14
