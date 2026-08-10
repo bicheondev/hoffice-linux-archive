@@ -1,0 +1,345 @@
+name: HOffice runtime M11 adaptive document controller
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-adaptive-controller.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: hrt-m11-adaptive-controller-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_WORKFLOW: hoffice-runtime-m11-sendfile-empty-open-ab.yml
+  PREPARED_RUN_ID: '31235068358'
+  QPA_RUN_ID: '31305695836'
+  QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  PROGRAM: /opt/hnc/hoffice11/Bin/hword
+  PROGRAM_SHA256: 55876ea7d0c20e73d936af11cc3623c418acb09d61bde5bfeecafa1da7a9b5cb
+  HWORD_APP_GUEST: /opt/hnc/hoffice11/Bin/libHwordApp.so
+  HWORD_APP_SHA256: e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50
+  HWORD_APP_PATCHED_SHA256: ccceee82d4f5a97d8f52286a6cc8aa753c9ef44b2d484627291361645be27fd8
+  PLUGIN_GUEST: /opt/hnc/hoffice11/Bin/qt/plugins/platforms/libqhrtappkit.so
+
+jobs:
+  decide:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    outputs:
+      source_run: ${{ steps.decision.outputs.source_run }}
+      source_conclusion: ${{ steps.decision.outputs.source_conclusion }}
+      chosen_mode: ${{ steps.decision.outputs.chosen_mode }}
+      host_digest: ${{ steps.decision.outputs.host_digest }}
+      replay_required: ${{ steps.decision.outputs.replay_required }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Wait for the sendfile A-B workflow and download its evidence
+        id: decision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/controller/source build/controller/host \
+                   build/controller/report diagnostics
+          source_run=''
+          source_status=''
+          source_conclusion=''
+          for attempt in $(seq 1 90); do
+            gh api --method GET \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/$SOURCE_WORKFLOW/runs" \
+              -f branch=codex/hoffice-runtime-from-scratch \
+              -f per_page=10 >build/controller/report/source-runs.json
+            source_run=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          runs=json.loads(Path('build/controller/report/source-runs.json').read_text()).get('workflow_runs',[])
+          print(runs[0]['id'] if runs else '')
+          PY
+            )
+            source_status=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          runs=json.loads(Path('build/controller/report/source-runs.json').read_text()).get('workflow_runs',[])
+          print(runs[0]['status'] if runs else '')
+          PY
+            )
+            source_conclusion=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          runs=json.loads(Path('build/controller/report/source-runs.json').read_text()).get('workflow_runs',[])
+          print((runs[0].get('conclusion') or '') if runs else '')
+          PY
+            )
+            if test -n "$source_run" && test "$source_status" = completed; then
+              break
+            fi
+            sleep 30
+          done
+          test -n "$source_run"
+          test "$source_status" = completed
+          printf '%s\n' "$source_run" >build/controller/report/source-run.txt
+          printf '%s\n' "$source_conclusion" \
+            >build/controller/report/source-conclusion.txt
+          gh run view "$source_run" --repo "$GITHUB_REPOSITORY" \
+            --json databaseId,status,conclusion,headSha,displayTitle,jobs \
+            >build/controller/report/source-run.json
+          gh run view "$source_run" --repo "$GITHUB_REPOSITORY" \
+            --log-failed >build/controller/report/source-log-failed.txt || true
+
+          chosen_mode='none'
+          host_digest=''
+          replay_required='false'
+          if test "$source_conclusion" = success; then
+            gh run download "$source_run" --repo "$GITHUB_REPOSITORY" \
+              --name hrt-m11-sendfile-empty-open-ab \
+              --dir build/controller/source
+            gh run download "$source_run" --repo "$GITHUB_REPOSITORY" \
+              --name hrt-m10-hword-main-window-input-proof \
+              --dir build/controller/host
+            matrix=$(find build/controller/source -type f \
+              -name 'm11-hword-sendfile-empty-open-ab.json' -print -quit)
+            test -n "$matrix"
+            cp "$matrix" build/controller/report/sendfile-empty-open-ab.json
+            python3 - <<'PY' >build/controller/report/decision.json
+          import json
+          from pathlib import Path
+          data=json.loads(Path('build/controller/report/sendfile-empty-open-ab.json').read_text())
+          results={item['mode']: item for item in data.get('results',[])}
+          chosen='none'
+          reasons=[]
+          for mode in (99,0):
+              item=results.get(mode)
+              if not item:
+                  continue
+              if item.get('text_interaction_credited'):
+                  chosen=str(mode); reasons.append('text-credited'); break
+              if item.get('editor_markers'):
+                  chosen=str(mode); reasons.append('editor-materialized'); break
+              if not item.get('modal_observed',True):
+                  chosen=str(mode); reasons.append('validation-modal-suppressed'); break
+          payload={
+              'chosen_mode': chosen,
+              'replay_required': chosen != 'none',
+              'reasons': reasons,
+              'source': data,
+          }
+          print(json.dumps(payload,ensure_ascii=False,indent=2))
+          PY
+            chosen_mode=$(python3 -c \
+              'import json;print(json.load(open("build/controller/report/decision.json"))["chosen_mode"])')
+            replay_required=$(python3 -c \
+              'import json;print(str(json.load(open("build/controller/report/decision.json"))["replay_required"]).lower())')
+            host_digest=$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$source_run/artifacts" \
+              --jq '.artifacts[] | select(.name == "hrt-m10-hword-main-window-input-proof") | .digest' \
+              | head -n1 | sed 's/^sha256://')
+            test -n "$host_digest"
+            binary=$(find build/controller/host -type f \
+              -name 'hrt-m10-hword-main-input' -print -quit)
+            test -n "$binary"
+            strings "$binary" >build/controller/report/host-strings.txt
+            grep -F 'HRT M11 SENDFILE:' build/controller/report/host-strings.txt
+            grep -F 'HRT M11 EMPTYOPEN:' build/controller/report/host-strings.txt
+            shasum -a 256 "$binary" \
+              >build/controller/report/host-binary.sha256
+          else
+            python3 - <<'PY' >build/controller/report/decision.json
+          import json
+          from pathlib import Path
+          payload={
+              'chosen_mode':'none',
+              'replay_required':False,
+              'reasons':['source-workflow-not-successful'],
+              'source_conclusion':Path('build/controller/report/source-conclusion.txt').read_text().strip(),
+              'failed_log_tail':Path('build/controller/report/source-log-failed.txt').read_text(errors='replace')[-20000:],
+          }
+          print(json.dumps(payload,ensure_ascii=False,indent=2))
+          PY
+          fi
+
+          cp build/controller/report/decision.json \
+            diagnostics/m11-hword-adaptive-controller-decision.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path('build/controller/report/decision.json').read_text())
+          Path('diagnostics/m11-hword-adaptive-controller-decision.md').write_text(
+              '# HWord adaptive controller decision\n\n'
+              f"- Chosen mode: `{data.get('chosen_mode')}`\n"
+              f"- Replay required: `{data.get('replay_required')}`\n"
+              f"- Reasons: `{data.get('reasons',[])}`\n",
+              encoding='utf-8')
+          PY
+
+          {
+            echo "source_run=$source_run"
+            echo "source_conclusion=$source_conclusion"
+            echo "chosen_mode=$chosen_mode"
+            echo "host_digest=$host_digest"
+            echo "replay_required=$replay_required"
+          } >>"$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-adaptive-controller-decision
+          path: |
+            build/controller/report
+            diagnostics/m11-hword-adaptive-controller-decision.json
+            diagnostics/m11-hword-adaptive-controller-decision.md
+          if-no-files-found: error
+          retention-days: 14
+
+  replay-selected:
+    needs: decide
+    if: needs.decide.outputs.replay_required == 'true'
+    runs-on: macos-14
+    timeout-minutes: 80
+    env:
+      HOST_RUN_ID: ${{ needs.decide.outputs.source_run }}
+      HOST_ARTIFACT_DIGEST: ${{ needs.decide.outputs.host_digest }}
+      HRT_M11_EMPTY_OPEN_SUBSTITUTE: ${{ needs.decide.outputs.chosen_mode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run the selected exact HWord replay
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HRT_M11_MODAL_CAPTURE_PATH: ${{ github.workspace }}/build/proof/hword-modal-dialog-selected.png
+        run: |
+          set -euxo pipefail
+          mkdir -p build/generated
+          python3 runtime/m11/augment_full_product_replay_v2.py \
+            runtime/m11/run_korean_title_staged_replay.sh \
+            build/generated/run_korean_title_selected.sh
+          build/generated/run_korean_title_selected.sh
+
+      - name: Harden and persist the selected frontier
+        if: always()
+        run: |
+          set -euxo pipefail
+          test -s build/proof/stderr.txt
+          mkdir -p diagnostics
+          if test -s diagnostics/m11-korean-title-staged-latest.json; then
+            python3 runtime/m11/harden_text_input_proof.py || true
+          fi
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          stderr=Path('build/proof/stderr.txt').read_text(errors='replace')
+          summary_path=Path('diagnostics/m11-korean-title-staged-latest.json')
+          summary=json.loads(summary_path.read_text()) if summary_path.is_file() else {}
+          result={
+              'schema':1,
+              'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'source_host_run':os.environ['HOST_RUN_ID'],
+              'selected_mode':int(os.environ['HRT_M11_EMPTY_OPEN_SUBSTITUTE']),
+              'modal_observed':'HRT M11 APPKIT: modal first-frame capture result=1' in stderr,
+              'sendfile_trace_count':stderr.count('HRT M11 SENDFILE:'),
+              'empty_open_trace_count':stderr.count('HRT M11 EMPTYOPEN:'),
+              'frame_context_count':stderr.count('HRT M11 FRAMECTX:'),
+              'editor_markers':sorted(set(re.findall(
+                  r'class=([^ ]*(?:HwordAppView|Editor|Edit|Canvas|DocumentView)[^ ]*)',stderr))),
+              'document_interaction_credited':bool(summary.get('document_interaction_credited')),
+              'text_interaction_credited':bool(summary.get('text_interaction_credited')),
+              'summary':summary,
+          }
+          Path('diagnostics/m11-hword-adaptive-selected-replay.json').write_text(
+              json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          Path('diagnostics/m11-hword-adaptive-selected-replay.md').write_text(
+              '# HWord adaptive selected replay\n\n'
+              f"- Selected mode: `{result['selected_mode']}`\n"
+              f"- Modal: `{result['modal_observed']}`\n"
+              f"- Editor markers: `{result['editor_markers']}`\n"
+              f"- Document credited: `{result['document_interaction_credited']}`\n"
+              f"- Text credited: `{result['text_interaction_credited']}`\n",
+              encoding='utf-8')
+          print(json.dumps(result,ensure_ascii=False,indent=2))
+          PY
+
+      - name: Commit selected replay evidence
+        if: always()
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-hword-adaptive-selected-replay.json \
+                  diagnostics/m11-hword-adaptive-selected-replay.md \
+                  proofs/m11-hword-document-interaction.json \
+                  proofs/m11-hword-text-input.json 2>/dev/null || true
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: preserve the adaptive HWord document frontier'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-adaptive-selected-replay
+          path: |
+            build/proof
+            diagnostics/m11-hword-adaptive-selected-replay.json
+            diagnostics/m11-hword-adaptive-selected-replay.md
+            proofs/m11-hword-document-interaction.json
+            proofs/m11-hword-text-input.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  commit-decision:
+    needs: [decide, replay-selected]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: hrt-m11-adaptive-controller-decision
+          path: build/decision
+      - name: Commit the controller decision when no selected replay ran
+        run: |
+          set -euxo pipefail
+          mkdir -p diagnostics
+          cp $(find build/decision -name \
+            'm11-hword-adaptive-controller-decision.json' -print -quit) \
+            diagnostics/m11-hword-adaptive-controller-decision.json
+          cp $(find build/decision -name \
+            'm11-hword-adaptive-controller-decision.md' -print -quit) \
+            diagnostics/m11-hword-adaptive-controller-decision.md
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-hword-adaptive-controller-decision.json \
+                  diagnostics/m11-hword-adaptive-controller-decision.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: record the adaptive HWord controller decision'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then
+              exit 0
+            fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
