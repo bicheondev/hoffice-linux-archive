@@ -24,7 +24,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Build and test at the manylinux2014 glibc floor
+
+      - name: Build at the manylinux2014 glibc floor
         run: |
           set -euxo pipefail
           mkdir -p build/preload build/report
@@ -40,31 +41,6 @@ jobs:
                 -ldl -o build/preload/libhrt_hword_fopen.so
               strip --strip-unneeded build/preload/libhrt_hword_fopen.so
               chmod 0755 build/preload/libhrt_hword_fopen.so
-
-              cat >build/preload/probe.c <<"EOF"
-              #define _GNU_SOURCE 1
-              #include <stdio.h>
-              #include <string.h>
-              int main(void) {
-                  FILE *stream = fopen("", "rb");
-                  if (stream == NULL) return 20;
-                  char buffer[16] = {0};
-                  size_t size = fread(buffer, 1, sizeof(buffer) - 1, stream);
-                  fclose(stream);
-                  return (size == 5 && memcmp(buffer, "probe", 5) == 0) ? 0 : 30;
-              }
-              EOF
-              gcc -std=c11 -O2 -Wall -Wextra -Werror -Wpedantic \
-                build/preload/probe.c -o build/preload/probe
-              mkdir -p /opt/hnc/hoffice11 \
-                       /tmp/hrt-home/.hnc/User/Hword/Template/ko-KR
-              cp build/preload/probe /opt/hnc/hoffice11/probe
-              printf probe \
-                >/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document\[0\].hwdt
-              LD_PRELOAD=/work/build/preload/libhrt_hword_fopen.so \
-                /opt/hnc/hoffice11/probe \
-                >/work/build/report/probe.stdout.txt \
-                2>/work/build/report/probe.stderr.txt
             '
           file build/preload/libhrt_hword_fopen.so | tee build/report/file.txt
           sha256sum build/preload/libhrt_hword_fopen.so | tee build/report/sha256.txt
@@ -76,18 +52,49 @@ jobs:
           grep -E 'fopen64(@@|@)GLIBC_2\.2\.5' build/report/symbols.txt
           ! grep -E 'GLIBC_2\.(1[89]|[2-9][0-9])|GLIBC_[3-9]' \
             build/report/version-info.txt
+
+      - name: Execute the ready-HOffice caller-scope proof
+        run: |
+          set -euxo pipefail
+          cat >build/preload/probe.c <<'EOF'
+          #define _GNU_SOURCE 1
+          #include <stdio.h>
+          #include <string.h>
+
+          int main(void) {
+              FILE *stream = fopen("", "rb");
+              if (stream == NULL) return 20;
+              char buffer[16] = {0};
+              size_t size = fread(buffer, 1, sizeof(buffer) - 1, stream);
+              fclose(stream);
+              return (size == 5 && memcmp(buffer, "probe", 5) == 0) ? 0 : 30;
+          }
+          EOF
+          gcc -std=c11 -O2 -Wall -Wextra -Werror -Wpedantic \
+            build/preload/probe.c -o build/preload/probe
+          sudo mkdir -p /opt/hnc/hoffice11
+          sudo install -m 0755 build/preload/probe /opt/hnc/hoffice11/probe
+          mkdir -p /tmp/hrt-home/.hnc/User/Hword/Template/ko-KR
+          printf probe \
+            >/tmp/hrt-home/.hnc/User/Hword/Template/ko-KR/Document\[0\].hwdt
+          LD_PRELOAD="$GITHUB_WORKSPACE/build/preload/libhrt_hword_fopen.so" \
+            /opt/hnc/hoffice11/probe \
+            >build/report/probe.stdout.txt \
+            2>build/report/probe.stderr.txt
           grep -F 'HRT M11 PRELOAD_FOPEN_V3: loaded=1' \
             build/report/probe.stderr.txt
           grep -F 'eligible=1 applied=1 template-ready=1' \
             build/report/probe.stderr.txt
           grep -F 'caller-object=/opt/hnc/hoffice11/probe' \
             build/report/probe.stderr.txt
+
       - name: Lock the scoped shim ABI and proof
         run: |
           set -euxo pipefail
           python3 - <<'PY'
           import hashlib,json,os,re
           from pathlib import Path
+
           library=Path('build/preload/libhrt_hword_fopen.so')
           symbols=Path('build/report/symbols.txt').read_text()
           versions=Path('build/report/version-info.txt').read_text()
@@ -123,6 +130,7 @@ jobs:
               json.dumps(payload,indent=2)+'\n',encoding='utf-8')
           print(json.dumps(payload,indent=2))
           PY
+
       - uses: actions/upload-artifact@v4
         with:
           name: hrt-m11-hword-fopen-preload-v3
