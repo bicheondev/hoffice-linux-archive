@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "workflow_run": "31406189077",
+  "commit": "e9f366cdfb130b2a5dacfd7c39ef5ffd27945a63",
+  "target_address": "0xe15e32",
+  "object_sha256": "e8523db3ae977771dddc8fbc5ac03c1a3410b28629e4136d31583a31c3806d50",
+  "function_name": "FUN_00e15dd0",
+  "function_entry": "00e15dd0",
+  "function_body_min": "00e15dd0",
+  "function_body_max": "00e15e68",
+  "function_size": 150,
+  "instruction_count": 47,
+  "signature": "undefined FUN_00e15dd0(void)",
+  "call_count": 2,
+  "caller_count": 0,
+  "interesting_calls": [],
+  "string_literals": [],
+  "decompilation_completed": true,
+  "decompiled_character_count": 574,
+  "decompiled_c_sha256": "3607634db9340f1b1b93b5dc8f4fed9fc4255ba96a08d0ded66bd1ff2190e849"
+}
