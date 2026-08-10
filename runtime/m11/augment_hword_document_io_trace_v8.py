@@ -17,7 +17,8 @@ the exact copied template:
 Every substitution emits a fixed ``HRT M11 EMPTYFALLBACK`` marker.  Non-empty
 paths, later stages, writes, other directory descriptors and calls after the
 third substitution retain their original behavior.  No guest ELF is modified
-by this transform.
+by this transform.  This revision rebuilds the experiment after the stable v2
+wrapper was corrected to preserve its generated Python escape sequences.
 """
 from __future__ import annotations
 
