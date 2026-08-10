@@ -114,6 +114,14 @@ jobs:
               env.write(f"SHIM_RUN_ID={compact['shim']['run_id']}\n")
           print(json.dumps(compact,indent=2))
           PY
+          SHIM_RUN_ID=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          selection=json.loads(Path('build/input/host-meta/selection.json').read_text())
+          print(selection['shim']['run_id'])
+          PY
+          )
+          test -n "$SHIM_RUN_ID"
           gh run download "$SHIM_RUN_ID" --repo "$GITHUB_REPOSITORY" \
             --name "$SHIM_ARTIFACT_NAME" --dir build/input/preload
           test -s build/input/preload/libhrt_hword_fopen.so
@@ -144,15 +152,15 @@ jobs:
           if text.count(anchor)!=1:
               raise SystemExit(f'preload install anchor count {text.count(anchor)}')
           insertion=anchor+r'''
-install -D -m 0755 build/input/preload/libhrt_hword_fopen.so \
-    "$root/opt/hrt/libhrt_hword_fopen.so"
-mkdir -p "$root/etc"
-printf '%s\n' '/opt/hrt/libhrt_hword_fopen.so' >"$root/etc/ld.so.preload"
-test -s "$root/etc/ld.so.preload"
-test -x "$root/opt/hrt/libhrt_hword_fopen.so"
-printf 'HRT M11 PRELOAD V3 INSTALL: library=%s config=%s\n' \
-    "$root/opt/hrt/libhrt_hword_fopen.so" "$root/etc/ld.so.preload"
-'''
+          install -D -m 0755 build/input/preload/libhrt_hword_fopen.so \
+              "$root/opt/hrt/libhrt_hword_fopen.so"
+          mkdir -p "$root/etc"
+          printf '%s\n' '/opt/hrt/libhrt_hword_fopen.so' >"$root/etc/ld.so.preload"
+          test -s "$root/etc/ld.so.preload"
+          test -x "$root/opt/hrt/libhrt_hword_fopen.so"
+          printf 'HRT M11 PRELOAD V3 INSTALL: library=%s config=%s\n' \
+              "$root/opt/hrt/libhrt_hword_fopen.so" "$root/etc/ld.so.preload"
+          '''
           path.write_text(text.replace(anchor,insertion,1),encoding='utf-8')
           path.chmod(0o755)
           PY
