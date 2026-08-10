@@ -1,0 +1,257 @@
+name: HOffice runtime M11 native Linux new-document baseline
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-native-linux-baseline.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hrt-m11-native-linux-baseline-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
+  RELEASE_TAG: linux-11.20-series
+  PACKAGE_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+
+jobs:
+  baseline:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download and verify the exact HOffice package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/native/input build/native/output diagnostics
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" --dir build/native/input
+          printf '%s  %s\n' "$PACKAGE_SHA256" \
+            "build/native/input/$ASSET_NAME" | sha256sum -c -
+          dpkg-deb -f "build/native/input/$ASSET_NAME" \
+            >build/native/output/package-control.txt
+          dpkg-deb -f "build/native/input/$ASSET_NAME" Depends \
+            >build/native/output/package-depends.txt || true
+
+      - name: Build an exact-era Debian Buster GUI probe image
+        run: |
+          set -euxo pipefail
+          cat >build/native/Dockerfile <<'DOCKER'
+          FROM debian:buster-slim
+          RUN printf '%s\n' \
+                'deb [trusted=yes] http://archive.debian.org/debian buster main contrib non-free' \
+                'deb [trusted=yes] http://archive.debian.org/debian-security buster/updates main contrib non-free' \
+                > /etc/apt/sources.list \
+              && printf '%s\n' \
+                'Acquire::Check-Valid-Until "false";' \
+                'Acquire::AllowInsecureRepositories "true";' \
+                > /etc/apt/apt.conf.d/99archive \
+              && apt-get -o Acquire::Check-Valid-Until=false update \
+              && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+                ca-certificates locales xvfb xdotool x11-utils imagemagick \
+                strace procps dbus-x11 file fonts-nanum fonts-noto-cjk \
+              && localedef -i ko_KR -f UTF-8 ko_KR.UTF-8 \
+              && localedef -i en_US -f UTF-8 en_US.UTF-8 \
+              && rm -rf /var/lib/apt/lists/*
+          DOCKER
+          docker build -t hrt-hword-buster-baseline build/native
+
+      - name: Install and exercise native HWord under Xvfb and strace
+        run: |
+          set -euxo pipefail
+          cat >build/native/run-native-baseline.sh <<'SH'
+          #!/bin/bash
+          set -uo pipefail
+          mkdir -p /out /tmp/hrt-home/.config /tmp/hrt-home/.local/share
+          chmod 0700 /tmp/hrt-home
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get -o Acquire::Check-Valid-Until=false update >/out/apt-update.txt 2>&1 || true
+          apt-get -o Acquire::Check-Valid-Until=false install -y \
+            "/input/$ASSET_NAME" >/out/package-install.txt 2>&1 || {
+              dpkg -i "/input/$ASSET_NAME" >>/out/package-install.txt 2>&1 || true
+              apt-get -o Acquire::Check-Valid-Until=false -f install -y \
+                >>/out/package-install.txt 2>&1 || true
+            }
+          dpkg -s hoffice >/out/installed-package.txt 2>&1 || true
+          file /opt/hnc/hoffice11/Bin/hword >/out/hword-file.txt 2>&1 || true
+          ldd /opt/hnc/hoffice11/Bin/hword >/out/hword-ldd.txt 2>&1 || true
+
+          export DISPLAY=:99
+          export HOME=/tmp/hrt-home
+          export LANG=ko_KR.UTF-8
+          export LC_ALL=ko_KR.UTF-8
+          export QT_QPA_PLATFORM=xcb
+          export QT_XCB_GL_INTEGRATION=none
+          export LIBGL_ALWAYS_SOFTWARE=1
+          export QT_LOGGING_RULES='qt.qpa.*=true'
+          Xvfb :99 -screen 0 1280x900x24 -nolisten tcp \
+            >/out/xvfb.stdout 2>/out/xvfb.stderr &
+          xvfb_pid=$!
+          sleep 2
+          dbus-daemon --session --fork --print-address=1 \
+            >/out/dbus-address.txt 2>/out/dbus.stderr || true
+
+          strace -ff -tt -s 4096 -yy \
+            -e trace=%file,read,write,lseek,mmap,munmap,sendfile,clone,futex,ioctl \
+            -o /out/strace \
+            /opt/hnc/hoffice11/Bin/hword \
+            >/out/hword.stdout 2>/out/hword.stderr &
+          hword_pid=$!
+          echo "$hword_pid" >/out/hword.pid
+
+          window=''
+          for attempt in $(seq 1 180); do
+            window=$(xdotool search --onlyvisible --name '한워드\|HWord' 2>/dev/null \
+              | tail -n1 || true)
+            test -n "$window" && break
+            if ! kill -0 "$hword_pid" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          xwininfo -root -tree >/out/windows-before.txt 2>&1 || true
+          import -display :99 -window root /out/native-before.png \
+            >/out/import-before.txt 2>&1 || true
+
+          if test -n "$window"; then
+            echo "$window" >/out/main-window-id.txt
+            xdotool windowactivate --sync "$window" || true
+            xdotool windowsize --sync "$window" 800 600 || true
+            xdotool mousemove --window "$window" 27 163 click 1 || true
+            sleep 20
+            xwininfo -root -tree >/out/windows-after-new.txt 2>&1 || true
+            import -display :99 -window root /out/native-after-new.png \
+              >/out/import-after-new.txt 2>&1 || true
+            xdotool mousemove --window "$window" 400 348 click 1 || true
+            sleep 2
+            xdotool type --window "$window" --delay 80 'HRTBASELINE' || true
+            sleep 8
+            xwininfo -root -tree >/out/windows-after-text.txt 2>&1 || true
+            import -display :99 -window root /out/native-after-text.png \
+              >/out/import-after-text.txt 2>&1 || true
+          fi
+
+          kill -TERM "$hword_pid" 2>/dev/null || true
+          sleep 2
+          kill -KILL "$hword_pid" 2>/dev/null || true
+          kill -TERM "$xvfb_pid" 2>/dev/null || true
+          wait "$hword_pid" 2>/dev/null || true
+          wait "$xvfb_pid" 2>/dev/null || true
+          SH
+          chmod +x build/native/run-native-baseline.sh
+          docker run --rm --shm-size=1g --cap-add=SYS_PTRACE \
+            --security-opt seccomp=unconfined \
+            -e ASSET_NAME="$ASSET_NAME" \
+            -v "$PWD/build/native/input:/input:ro" \
+            -v "$PWD/build/native/output:/out" \
+            -v "$PWD/build/native/run-native-baseline.sh:/run-baseline.sh:ro" \
+            hrt-hword-buster-baseline /run-baseline.sh
+
+      - name: Classify native new-document behavior
+        if: always()
+        run: |
+          set -euxo pipefail
+          mkdir -p diagnostics
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import re
+          from pathlib import Path
+
+          root=Path('build/native/output')
+          trace_files=sorted(root.glob('strace*'))
+          trace='\n'.join(path.read_text(errors='replace') for path in trace_files)
+          stderr=(root/'hword.stderr').read_text(errors='replace') \
+              if (root/'hword.stderr').is_file() else ''
+          windows={}
+          for name in ('windows-before.txt','windows-after-new.txt',
+                       'windows-after-text.txt'):
+              path=root/name
+              windows[name]=path.read_text(errors='replace') if path.is_file() else ''
+          images={}
+          for name in ('native-before.png','native-after-new.png','native-after-text.png'):
+              path=root/name
+              images[name]={
+                  'exists':path.is_file(),
+                  'size':path.stat().st_size if path.is_file() else 0,
+                  'sha256':hashlib.sha256(path.read_bytes()).hexdigest()
+                      if path.is_file() else None,
+              }
+          empty_open_lines=[line for line in trace.splitlines()
+              if re.search(r'open(?:at)?\([^\n]*""',line)]
+          template_lines=[line for line in trace.splitlines()
+              if 'Document.hwdt' in line or 'Document[0].hwdt' in line]
+          sendfile_lines=[line for line in trace.splitlines()
+              if re.search(r'\bsendfile\(',line)]
+          titles='\n'.join(windows.values())
+          modal_like=bool(re.search(r'400x130|data_validate|오류|error',titles,re.I))
+          main_window=bool(re.search(r'한워드|HWord',titles))
+          visual_change=(images['native-before.png']['sha256'] and
+              images['native-after-new.png']['sha256'] and
+              images['native-before.png']['sha256'] !=
+              images['native-after-new.png']['sha256'])
+          result={
+              'schema':1,
+              'native_linux_baseline':True,
+              'package_sha256':
+                  '23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46',
+              'strace_file_count':len(trace_files),
+              'main_window_observed':main_window,
+              'modal_like_window_observed':modal_like,
+              'empty_path_open_count':len(empty_open_lines),
+              'empty_path_open_lines':empty_open_lines[:50],
+              'template_trace_count':len(template_lines),
+              'template_trace_lines':template_lines[-200:],
+              'sendfile_count':len(sendfile_lines),
+              'sendfile_lines':sendfile_lines[:100],
+              'images':images,
+              'visual_change_after_new':visual_change,
+              'stderr_tail':stderr[-20000:],
+          }
+          text=json.dumps(result,ensure_ascii=False,indent=2)+'\n'
+          Path('diagnostics/m11-hword-native-linux-baseline.json').write_text(
+              text,encoding='utf-8')
+          Path('diagnostics/m11-hword-native-linux-baseline.md').write_text(
+              '# HWord native Debian Buster baseline\n\n'
+              f"- Main window: `{main_window}`\n"
+              f"- Modal-like window: `{modal_like}`\n"
+              f"- Empty-path opens: `{len(empty_open_lines)}`\n"
+              f"- Template trace lines: `{len(template_lines)}`\n"
+              f"- sendfile calls: `{len(sendfile_lines)}`\n"
+              f"- Visual change after New: `{visual_change}`\n",
+              encoding='utf-8')
+          print(text)
+          PY
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-hword-native-linux-baseline.json \
+                  diagnostics/m11-hword-native-linux-baseline.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: preserve the native Linux HWord baseline'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-native-linux-hword-baseline
+          path: |
+            build/native/output
+            diagnostics/m11-hword-native-linux-baseline.json
+            diagnostics/m11-hword-native-linux-baseline.md
+          if-no-files-found: warn
+          retention-days: 14
