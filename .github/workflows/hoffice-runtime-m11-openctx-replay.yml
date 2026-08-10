@@ -23,7 +23,8 @@ concurrency:
 
 env:
   PREPARED_RUN_ID: '31235068358'
-  HOST_RUN_ID: '31371415589'
+  HOST_RUN_ID: '31373360179'
+  HOST_ARTIFACT_DIGEST: 36b7c3f762eaed577425e73b7d97628d6796dbe18a041581f6d9e9dce3ff8899
   QPA_RUN_ID: '31305695836'
   QPA_ARTIFACT_DIGEST: 8b2552ed25ce79626dcc90d55c2fcc6263b39ded64abac5ce5d7f639640df9ee
   ASSET_NAME: hoffice_11.20.0.1520+h1_amd64.deb
@@ -67,7 +68,7 @@ jobs:
           test -x build/generated/run_korean_title_openctx.sh
           build/generated/run_korean_title_openctx.sh
 
-      - name: Summarize the empty-path open callsites
+      - name: Resolve empty-path opens through the first HOffice return
         if: always()
         run: |
           set -euxo pipefail
@@ -92,35 +93,85 @@ jobs:
           for line in lines:
               if line.startswith('HRT M11 DOCIO:') and ' op=open ' in line:
                   pending = line
-              elif line.startswith('HRT M11 OPENCTX:') and pending is not None:
-                  objects = {}
+                  continue
+              if not line.startswith('HRT M11 OPENCTX:') or pending is None:
+                  continue
+
+              objects = {}
+              for label, value in re.findall(
+                      r'(rip|stack\d+)-object=(.*?)(?=\s+(?:rip|stack\d+)-'
+                      r'(?:object|file-offset)=|$)', line):
+                  objects[label] = value
+              offsets = dict(re.findall(
+                  r'(rip|stack\d+)-file-offset=(0x[0-9a-f]+)', line))
+              values = {
+                  label: value
                   for label, value in re.findall(
-                          r'(rip|stack\d+)-object=(.*?)(?=\s+(?:rip|stack\d+)-'
-                          r'(?:object|file-offset)=|$)', line):
-                      objects[label] = value
-                  offsets = dict(re.findall(
-                      r'(rip|stack\d+)-file-offset=(0x[0-9a-f]+)', line))
-                  pairs.append({
-                      'open': pending,
-                      'context': line,
-                      'resolved_objects': objects,
-                      'resolved_offsets': offsets,
-                      'saved_return_object': objects.get('stack15'),
-                      'saved_return_file_offset': offsets.get('stack15'),
+                      r'\b(stack\d+)=(0x[0-9a-f]+)', line)
+              }
+
+              chain = []
+              for label in sorted(
+                      (key for key in objects if key.startswith('stack')),
+                      key=lambda key: int(key[5:])):
+                  obj = objects[label]
+                  if obj == '(unmapped)':
+                      continue
+                  chain.append({
+                      'slot': int(label[5:]),
+                      'value': values.get(label),
+                      'object': obj,
+                      'file_offset': offsets.get(label),
                   })
-                  pending = None
+              hoffice_chain = [
+                  item for item in chain
+                  if item['object'].startswith('/opt/hnc/hoffice11/')
+              ]
+              non_libc_chain = [
+                  item for item in chain
+                  if item['object'] not in {
+                      '/lib/x86_64-linux-gnu/libc.so.6',
+                      '/lib64/ld-linux-x86-64.so.2',
+                  }
+              ]
+              pairs.append({
+                  'open': pending,
+                  'context': line,
+                  'resolved_objects': objects,
+                  'resolved_offsets': offsets,
+                  'resolved_stack_chain': chain,
+                  'stack15_return': next(
+                      (item for item in chain if item['slot'] == 15), None),
+                  'stack21_return': next(
+                      (item for item in chain if item['slot'] == 21), None),
+                  'first_non_libc_return':
+                      non_libc_chain[0] if non_libc_chain else None,
+                  'first_hoffice_return':
+                      hoffice_chain[0] if hoffice_chain else None,
+              })
+              pending = None
+
           empty_pairs = [item for item in pairs
                          if re.search(r' guest=(?:\s|$)', item['open'])]
           payload = {
+              'schema': 2,
+              'host_run': '31373360179',
+              'stack_word_count_expected': 32,
               'open_line_count': len(open_lines),
               'open_context_count': len(contexts),
               'paired_count': len(pairs),
               'empty_path_pairs': empty_pairs,
+              'empty_path_first_hoffice_returns': [
+                  item['first_hoffice_return'] for item in empty_pairs
+              ],
           }
           Path('build/proof/open-context-summary.json').write_text(
               json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
               encoding='utf-8')
           print(json.dumps(payload, ensure_ascii=False, indent=2))
+          if empty_pairs:
+              assert all('stack31=' in item['context'] for item in empty_pairs), \
+                  'the replay did not use the 32-word host artifact'
           PY
 
       - uses: actions/upload-artifact@v4
