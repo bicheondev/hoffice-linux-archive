@@ -1,0 +1,181 @@
+name: HOffice runtime M11 HamoniKR versus vanilla payload diff
+
+on:
+  push:
+    branches: [codex/hoffice-runtime-from-scratch]
+    paths:
+      - '.github/workflows/hoffice-runtime-m11-hamoni-payload-diff.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hrt-m11-hamoni-payload-diff-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RELEASE_TAG: linux-11.20-series
+  HAMONI_ASSET: hoffice_11.20.0.1520+h1_amd64.deb
+  HAMONI_SHA256: 23fc502c430b4dd829fee36740fbce06b819cd51d36fcdf0afbb6fcc5d0b7c46
+  VANILLA_ASSET: hoffice_11.20.0.1520_amd64.deb
+  VANILLA_SHA256: 1ecb2f82e915b49706d1f5f6d206f8bd4a9384fda2bd56798c94046865fe5730
+
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download and verify both exact packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p build/input build/root/hamoni build/root/vanilla build/report diagnostics
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern "$HAMONI_ASSET" --pattern "$VANILLA_ASSET" \
+            --dir build/input
+          printf '%s  %s\n' "$HAMONI_SHA256" "build/input/$HAMONI_ASSET" \
+            | sha256sum --check -
+          printf '%s  %s\n' "$VANILLA_SHA256" "build/input/$VANILLA_ASSET" \
+            | sha256sum --check -
+      - name: Extract deterministic payload manifests
+        run: |
+          set -euxo pipefail
+          for variant in hamoni vanilla; do
+            if test "$variant" = hamoni; then asset="$HAMONI_ASSET"; else asset="$VANILLA_ASSET"; fi
+            deb="build/input/$asset"
+            member=$(ar t "$deb" | awk '/^data\.tar/{print; exit}')
+            test -n "$member"
+            ar p "$deb" "$member" >"build/input/${variant}-${member}"
+            tar -xf "build/input/${variant}-${member}" -C "build/root/$variant"
+            find "build/root/$variant" -type f -print0 | LC_ALL=C sort -z \
+              | xargs -0 sha256sum \
+              | sed "s#  build/root/$variant/#  /#" \
+              >"build/report/${variant}-files.sha256"
+            find "build/root/$variant" -type l -print0 | LC_ALL=C sort -z \
+              | while IFS= read -r -d '' link; do
+                  printf '%s  /%s\n' "$(readlink "$link")" "${link#build/root/$variant/}"
+                done >"build/report/${variant}-symlinks.txt"
+          done
+      - name: Classify every payload difference with HWord emphasis
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from __future__ import annotations
+          import json,os
+          from pathlib import Path
+
+          def manifest(path):
+              result={}
+              for line in Path(path).read_text(encoding='utf-8').splitlines():
+                  digest,name=line.split('  ',1)
+                  result[name]=digest
+              return result
+          hamoni=manifest('build/report/hamoni-files.sha256')
+          vanilla=manifest('build/report/vanilla-files.sha256')
+          all_paths=sorted(set(hamoni)|set(vanilla))
+          added=[]; removed=[]; changed=[]; identical=[]
+          for path in all_paths:
+              if path not in vanilla:
+                  added.append({'path':path,'hamoni_sha256':hamoni[path]})
+              elif path not in hamoni:
+                  removed.append({'path':path,'vanilla_sha256':vanilla[path]})
+              elif hamoni[path]!=vanilla[path]:
+                  changed.append({'path':path,'hamoni_sha256':hamoni[path],
+                                  'vanilla_sha256':vanilla[path]})
+              else:
+                  identical.append(path)
+          hword_prefixes=(
+              '/opt/hnc/hoffice11/Bin/hword',
+              '/opt/hnc/hoffice11/Bin/libHword',
+              '/opt/hnc/hoffice11/Bin/Hword',
+              '/opt/hnc/hoffice11/Shared/Hword',
+              '/opt/hnc/hoffice11/Shared/HWord',
+          )
+          def is_hword(path):
+              lower=path.lower()
+              return any(path.startswith(prefix) for prefix in hword_prefixes) or \
+                  'hwordtemplate' in lower or '/hword/' in lower
+          hword_added=[item for item in added if is_hword(item['path'])]
+          hword_removed=[item for item in removed if is_hword(item['path'])]
+          hword_changed=[item for item in changed if is_hword(item['path'])]
+          critical_names=(
+              '/opt/hnc/hoffice11/Bin/hword',
+              '/opt/hnc/hoffice11/Bin/libHwordApp.so',
+              '/opt/hnc/hoffice11/Bin/HwordAction.so',
+              '/opt/hnc/hoffice11/Shared/HwordTemplate/Docx/ko-KR/Document.hwdt',
+          )
+          critical={name:{'hamoni':hamoni.get(name),'vanilla':vanilla.get(name),
+                          'identical':hamoni.get(name)==vanilla.get(name) and name in hamoni}
+                    for name in critical_names}
+          if all(item['identical'] for item in critical.values()):
+              status='PASS'; classification='HAMONI_AND_VANILLA_CRITICAL_HWORD_PAYLOAD_IDENTICAL'
+          else:
+              status='DIAGNOSTIC'; classification='HAMONI_CRITICAL_HWORD_PAYLOAD_DIFFERS'
+          payload={
+              'schema':1,'workflow_run':os.environ['GITHUB_RUN_ID'],
+              'commit':os.environ['GITHUB_SHA'],'status':status,
+              'classification':classification,
+              'hamoni_asset':os.environ['HAMONI_ASSET'],
+              'hamoni_sha256':os.environ['HAMONI_SHA256'],
+              'vanilla_asset':os.environ['VANILLA_ASSET'],
+              'vanilla_sha256':os.environ['VANILLA_SHA256'],
+              'hamoni_file_count':len(hamoni),'vanilla_file_count':len(vanilla),
+              'identical_file_count':len(identical),
+              'added_count':len(added),'removed_count':len(removed),
+              'changed_count':len(changed),
+              'hword_added_count':len(hword_added),
+              'hword_removed_count':len(hword_removed),
+              'hword_changed_count':len(hword_changed),
+              'critical_hword_files':critical,
+              'hword_added':hword_added,'hword_removed':hword_removed,
+              'hword_changed':hword_changed,
+              'added':added,'removed':removed,'changed':changed,
+          }
+          encoded=json.dumps(payload,ensure_ascii=False,indent=2)+'\n'
+          Path('diagnostics/m11-hamoni-payload-diff-latest.json').write_text(
+              encoded,encoding='utf-8')
+          Path(f"diagnostics/m11-hamoni-payload-diff-{os.environ['GITHUB_RUN_ID']}.json").write_text(
+              encoded,encoding='utf-8')
+          Path('diagnostics/m11-hamoni-payload-diff-latest.md').write_text(
+              '# HamoniKR versus vanilla HOffice 11.20.0.1520\n\n'
+              f"- Status: `{status}`\n"
+              f"- Classification: `{classification}`\n"
+              f"- Added files: `{len(added)}`\n"
+              f"- Removed files: `{len(removed)}`\n"
+              f"- Changed files: `{len(changed)}`\n"
+              f"- Changed HWord files: `{len(hword_changed)}`\n",
+              encoding='utf-8')
+          Path('build/report/payload-diff.json').write_text(encoded,encoding='utf-8')
+          print(encoded)
+          PY
+      - name: Commit the durable payload comparison
+        run: |
+          set -euxo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add diagnostics/m11-hamoni-payload-diff-*.json \
+                  diagnostics/m11-hamoni-payload-diff-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'diagnostic: compare HamoniKR and vanilla HOffice payloads'
+          for attempt in $(seq 1 20); do
+            if git push origin HEAD:codex/hoffice-runtime-from-scratch; then exit 0; fi
+            git fetch origin codex/hoffice-runtime-from-scratch
+            git rebase origin/codex/hoffice-runtime-from-scratch
+            sleep "$attempt"
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hrt-m11-hamoni-payload-diff
+          path: |
+            build/report
+            diagnostics/m11-hamoni-payload-diff-*.json
+            diagnostics/m11-hamoni-payload-diff-latest.md
+          if-no-files-found: warn
+          retention-days: 14
