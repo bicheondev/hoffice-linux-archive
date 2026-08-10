@@ -11,10 +11,11 @@ uses an opening brace already present in an exact one-line signature, otherwise
 finds the first brace after a multiline signature, and then scans to the
 matching close.  Every v1 anchor and marker audit remains intact.
 
-The public v2 entry point then runs the reviewed v3 open-callsite postprocessor.
-The nested v2 invocation made by v3 is identified both by an explicit
-environment guard and by v3's private temporary-directory prefix, preventing
-recursion while preserving direct invocation of either entry point.
+The public v2 entry point then runs the reviewed open-callsite postprocessor
+through the v4 literal-escape wrapper.  The nested v2 invocation made by v3 is
+identified both by an explicit environment guard and by v3's private temporary
+directory prefix, preventing recursion while preserving direct invocation of
+any entry point.
 """
 from __future__ import annotations
 
@@ -99,7 +100,7 @@ def run_brace_scoped_v2() -> None:
     entry()
 
 
-def should_run_v3() -> bool:
+def should_run_open_context() -> bool:
     if os.environ.get("HRT_M11_DOCIO_V3_INNER") == "1":
         return False
     if len(sys.argv) != 3:
@@ -110,12 +111,13 @@ def should_run_v3() -> bool:
     return True
 
 
-def run_v3() -> None:
+def run_open_context() -> None:
     generator = Path(__file__).with_name(
-        "augment_hword_document_io_trace_v3.py"
+        "augment_hword_document_io_trace_v4.py"
     )
     if not generator.is_file():
-        raise SystemExit(f"open-callsite v3 generator not found: {generator}")
+        raise SystemExit(
+            f"open-callsite literal-escape wrapper not found: {generator}")
     environment = os.environ.copy()
     environment["HRT_M11_DOCIO_V3_INNER"] = "1"
     subprocess.run(
@@ -127,8 +129,8 @@ def run_v3() -> None:
 
 def main() -> None:
     run_brace_scoped_v2()
-    if should_run_v3():
-        run_v3()
+    if should_run_open_context():
+        run_open_context()
 
 
 if __name__ == "__main__":
