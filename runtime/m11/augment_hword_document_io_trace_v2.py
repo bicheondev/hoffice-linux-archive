@@ -38,7 +38,9 @@ def run_brace_scoped_v2() -> None:
     if start < 0 or end < 0:
         raise SystemExit("v1 function-range helper was not found")
 
-    replacement = '''def replace_in_function(
+    # Keep the generated Python source escapes literal.  In particular,
+    # replace("\n", "\\n") must survive this outer string unchanged.
+    replacement = r'''def replace_in_function(
     text: str,
     function_start: str,
     next_function_start: str,
